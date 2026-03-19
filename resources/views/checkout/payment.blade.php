@@ -26,19 +26,54 @@
         <div class="col-12 col-lg-7">
             <div class="card ck-card mb-4">
                 <div class="card-body p-4">
-                    <h5 class="fw-bold mb-3">Thông tin nhận hàng</h5>
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h5 class="fw-bold mb-0">Thông tin nhận hàng</h5>
+                        <span class="badge text-bg-light">Kiểm tra lại</span>
+                    </div>
+
                     <div class="ck-kv">
                         <div class="ck-k">Họ tên</div>
                         <div class="ck-v">{{ $validated['receiver_name'] }}</div>
                         <div class="ck-k">Số điện thoại</div>
                         <div class="ck-v">{{ $validated['receiver_phone'] }}</div>
-                        <div class="ck-k">Địa chỉ</div>
+                        <div class="ck-k">Địa chỉ giao hàng</div>
                         <div class="ck-v">{{ $validated['receiver_address'] }}</div>
-                        @if(!empty($validated['note']))
-                            <div class="ck-k">Ghi chú</div>
-                            <div class="ck-v">{{ $validated['note'] }}</div>
-                        @endif
                     </div>
+
+                    @php
+                        $hasInvoice = !empty($validated['customer_tax_code']) || !empty($validated['invoice_company_name']) || !empty($validated['invoice_address']);
+                    @endphp
+
+                    @if(!empty($validated['customer_email']) || $hasInvoice)
+                        <hr class="my-3">
+
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="fw-bold" style="color:#0f172a;">Thông tin xuất hoá đơn</div>
+                            <span class="badge text-bg-light">Tuỳ chọn</span>
+                        </div>
+
+                        <div class="ck-kv">
+                            @if(!empty($validated['customer_email']))
+                                <div class="ck-k">Email nhận duyệt đơn</div>
+                                <div class="ck-v">{{ $validated['customer_email'] }}</div>
+                            @endif
+
+                            @if(!empty($validated['customer_tax_code']))
+                                <div class="ck-k">Mã số thuế</div>
+                                <div class="ck-v">{{ $validated['customer_tax_code'] }}</div>
+                            @endif
+
+                            @if(!empty($validated['invoice_company_name']))
+                                <div class="ck-k">Tên công ty</div>
+                                <div class="ck-v">{{ $validated['invoice_company_name'] }}</div>
+                            @endif
+
+                            @if(!empty($validated['invoice_address']))
+                                <div class="ck-k">Địa chỉ công ty</div>
+                                <div class="ck-v">{{ $validated['invoice_address'] }}</div>
+                            @endif
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -160,9 +195,8 @@
     .ck-item__meta { font-size: 0.85rem; color: rgba(15,23,42,0.60); font-weight: 700; }
     .ck-item__price { font-weight: 900; color: #16a34a; }
 
-    .ck-kv { display: grid; grid-template-columns: 140px 1fr; gap: 6px 14px; }
-    .ck-k { font-weight: 500; }
-
+    .ck-kv { display: grid; grid-template-columns: 160px 1fr; gap: 6px 14px; }
+    .ck-k { font-weight: 700; color: rgba(15,23,42,0.65); }
     .ck-zalo { display: grid; gap: 8px; border: 1px solid rgba(15,23,42,0.10); border-radius: 14px; padding: 14px 14px; background: #fff; }
     .ck-zalo__title { font-weight: 900; color: #0f172a; }
     .ck-zalo__note { font-size: 0.92rem; color: rgba(15,23,42,0.60); font-weight: 700; }

@@ -64,54 +64,82 @@
                              <div class="text-muted" style="font-size:.85rem;">Ngày đặt</div>
                              <div class="fw-semibold">{{ $order->created_at->format('d/m/Y H:i') }}</div>
                          </div>
-                         <div class="col-md-6">
-                             <div class="text-muted" style="font-size:.85rem;">Phương thức thanh toán</div>
-                             <div class="fw-semibold">{{ strtoupper($order->payment_method) }}</div>
-                         </div>
                      </div>
                  </div>
              </div>
 
              <div class="card shadow-sm mt-4" style="border:none;border-radius:16px;">
-                 <div class="card-body">
-                     <div class="fw-bold mb-3" style="font-size:1.05rem;color:#0f172a;">Thông tin khách hàng</div>
-                     <div class="row g-3">
-                         <div class="col-md-6">
-                             <div class="text-muted" style="font-size:.85rem;">Người nhận</div>
-                             <div class="fw-semibold">{{ $order->receiver_name }}</div>
-                         </div>
-                         <div class="col-md-6">
-                             <div class="text-muted" style="font-size:.85rem;">SĐT</div>
-                             <div class="fw-semibold">{{ $order->receiver_phone }}</div>
-                         </div>
-                         <div class="col-12">
-                             <div class="text-muted" style="font-size:.85rem;">Địa chỉ</div>
-                             <div class="fw-semibold">{{ $order->receiver_address }}</div>
-                         </div>
-                         @if($order->note)
-                             <div class="col-12">
-                                 <div class="text-muted" style="font-size:.85rem;">Ghi chú</div>
-                                 <div class="fw-semibold">{{ $order->note }}</div>
-                             </div>
-                         @endif
-                     </div>
-                 </div>
-             </div>
+                <div class="card-body">
+                    @php
+                        $hasInvoiceInfo = !empty($order->customer_email)
+                            || !empty($order->customer_tax_code)
+                            || !empty($order->invoice_company_name)
+                            || !empty($order->invoice_address);
+                    @endphp
 
-             <div class="card shadow-sm mt-4" style="border:none;border-radius:16px;">
-                 <div class="card-body">
-                     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                         <div class="fw-bold" style="font-size:1.05rem;color:#0f172a;">Preview báo giá</div>
-                         <div class="d-flex gap-2">
-                             <a class="btn btn-outline-primary btn-sm fw-bold" href="{{ $quoteUrl }}" target="_blank" rel="noopener">Mở full</a>
-                         </div>
-                     </div>
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div class="fw-bold" style="font-size:1.05rem;color:#0f172a;">Thông tin khách hàng</div>
+                        <span class="badge text-bg-light" style="border-radius:999px;">Nhận hàng</span>
+                    </div>
 
-                     <div style="height: 720px; border: 1px solid rgba(15, 23, 42, 0.12); border-radius: 12px; overflow: hidden;">
-                         <iframe src="{{ $quoteEmbedUrl }}" style="width:100%;height:100%;border:0;" loading="lazy"></iframe>
-                     </div>
-                 </div>
-             </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="text-muted" style="font-size:.85rem;">Người nhận</div>
+                            <div class="fw-semibold">{{ $order->receiver_name }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-muted" style="font-size:.85rem;">SĐT</div>
+                            <div class="fw-semibold">{{ $order->receiver_phone }}</div>
+                        </div>
+                        <div class="col-12">
+                            <div class="text-muted" style="font-size:.85rem;">Địa chỉ giao hàng</div>
+                            <div class="fw-semibold">{{ $order->receiver_address }}</div>
+                        </div>
+                        @if($order->note)
+                            <div class="col-12">
+                                <div class="text-muted" style="font-size:.85rem;">Ghi chú</div>
+                                <div class="fw-semibold">{{ $order->note }}</div>
+                            </div>
+                        @endif
+                    </div>
+
+                    @if($hasInvoiceInfo)
+                        <hr class="my-3">
+
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="fw-bold" style="font-size:1.0rem;color:#0f172a;">Thông tin xuất hoá đơn</div>
+                            <span class="badge text-bg-light" style="border-radius:999px;">Tuỳ chọn</span>
+                        </div>
+
+                        <div class="row g-3">
+                            @if(!empty($order->customer_email))
+                                <div class="col-md-6">
+                                    <div class="text-muted" style="font-size:.85rem;">Email nhận duyệt đơn</div>
+                                    <div class="fw-semibold">{{ $order->customer_email }}</div>
+                                </div>
+                            @endif
+                            @if(!empty($order->customer_tax_code))
+                                <div class="col-md-6">
+                                    <div class="text-muted" style="font-size:.85rem;">Mã số thuế</div>
+                                    <div class="fw-semibold">{{ $order->customer_tax_code }}</div>
+                                </div>
+                            @endif
+                            @if(!empty($order->invoice_company_name))
+                                <div class="col-12">
+                                    <div class="text-muted" style="font-size:.85rem;">Tên công ty</div>
+                                    <div class="fw-semibold">{{ $order->invoice_company_name }}</div>
+                                </div>
+                            @endif
+                            @if(!empty($order->invoice_address))
+                                <div class="col-12">
+                                    <div class="text-muted" style="font-size:.85rem;">Địa chỉ công ty</div>
+                                    <div class="fw-semibold">{{ $order->invoice_address }}</div>
+                                </div>
+                            @endif
+                        </div>
+                    @endif
+                </div>
+            </div>
          </div>
 
          <div class="col-lg-4">
@@ -135,7 +163,7 @@
                                  </select>
                              </div>
                              <div class="col-12 d-grid">
-                                 <button type="submit" class="btn btn-success fw-bold">Cập nhật</button>
+                                 <button type="submit" class="btn btn-success">Cập nhật</button>
                              </div>
                          </div>
                      </form>
@@ -148,17 +176,26 @@
                      </div>
 
                      <div class="row g-2 mt-3">
-                         <div class="col-12 d-grid">
-                             <a class="btn btn-outline-primary fw-bold" href="{{ $quoteUrl }}" target="_blank" rel="noopener">In</a>
+                         <div class="col-12">
+                             <div class="text-muted" style="font-size:.85rem;">Thao tác nhanh</div>
                          </div>
+
                          <div class="col-12 d-grid">
-                             <a class="btn btn-outline-secondary fw-bold" href="{{ $quoteUrl }}" target="_blank" rel="noopener">Xuất PDF</a>
+                             <a class="btn btn-outline-primary" href="{{ $quoteUrl }}" target="_blank" rel="noopener">Mở báo giá</a>
                          </div>
+
+                         <div class="col-6 d-grid">
+                             <a class="btn btn-outline-secondary" href="{{ $quoteUrl }}" target="_blank" rel="noopener">In</a>
+                         </div>
+                         <div class="col-6 d-grid">
+                             <a class="btn btn-outline-secondary" href="{{ $quoteUrl }}" target="_blank" rel="noopener">Xuất PDF</a>
+                         </div>
+
                          <div class="col-12 d-grid">
                              @if($mailTo)
-                                 <a class="btn btn-outline-success fw-bold" href="{{ $mailTo }}">Gửi email</a>
+                                 <a class="btn btn-outline-success" href="{{ $mailTo }}">Gửi email</a>
                              @else
-                                 <button class="btn btn-outline-success fw-bold" type="button" disabled>Gửi email</button>
+                                 <button class="btn btn-outline-success" type="button" disabled>Gửi email</button>
                              @endif
                          </div>
                      </div>
