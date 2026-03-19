@@ -6,6 +6,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\WarrantyController;
+use Illuminate\Support\Facades\Http;
 
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -65,6 +66,49 @@ Route::get('/sitemap.xml', function () {
 Route::get('/test', function() {
     return view('test');
 })->name('test');
+
+Route::get('/api/tax-code/{taxCode}', function (string $taxCode) {
+    $taxCode = preg_replace('/\s+/', '', trim((string) $taxCode));
+    if ($taxCode === '' || strlen($taxCode) < 8) {
+        return response()->json([
+            'ok' => false,
+            'message' => 'Mã số thuế không hợp lệ.',
+        ], 422);
+    }
+
+    try {
+        $res = Http::timeout(10)
+            ->acceptJson()
+            ->get('https://api.vietqr.io/v2/business/' . urlencode($taxCode));
+
+        if (!$res->ok()) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Không tra cứu được mã số thuế.',
+            ], 502);
+        }
+
+        $json = $res->json();
+        $data = is_array($json) ? ($json['data'] ?? null) : null;
+
+        $name = is_array($data) ? (string) ($data['name'] ?? '') : '';
+        $address = is_array($data) ? (string) ($data['address'] ?? '') : '';
+
+        return response()->json([
+            'ok' => true,
+            'data' => [
+                'tax_code' => $taxCode,
+                'name' => $name,
+                'address' => $address,
+            ],
+        ]);
+    } catch (\Throwable $e) {
+        return response()->json([
+            'ok' => false,
+            'message' => 'Có lỗi khi tra cứu mã số thuế.',
+        ], 500);
+    }
+})->name('api.tax-code.lookup');
 Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('category.show');
 Route::get('/product/{slug}', [HomeController::class, 'showProduct'])->name('product.show');
 Route::post('/cart/add/{productId}', [CartController::class, 'addToCart'])->name('cart.add');

@@ -242,6 +242,12 @@ class CartController extends Controller
             'receiver_address_detail' => 'required|string|max:255',
             'receiver_address' => 'nullable|string|max:255',
             'note' => 'nullable|string|max:255',
+            'customer_tax_code' => 'nullable|string|max:50',
+            'invoice_company_name' => 'nullable|string|max:255',
+            'invoice_address' => 'nullable|string|max:255',
+            'customer_email' => 'nullable|email|max:255',
+            'customer_phone' => 'nullable|string|max:50',
+            'customer_contact_person' => 'nullable|string|max:100',
         ]);
 
         $receiverAddress = trim((string) ($validated['receiver_address'] ?? ''));
@@ -362,6 +368,12 @@ class CartController extends Controller
             'receiver_name' => $checkoutInfo['receiver_name'],
             'receiver_phone' => $checkoutInfo['receiver_phone'],
             'receiver_address' => $checkoutInfo['receiver_address'],
+            'invoice_company_name' => $checkoutInfo['invoice_company_name'] ?? null,
+            'invoice_address' => $checkoutInfo['invoice_address'] ?? null,
+            'customer_tax_code' => $checkoutInfo['customer_tax_code'] ?? null,
+            'customer_phone' => $checkoutInfo['customer_phone'] ?? null,
+            'customer_email' => $checkoutInfo['customer_email'] ?? null,
+            'customer_contact_person' => $checkoutInfo['customer_contact_person'] ?? null,
             'note' => $checkoutInfo['note'] ?? null,
             'payment_method' => $paymentMethod,
             'status' => 'pending',

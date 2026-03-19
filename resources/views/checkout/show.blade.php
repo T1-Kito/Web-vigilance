@@ -45,13 +45,35 @@
                         </div>
 
                         <div class="row g-3">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Mã số thuế</label>
+                                <div class="input-group">
+                                    <input type="text" name="customer_tax_code" id="customer_tax_code" class="form-control ck-control" value="{{ old('customer_tax_code') }}" placeholder="VD: 0312345678">
+                                    <button class="btn btn-outline-secondary" type="button" id="btn_change_tax" style="display:none;">Đổi MST</button>
+                                </div>
+                                <div id="tax_lookup_hint" class="form-text" style="display:none"></div>
+                            </div>
+                            <div class="col-md-4">
                                 <label class="form-label fw-semibold">Họ tên người nhận <span class="text-danger">*</span></label>
                                 <input type="text" name="receiver_name" class="form-control ck-control" required value="{{ old('receiver_name') }}">
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label class="form-label fw-semibold">Số điện thoại liên hệ <span class="text-danger">*</span></label>
                                 <input type="text" name="receiver_phone" class="form-control ck-control" required pattern="[0-9]{9,12}" value="{{ old('receiver_phone') }}">
+                            </div>
+
+                            <div id="invoice_fields" class="col-12" style="display:none;">
+                                <div class="row g-3">
+                                    <div class="col-md-8">
+                                        <label class="form-label fw-semibold">Tên công ty</label>
+                                        <input type="text" name="invoice_company_name" id="invoice_company_name" class="form-control ck-control bg-light" value="{{ old('invoice_company_name') }}" placeholder="Tự động điền theo MST" readonly>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <label class="form-label fw-semibold">Địa chỉ công ty</label>
+                                        <input type="text" name="invoice_address" id="invoice_address" class="form-control ck-control bg-light" value="{{ old('invoice_address') }}" placeholder="Tự động điền theo MST" readonly>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="col-12">
@@ -80,8 +102,9 @@
                             </div>
 
                             <div class="col-12">
-                                <label class="form-label fw-semibold">Ghi chú thêm</label>
-                                <textarea name="note" class="form-control ck-control" rows="2" placeholder="Ví dụ: giao giờ hành chính, xuất hóa đơn...">{{ old('note') }}</textarea>
+                                <label class="form-label fw-semibold">Email</label>
+                                <div class="text-muted" style="font-size:.9rem;">Email này sẽ nhận tin nhắn khi đơn hàng được duyệt</div>
+                                <input type="email" name="customer_email" class="form-control ck-control" value="{{ old('customer_email') }}" placeholder="Nhập email của bạn">
                             </div>
                         </div>
                     </div>
@@ -92,6 +115,160 @@
                 </div>
             </form>
         </div>
+
+        <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const taxEl = document.getElementById('customer_tax_code');
+            const invoiceFieldsEl = document.getElementById('invoice_fields');
+            const companyEl = document.getElementById('invoice_company_name');
+            const addrEl = document.getElementById('invoice_address');
+            const hintEl = document.getElementById('tax_lookup_hint');
+            const btnChangeTaxEl = document.getElementById('btn_change_tax');
+
+            if (!taxEl || !invoiceFieldsEl || !companyEl || !addrEl || !hintEl || !btnChangeTaxEl) return;
+
+            let timer = null;
+            let lastTax = '';
+            let inFlight = null;
+
+            function setHint(text, kind) {
+                hintEl.textContent = text || '';
+                hintEl.classList.remove('text-success', 'text-danger', 'text-muted');
+                if (kind) {
+                    hintEl.classList.add(kind);
+                }
+                hintEl.style.display = text ? '' : 'none';
+            }
+
+            function showInvoiceFields(show) {
+                invoiceFieldsEl.style.display = show ? '' : 'none';
+            }
+
+            function setTaxLocked(locked) {
+                taxEl.readOnly = !!locked;
+                if (locked) {
+                    taxEl.classList.add('bg-light');
+                } else {
+                    taxEl.classList.remove('bg-light');
+                }
+                btnChangeTaxEl.style.display = locked ? '' : 'none';
+            }
+
+            function resetInvoiceInfo() {
+                lastTax = '';
+                if (inFlight && typeof inFlight.abort === 'function') {
+                    inFlight.abort();
+                }
+                showInvoiceFields(false);
+                companyEl.value = '';
+                addrEl.value = '';
+                setHint('', null);
+                setTaxLocked(false);
+            }
+
+            function normalizeTax(v) {
+                return (v || '').toString().trim().replace(/\s+/g, '');
+            }
+
+            async function lookupTaxCode(tax) {
+                if (!tax) return;
+                if (tax === lastTax) return;
+
+                if (inFlight && typeof inFlight.abort === 'function') {
+                    inFlight.abort();
+                }
+                inFlight = new AbortController();
+
+                setHint('Đang tra cứu mã số thuế...', 'text-muted');
+                try {
+                    const res = await fetch(`/api/tax-code/${encodeURIComponent(tax)}`, {
+                        method: 'GET',
+                        headers: { 'Accept': 'application/json' },
+                        signal: inFlight.signal,
+                    });
+                    const payload = await res.json().catch(() => null);
+                    if (!res.ok) {
+                        setHint('Hệ thống không tìm thấy mã số thuế hoặc mã số thuế không đúng.', 'text-danger');
+                        lastTax = '';
+                        showInvoiceFields(false);
+                        return;
+                    }
+
+                    const name = payload && payload.data ? (payload.data.name || '') : '';
+                    const address = payload && payload.data ? (payload.data.address || '') : '';
+
+                    if (name || address) {
+                        lastTax = tax;
+                        showInvoiceFields(true);
+                        if (name) companyEl.value = name;
+                        if (address) addrEl.value = address;
+                        setHint('Đã lấy thông tin công ty từ mã số thuế.', 'text-success');
+                        setTaxLocked(true);
+                    } else {
+                        showInvoiceFields(false);
+                        setHint('Hệ thống không tìm thấy mã số thuế.', 'text-danger');
+                        lastTax = '';
+                        setTaxLocked(false);
+                    }
+                } catch (e) {
+                    if (e && e.name === 'AbortError') {
+                        lastTax = '';
+                        return;
+                    }
+                    lastTax = '';
+                    showInvoiceFields(false);
+                    setTaxLocked(false);
+                    setHint('Có lỗi khi tra cứu mã số thuế.', 'text-danger');
+                }
+            }
+
+            function scheduleLookup() {
+                if (timer) clearTimeout(timer);
+                timer = setTimeout(() => {
+                    const tax = normalizeTax(taxEl.value);
+                    if (!tax) {
+                        resetInvoiceInfo();
+                        return;
+                    }
+
+                    if (tax.length < 8) {
+                        showInvoiceFields(false);
+                        setHint('', null);
+                        setTaxLocked(false);
+                        return;
+                    }
+
+                    if (lastTax && tax !== lastTax) {
+                        showInvoiceFields(true);
+                        setHint('Vui lòng xóa mã số cũ và nhập lại từ đầu.', 'text-danger');
+                        return;
+                    }
+
+                    showInvoiceFields(true);
+                    lookupTaxCode(tax);
+                }, 350);
+            }
+
+            taxEl.addEventListener('input', scheduleLookup);
+            taxEl.addEventListener('blur', scheduleLookup);
+
+            btnChangeTaxEl.addEventListener('click', function () {
+                taxEl.value = '';
+                resetInvoiceInfo();
+                taxEl.focus();
+            });
+
+            const initial = normalizeTax(taxEl.value);
+            if (initial) {
+                showInvoiceFields(false);
+                setTaxLocked(false);
+                scheduleLookup();
+            } else {
+                showInvoiceFields(false);
+                setTaxLocked(false);
+            }
+        });
+        </script>
 
         <div class="col-12 col-lg-5">
             <div class="ck-sticky">
