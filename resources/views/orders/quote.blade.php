@@ -433,7 +433,7 @@
 
                     <div class="sep"></div>
 
-                    <div><b>Bảo hành (Warranty):</b> Tất cả sản phẩm do Vigilance Việt Nam phân phối đều được tiếp nhận và bảo hành tại trụ sở chính của công ty: G4, Cư xá Vĩnh Hội, Phường Khánh Hội, Tp HCM.</div>
+                    <div><b>Bảo hành (Warranty):</b> Tất cả sản phẩm do Vigilance Việt Nam phân phối đều được tiếp nhận và bảo hành tại trụ sở chính của công ty: 96 Đường số 14, KDC Him Lam, Phường Tân Hưng,TP.HCM.</div>
 
                     <div class="sep"></div>
 
