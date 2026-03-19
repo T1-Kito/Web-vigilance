@@ -1,0 +1,145 @@
+/* Custom Font Sizes - Override Bootstrap and Tailwind */
+
+/* Product card titles */
+.card-title {
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    line-height: 1.25 !important;
+}
+
+/* Product names in various sections */
+.product-name,
+.product-title,
+h6.card-title {
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    line-height: 1.25 !important;
+}
+
+/* Related products */
+.related-product .card-title {
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    line-height: 1.25 !important;
+}
+
+/* Category page products */
+.category-product .card-title {
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    line-height: 1.25 !important;
+}
+
+/* Cart page products */
+.cart-product-name {
+    font-size: 0.98rem !important;
+    font-weight: 700 !important;
+    line-height: 1.3 !important;
+}
+
+/* Override Tailwind text classes */
+.text-sm {
+    font-size: 0.92rem !important;
+}
+
+.text-base {
+    font-size: 0.95rem !important;
+}
+
+.text-lg {
+    font-size: 1rem !important;
+}
+
+.text-xl {
+    font-size: 1.05rem !important;
+}
+
+.text-2xl {
+    font-size: 1.1rem !important;
+}
+
+/* Product descriptions */
+.product-description,
+.card-text {
+    font-size: 0.95rem !important;
+    line-height: 1.5 !important;
+}
+
+/* Price text */
+.price-text,
+.price,
+.fw-bold {
+    font-size: 0.98rem !important;
+    font-weight: 600 !important;
+}
+
+/* Button text */
+.btn {
+    font-size: 0.95rem !important;
+    font-weight: 500 !important;
+}
+
+/* Form labels */
+.form-label {
+    font-size: 0.95rem !important;
+    font-weight: 500 !important;
+}
+
+/* Navigation text */
+.nav-link {
+    font-size: 0.95rem !important;
+}
+
+/* Footer text */
+.footer-text {
+    font-size: 0.92rem !important;
+}
+
+/* Specific product page classes */
+.product-detail-title {
+    font-size: 2.5rem !important;
+    font-weight: 800 !important;
+    line-height: 1.2 !important;
+}
+
+/* Home page product cards */
+.home-product .card-title {
+    font-size: 2rem !important;
+    font-weight: 700 !important;
+    line-height: 1.3 !important;
+}
+
+/* All card titles in general */
+.card .card-title {
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    line-height: 1.25 !important;
+}
+
+/* Buttons */
+.btn {
+    font-size: 1.2rem !important;
+    font-weight: 500 !important;
+}
+
+/* Form elements */
+.form-control,
+.form-label {
+    font-size: 1.1rem !important;
+}
+
+/* Navigation */
+.navbar-nav .nav-link {
+    font-size: 1.1rem !important;
+}
+
+/* Headers */
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 700 !important;
+}
+h1 { font-size: 1.1rem !important; }
+h2 { font-size: 1.05rem !important; }
+h3 { font-size: 1rem !important; }
+h4 { font-size: 0.98rem !important; }
+h5 { font-size: 0.97rem !important; }
+h6 { font-size: 0.95rem !important; } 

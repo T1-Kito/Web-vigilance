@@ -1,0 +1,179 @@
+[04-Aug-2025 01:43:29 UTC] PHP Warning:  require_once(/home/agajcvso/public_html/vendor/autoload.php): Failed to open stream: No such file or directory in /home/agajcvso/public_html/debug_image_path.php on line 39
+[04-Aug-2025 01:43:29 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/agajcvso/public_html/vendor/autoload.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/agajcvso/public_html/debug_image_path.php:39
+Stack trace:
+#0 {main}
+  thrown in /home/agajcvso/public_html/debug_image_path.php on line 39
+[04-Aug-2025 01:43:59 UTC] PHP Warning:  Undefined variable $targetProductsPath in /home/agajcvso/public_html/fix_image_structure.php on line 87
+[04-Aug-2025 01:44:23 UTC] PHP Warning:  Undefined variable $targetProductsPath in /home/agajcvso/public_html/fix_image_structure.php on line 87
+[04-Aug-2025 01:47:53 UTC] PHP Warning:  symlink(): File exists in /home/agajcvso/public_html/fix_laravel_path.php on line 41
+[04-Aug-2025 01:47:53 UTC] PHP Warning:  require_once(/home/agajcvso/public_html/vendor/autoload.php): Failed to open stream: No such file or directory in /home/agajcvso/public_html/fix_laravel_path.php on line 49
+[04-Aug-2025 01:47:53 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/agajcvso/public_html/vendor/autoload.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/agajcvso/public_html/fix_laravel_path.php:49
+Stack trace:
+#0 {main}
+  thrown in /home/agajcvso/public_html/fix_laravel_path.php on line 49
+[04-Aug-2025 01:48:04 UTC] PHP Warning:  symlink(): File exists in /home/agajcvso/public_html/fix_laravel_path.php on line 41
+[04-Aug-2025 01:48:04 UTC] PHP Warning:  require_once(/home/agajcvso/public_html/vendor/autoload.php): Failed to open stream: No such file or directory in /home/agajcvso/public_html/fix_laravel_path.php on line 49
+[04-Aug-2025 01:48:04 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/agajcvso/public_html/vendor/autoload.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/agajcvso/public_html/fix_laravel_path.php:49
+Stack trace:
+#0 {main}
+  thrown in /home/agajcvso/public_html/fix_laravel_path.php on line 49
+[04-Aug-2025 01:48:41 UTC] PHP Warning:  symlink(): File exists in /home/agajcvso/public_html/fix_laravel_path.php on line 41
+[04-Aug-2025 01:48:41 UTC] PHP Warning:  require_once(/home/agajcvso/public_html/vendor/autoload.php): Failed to open stream: No such file or directory in /home/agajcvso/public_html/fix_laravel_path.php on line 49
+[04-Aug-2025 01:48:41 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/agajcvso/public_html/vendor/autoload.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/agajcvso/public_html/fix_laravel_path.php:49
+Stack trace:
+#0 {main}
+  thrown in /home/agajcvso/public_html/fix_laravel_path.php on line 49
+[04-Aug-2025 01:49:53 UTC] PHP Warning:  symlink(): File exists in /home/agajcvso/public_html/fix_laravel_path.php on line 41
+[04-Aug-2025 01:49:53 UTC] PHP Warning:  require_once(/home/agajcvso/public_html/vendor/autoload.php): Failed to open stream: No such file or directory in /home/agajcvso/public_html/fix_laravel_path.php on line 49
+[04-Aug-2025 01:49:53 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/agajcvso/public_html/vendor/autoload.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/agajcvso/public_html/fix_laravel_path.php:49
+Stack trace:
+#0 {main}
+  thrown in /home/agajcvso/public_html/fix_laravel_path.php on line 49
+[04-Aug-2025 01:50:30 UTC] PHP Warning:  Undefined variable $targetProductsPath in /home/agajcvso/public_html/fix_image_structure.php on line 87
+[04-Aug-2025 01:50:50 UTC] PHP Warning:  Undefined variable $targetProductsPath in /home/agajcvso/public_html/fix_image_structure.php on line 87
+[04-Aug-2025 01:54:53 UTC] PHP Warning:  require_once(/home/agajcvso/public_html/vendor/autoload.php): Failed to open stream: No such file or directory in /home/agajcvso/public_html/test_image_direct.php on line 39
+[04-Aug-2025 01:54:53 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/agajcvso/public_html/vendor/autoload.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/agajcvso/public_html/test_image_direct.php:39
+Stack trace:
+#0 {main}
+  thrown in /home/agajcvso/public_html/test_image_direct.php on line 39
+[04-Aug-2025 01:55:42 UTC] PHP Warning:  require_once(/home/agajcvso/public_html/vendor/autoload.php): Failed to open stream: No such file or directory in /home/agajcvso/public_html/test_image_direct.php on line 39
+[04-Aug-2025 01:55:42 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/agajcvso/public_html/vendor/autoload.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/agajcvso/public_html/test_image_direct.php:39
+Stack trace:
+#0 {main}
+  thrown in /home/agajcvso/public_html/test_image_direct.php on line 39
+[04-Aug-2025 02:16:14 UTC] PHP Fatal error:  Uncaught UnexpectedValueException: RecursiveDirectoryIterator::__construct(/home/agajcvso/public_html/resources/views): Failed to open directory: No such file or directory in /home/agajcvso/public_html/fix_all_image_paths.php:16
+Stack trace:
+#0 /home/agajcvso/public_html/fix_all_image_paths.php(16): RecursiveDirectoryIterator->__construct()
+#1 {main}
+  thrown in /home/agajcvso/public_html/fix_all_image_paths.php on line 16
+[04-Aug-2025 02:16:52 UTC] PHP Fatal error:  Uncaught UnexpectedValueException: RecursiveDirectoryIterator::__construct(/home/agajcvso/public_html/resources/views): Failed to open directory: No such file or directory in /home/agajcvso/public_html/fix_all_image_paths.php:16
+Stack trace:
+#0 /home/agajcvso/public_html/fix_all_image_paths.php(16): RecursiveDirectoryIterator->__construct()
+#1 {main}
+  thrown in /home/agajcvso/public_html/fix_all_image_paths.php on line 16
+[04-Aug-2025 02:16:53 UTC] PHP Fatal error:  Uncaught UnexpectedValueException: RecursiveDirectoryIterator::__construct(/home/agajcvso/public_html/resources/views): Failed to open directory: No such file or directory in /home/agajcvso/public_html/fix_all_image_paths.php:16
+Stack trace:
+#0 /home/agajcvso/public_html/fix_all_image_paths.php(16): RecursiveDirectoryIterator->__construct()
+#1 {main}
+  thrown in /home/agajcvso/public_html/fix_all_image_paths.php on line 16
+[04-Aug-2025 02:16:53 UTC] PHP Fatal error:  Uncaught UnexpectedValueException: RecursiveDirectoryIterator::__construct(/home/agajcvso/public_html/resources/views): Failed to open directory: No such file or directory in /home/agajcvso/public_html/fix_all_image_paths.php:16
+Stack trace:
+#0 /home/agajcvso/public_html/fix_all_image_paths.php(16): RecursiveDirectoryIterator->__construct()
+#1 {main}
+  thrown in /home/agajcvso/public_html/fix_all_image_paths.php on line 16
+[04-Aug-2025 02:16:53 UTC] PHP Fatal error:  Uncaught UnexpectedValueException: RecursiveDirectoryIterator::__construct(/home/agajcvso/public_html/resources/views): Failed to open directory: No such file or directory in /home/agajcvso/public_html/fix_all_image_paths.php:16
+Stack trace:
+#0 /home/agajcvso/public_html/fix_all_image_paths.php(16): RecursiveDirectoryIterator->__construct()
+#1 {main}
+  thrown in /home/agajcvso/public_html/fix_all_image_paths.php on line 16
+[04-Aug-2025 02:16:53 UTC] PHP Fatal error:  Uncaught UnexpectedValueException: RecursiveDirectoryIterator::__construct(/home/agajcvso/public_html/resources/views): Failed to open directory: No such file or directory in /home/agajcvso/public_html/fix_all_image_paths.php:16
+Stack trace:
+#0 /home/agajcvso/public_html/fix_all_image_paths.php(16): RecursiveDirectoryIterator->__construct()
+#1 {main}
+  thrown in /home/agajcvso/public_html/fix_all_image_paths.php on line 16
+[04-Aug-2025 02:16:54 UTC] PHP Fatal error:  Uncaught UnexpectedValueException: RecursiveDirectoryIterator::__construct(/home/agajcvso/public_html/resources/views): Failed to open directory: No such file or directory in /home/agajcvso/public_html/fix_all_image_paths.php:16
+Stack trace:
+#0 /home/agajcvso/public_html/fix_all_image_paths.php(16): RecursiveDirectoryIterator->__construct()
+#1 {main}
+  thrown in /home/agajcvso/public_html/fix_all_image_paths.php on line 16
+[04-Aug-2025 02:16:54 UTC] PHP Fatal error:  Uncaught UnexpectedValueException: RecursiveDirectoryIterator::__construct(/home/agajcvso/public_html/resources/views): Failed to open directory: No such file or directory in /home/agajcvso/public_html/fix_all_image_paths.php:16
+Stack trace:
+#0 /home/agajcvso/public_html/fix_all_image_paths.php(16): RecursiveDirectoryIterator->__construct()
+#1 {main}
+  thrown in /home/agajcvso/public_html/fix_all_image_paths.php on line 16
+[04-Aug-2025 02:16:54 UTC] PHP Fatal error:  Uncaught UnexpectedValueException: RecursiveDirectoryIterator::__construct(/home/agajcvso/public_html/resources/views): Failed to open directory: No such file or directory in /home/agajcvso/public_html/fix_all_image_paths.php:16
+Stack trace:
+#0 /home/agajcvso/public_html/fix_all_image_paths.php(16): RecursiveDirectoryIterator->__construct()
+#1 {main}
+  thrown in /home/agajcvso/public_html/fix_all_image_paths.php on line 16
+[04-Aug-2025 02:16:54 UTC] PHP Fatal error:  Uncaught UnexpectedValueException: RecursiveDirectoryIterator::__construct(/home/agajcvso/public_html/resources/views): Failed to open directory: No such file or directory in /home/agajcvso/public_html/fix_all_image_paths.php:16
+Stack trace:
+#0 /home/agajcvso/public_html/fix_all_image_paths.php(16): RecursiveDirectoryIterator->__construct()
+#1 {main}
+  thrown in /home/agajcvso/public_html/fix_all_image_paths.php on line 16
+[04-Aug-2025 02:16:54 UTC] PHP Fatal error:  Uncaught UnexpectedValueException: RecursiveDirectoryIterator::__construct(/home/agajcvso/public_html/resources/views): Failed to open directory: No such file or directory in /home/agajcvso/public_html/fix_all_image_paths.php:16
+Stack trace:
+#0 /home/agajcvso/public_html/fix_all_image_paths.php(16): RecursiveDirectoryIterator->__construct()
+#1 {main}
+  thrown in /home/agajcvso/public_html/fix_all_image_paths.php on line 16
+[04-Aug-2025 02:16:54 UTC] PHP Fatal error:  Uncaught UnexpectedValueException: RecursiveDirectoryIterator::__construct(/home/agajcvso/public_html/resources/views): Failed to open directory: No such file or directory in /home/agajcvso/public_html/fix_all_image_paths.php:16
+Stack trace:
+#0 /home/agajcvso/public_html/fix_all_image_paths.php(16): RecursiveDirectoryIterator->__construct()
+#1 {main}
+  thrown in /home/agajcvso/public_html/fix_all_image_paths.php on line 16
+[04-Aug-2025 02:16:55 UTC] PHP Fatal error:  Uncaught UnexpectedValueException: RecursiveDirectoryIterator::__construct(/home/agajcvso/public_html/resources/views): Failed to open directory: No such file or directory in /home/agajcvso/public_html/fix_all_image_paths.php:16
+Stack trace:
+#0 /home/agajcvso/public_html/fix_all_image_paths.php(16): RecursiveDirectoryIterator->__construct()
+#1 {main}
+  thrown in /home/agajcvso/public_html/fix_all_image_paths.php on line 16
+[04-Aug-2025 02:16:55 UTC] PHP Fatal error:  Uncaught UnexpectedValueException: RecursiveDirectoryIterator::__construct(/home/agajcvso/public_html/resources/views): Failed to open directory: No such file or directory in /home/agajcvso/public_html/fix_all_image_paths.php:16
+Stack trace:
+#0 /home/agajcvso/public_html/fix_all_image_paths.php(16): RecursiveDirectoryIterator->__construct()
+#1 {main}
+  thrown in /home/agajcvso/public_html/fix_all_image_paths.php on line 16
+[04-Aug-2025 02:16:55 UTC] PHP Fatal error:  Uncaught UnexpectedValueException: RecursiveDirectoryIterator::__construct(/home/agajcvso/public_html/resources/views): Failed to open directory: No such file or directory in /home/agajcvso/public_html/fix_all_image_paths.php:16
+Stack trace:
+#0 /home/agajcvso/public_html/fix_all_image_paths.php(16): RecursiveDirectoryIterator->__construct()
+#1 {main}
+  thrown in /home/agajcvso/public_html/fix_all_image_paths.php on line 16
+[04-Aug-2025 02:18:16 UTC] PHP Fatal error:  Uncaught UnexpectedValueException: RecursiveDirectoryIterator::__construct(/home/agajcvso/public_html/resources/views): Failed to open directory: No such file or directory in /home/agajcvso/public_html/fix_all_image_paths.php:16
+Stack trace:
+#0 /home/agajcvso/public_html/fix_all_image_paths.php(16): RecursiveDirectoryIterator->__construct()
+#1 {main}
+  thrown in /home/agajcvso/public_html/fix_all_image_paths.php on line 16
+[13-Aug-2025 10:29:57 UTC] PHP Fatal error:  Uncaught Error: Call to a member function handleRequest() on int in /home/agajcvso/public_html/index.php:16
+Stack trace:
+#0 {main}
+  thrown in /home/agajcvso/public_html/index.php on line 16
+[13-Aug-2025 10:29:59 UTC] PHP Fatal error:  Uncaught Error: Call to a member function handleRequest() on int in /home/agajcvso/public_html/index.php:16
+Stack trace:
+#0 {main}
+  thrown in /home/agajcvso/public_html/index.php on line 16
+[13-Aug-2025 10:30:00 UTC] PHP Fatal error:  Uncaught Error: Call to a member function handleRequest() on int in /home/agajcvso/public_html/index.php:16
+Stack trace:
+#0 {main}
+  thrown in /home/agajcvso/public_html/index.php on line 16
+[13-Aug-2025 10:30:03 UTC] PHP Fatal error:  Uncaught Error: Call to a member function handleRequest() on int in /home/agajcvso/public_html/index.php:16
+Stack trace:
+#0 {main}
+  thrown in /home/agajcvso/public_html/index.php on line 16
+[13-Aug-2025 10:30:04 UTC] PHP Fatal error:  Uncaught Error: Call to a member function handleRequest() on int in /home/agajcvso/public_html/index.php:16
+Stack trace:
+#0 {main}
+  thrown in /home/agajcvso/public_html/index.php on line 16
+[13-Aug-2025 12:01:58 UTC] PHP Fatal error:  Uncaught Error: Call to a member function handleRequest() on int in /home/agajcvso/public_html/index.php:16
+Stack trace:
+#0 {main}
+  thrown in /home/agajcvso/public_html/index.php on line 16
+[13-Aug-2025 12:32:22 UTC] PHP Fatal error:  Uncaught Error: Call to a member function handleRequest() on int in /home/agajcvso/public_html/index.php:16
+Stack trace:
+#0 {main}
+  thrown in /home/agajcvso/public_html/index.php on line 16
+[13-Aug-2025 13:11:21 UTC] PHP Fatal error:  Uncaught Error: Call to a member function handleRequest() on int in /home/agajcvso/public_html/index.php:16
+Stack trace:
+#0 {main}
+  thrown in /home/agajcvso/public_html/index.php on line 16
+[13-Aug-2025 13:11:29 UTC] PHP Fatal error:  Uncaught Error: Call to a member function handleRequest() on int in /home/agajcvso/public_html/index.php:16
+Stack trace:
+#0 {main}
+  thrown in /home/agajcvso/public_html/index.php on line 16
+[13-Aug-2025 13:11:38 UTC] PHP Fatal error:  Uncaught Error: Call to a member function handleRequest() on int in /home/agajcvso/public_html/index.php:16
+Stack trace:
+#0 {main}
+  thrown in /home/agajcvso/public_html/index.php on line 16
+[13-Aug-2025 13:12:55 UTC] PHP Fatal error:  Uncaught Error: Call to a member function handleRequest() on int in /home/agajcvso/public_html/index.php:16
+Stack trace:
+#0 {main}
+  thrown in /home/agajcvso/public_html/index.php on line 16
+[13-Aug-2025 15:36:38 UTC] PHP Fatal error:  Uncaught Error: Call to a member function handleRequest() on int in /home/agajcvso/public_html/index.php:16
+Stack trace:
+#0 {main}
+  thrown in /home/agajcvso/public_html/index.php on line 16
+[13-Aug-2025 15:36:51 UTC] PHP Fatal error:  Uncaught Error: Call to a member function handleRequest() on int in /home/agajcvso/public_html/index.php:16
+Stack trace:
+#0 {main}
+  thrown in /home/agajcvso/public_html/index.php on line 16
+[13-Aug-2025 16:36:30 UTC] PHP Fatal error:  Uncaught Error: Call to a member function handleRequest() on int in /home/agajcvso/public_html/index.php:16
+Stack trace:
+#0 {main}
+  thrown in /home/agajcvso/public_html/index.php on line 16

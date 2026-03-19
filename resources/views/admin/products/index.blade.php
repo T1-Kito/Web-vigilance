@@ -1,0 +1,211 @@
+@extends('layouts.admin')
+
+@section('title', 'Quản lý sản phẩm')
+
+@section('content')
+<div class="content-card">
+    <!-- Action Bar -->
+    <div style="padding: 25px 30px; border-bottom: 1px solid #e5e7eb;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; padding: 12px 20px; border-radius: 12px; font-weight: 600; font-size: 1.1em;">
+                    <i class="bi bi-tags me-2"></i>Tổng: {{ $products->total() }} sản phẩm
+    </div>
+    @if(session('status'))
+                    <div style="background: #dbeafe; color: #1e40af; padding: 10px 15px; border-radius: 8px; font-weight: 500;">
+                        <i class="bi bi-check-circle me-2"></i>{{ session('status') }}
+                    </div>
+    @endif
+            </div>
+            <a href="{{ route('admin.products.create') }}" style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 12px 24px; border-radius: 12px; text-decoration: none; font-weight: 600; font-size: 1.1em; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); transition: all 0.3s ease;">
+                <i class="bi bi-plus-circle"></i>Thêm sản phẩm
+            </a>
+        </div>
+        
+        <!-- Search Section -->
+        <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
+            <h6 style="margin: 0 0 15px 0; color: #374151; font-weight: 600;">
+                <i class="bi bi-search me-2"></i>Tìm kiếm sản phẩm
+            </h6>
+            
+            @php
+                $selectedCategory = null;
+                if (request('search_category')) {
+                    $selectedCategory = $categories->firstWhere('id', request('search_category'));
+                }
+            @endphp
+            @if(request('search_name') || request('search_serial') || request('search_category'))
+                <div style="background: #dbeafe; color: #1e40af; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; font-weight: 500;">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Kết quả tìm kiếm: 
+                    @if(request('search_name')) <strong>Tên: "{{ request('search_name') }}"</strong> @endif
+                    @if(request('search_serial')) <strong>Số seri: "{{ request('search_serial') }}"</strong> @endif
+                    @if($selectedCategory) <strong>Danh mục: "{{ $selectedCategory->name }}"</strong> @endif
+                    - Tìm thấy {{ $products->total() }} sản phẩm
+                </div>
+            @endif
+            <form method="GET" action="{{ route('admin.products.index') }}" style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                <div style="position: relative;">
+                    <input type="text" 
+                           name="search_name" 
+                           value="{{ request('search_name') }}"
+                           placeholder="Tìm theo tên sản phẩm..." 
+                           style="padding: 10px 15px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1em; min-width: 200px;">
+                </div>
+                <div style="position: relative;">
+                    <select name="search_category" style="padding: 10px 15px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1em; min-width: 200px;">
+                        <option value="">Tất cả danh mục</option>
+                        @foreach($categories as $category)
+                            <option value="{{ $category->id }}" {{ (string)request('search_category') === (string)$category->id ? 'selected' : '' }}>
+                                {{ $category->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <button type="submit" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 1em;">
+                    <i class="bi bi-search me-2"></i>Tìm kiếm
+                </button>
+                @if(request('search_name') || request('search_serial') || request('search_category'))
+                    <a href="{{ route('admin.products.index') }}" style="background: linear-gradient(135deg, #6b7280, #4b5563); color: white; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 1em;">
+                        <i class="bi bi-x-circle me-2"></i>Xóa tìm kiếm
+                    </a>
+                @endif
+            </form>
+        </div>
+
+        <!-- Import/Export Section -->
+        <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
+            <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                <form action="{{ route('admin.products.importExcel') }}" method="POST" enctype="multipart/form-data" style="display: flex; align-items: center; gap: 10px;">
+        @csrf
+                    <div style="position: relative;">
+                        <input type="file" name="file" accept=".xlsx,.xls" required style="padding: 10px 15px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1em; min-width: 200px;">
+                    </div>
+                    <button type="submit" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 1em;">
+                        <i class="bi bi-upload me-2"></i>Import Excel
+                    </button>
+                </form>
+                <a href="{{ route('admin.products.exportExcel') }}" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 1em;">
+                    <i class="bi bi-file-earmark-excel me-2"></i>Export Excel
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Table -->
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 1.05em;">
+            <thead>
+                <tr style="background: linear-gradient(135deg, #1e3a8a, #1e40af); color: white;">
+                    <th style="padding: 18px 15px; text-align: center; font-weight: 600; border-bottom: 2px solid #3b82f6;">#</th>
+                    <th style="padding: 18px 15px; text-align: center; font-weight: 600; border-bottom: 2px solid #3b82f6;">Thứ tự</th>
+                    <th style="padding: 18px 15px; text-align: center; font-weight: 600; border-bottom: 2px solid #3b82f6;">Ảnh</th>
+                    <th style="padding: 18px 15px; text-align: left; font-weight: 600; border-bottom: 2px solid #3b82f6;">Tên sản phẩm</th>
+                    <th style="padding: 18px 15px; text-align: center; font-weight: 600; border-bottom: 2px solid #3b82f6;">Hãng</th>
+                    <th style="padding: 18px 15px; text-align: right; font-weight: 600; border-bottom: 2px solid #3b82f6;">Giá bán</th>
+                    <th style="padding: 18px 15px; text-align: center; font-weight: 600; border-bottom: 2px solid #3b82f6;">Khuyến mãi</th>
+                    <th style="padding: 18px 15px; text-align: center; font-weight: 600; border-bottom: 2px solid #3b82f6;">Nổi bật</th>
+                    <th style="padding: 18px 15px; text-align: center; font-weight: 600; border-bottom: 2px solid #3b82f6;">Trạng thái</th>
+                    <th style="padding: 18px 15px; text-align: center; font-weight: 600; border-bottom: 2px solid #3b82f6;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($products as $product)
+                <tr id="product-{{ $product->id }}" style="border-bottom: 1px solid #e5e7eb; transition: all 0.3s ease;" onmouseover="this.style.backgroundColor='#f8fafc'" onmouseout="this.style.backgroundColor='white'">
+                    <td style="padding: 15px; text-align: center; font-weight: 600; color: #6b7280;">{{ $loop->iteration }}</td>
+                    <td style="padding: 15px; text-align: center; font-weight: 700; color: #1f2937; font-size: 1.1em;">
+                        {{ $product->sort_order ?? 999 }}
+                    </td>
+                    <td style="padding: 15px; text-align: center;">
+                        <img src="{{ asset('images/products/' . $product->image) }}" alt="{{ $product->name }}" style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                            </td>
+                    <td style="padding: 15px;">
+                        <div style="font-weight: 700; color: #1f2937; margin-bottom: 5px; font-size: 1.1em;">{{ $product->name }}</div>
+                        <div style="color: #6b7280; font-size: 0.9em;">{{ Str::limit($product->description, 60) }}</div>
+                            </td>
+                    <td style="padding: 15px; text-align: center; font-weight: 700; color: #1f2937;">
+                        {{ $product->brand ?? '-' }}
+                    </td>
+                    <td style="padding: 15px; text-align: right; font-weight: 700; color: #059669; font-size: 1.1em;">{{ $product->price ? number_format($product->price, 0, ',', '.') . 'đ' : '-' }}</td>
+                    <td style="padding: 15px; text-align: center;">
+                                @if($product->discount_percent)
+                            <span style="background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #1f2937; padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 0.9em;">Giảm {{ $product->discount_percent }}%</span>
+                        @else
+                            <span style="color: #9ca3af;">-</span>
+                        @endif
+                    </td>
+                    <td style="padding: 15px; text-align: center;">
+                        @if($product->is_featured)
+                            <span style="background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #1f2937; padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 0.9em;">Nổi bật</span>
+                        @else
+                            <span style="color: #9ca3af;">-</span>
+                        @endif
+                    </td>
+                    <td style="padding: 15px; text-align: center;">
+                        @if($product->status)
+                            <span style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 0.9em;">Hiện</span>
+                                @else
+                            <span style="background: linear-gradient(135deg, #6b7280, #4b5563); color: white; padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 0.9em;">Ẩn</span>
+                                @endif
+                            </td>
+                    <td style="padding: 15px; text-align: center;">
+                        <div style="display: flex; justify-content: center; gap: 8px;">
+                            <a href="{{ route('admin.products.edit', $product->id) . '?return_url=' . urlencode(request()->fullUrl()) }}" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; border: none; padding: 8px 12px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 0.9em; display: flex; align-items: center; gap: 5px; transition: all 0.3s ease;" title="Sửa sản phẩm">
+                                <i class="bi bi-pencil-square"></i>Sửa
+                            </a>
+                            <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" style="display: inline;">
+                                    @csrf
+                                    @method('DELETE')
+                                <button type="submit" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 600; font-size: 0.9em; display: flex; align-items: center; gap: 5px; cursor: pointer; transition: all 0.3s ease;" onclick="return confirm('Bạn có chắc muốn xóa sản phẩm này?')" title="Xóa sản phẩm">
+                                    <i class="bi bi-trash"></i>Xóa
+                                </button>
+                                </form>
+                        </div>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+    
+    <!-- Pagination -->
+    <div style="padding: 25px 30px; border-top: 1px solid #e5e7eb; display: flex; justify-content: center;">
+        {{ $products->appends(request()->query())->links('pagination::bootstrap-4') }}
+    </div>
+</div>
+
+<style>
+/* Custom pagination styles */
+.pagination {
+    gap: 5px;
+}
+
+.page-link {
+    border-radius: 8px !important;
+    border: none !important;
+    padding: 10px 15px !important;
+    font-weight: 600 !important;
+    color: #374151 !important;
+    background: #f8fafc !important;
+    transition: all 0.3s ease !important;
+}
+
+.page-link:hover {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
+    color: white !important;
+    transform: translateY(-2px) !important;
+}
+
+.page-item.active .page-link {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
+    color: white !important;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3) !important;
+}
+
+/* Hover effects for buttons */
+a:hover, button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+</style>
+@endsection 
