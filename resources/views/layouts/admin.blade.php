@@ -358,11 +358,9 @@
                 </div>
                 <a href="{{ route('admin.notifications.index') }}" class="btn btn-sm btn-light position-absolute" style="top: -8px; right: -8px; border-radius: 999px; padding: 6px 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.12);">
                     <i class="bi bi-bell"></i>
-                    @if($adminUnreadNotificationsCount > 0)
-                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.65em;">
-                            {{ $adminUnreadNotificationsCount }}
-                        </span>
-                    @endif
+                    <span id="vw-admin-bell-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.65em; display: {{ $adminUnreadNotificationsCount > 0 ? 'inline-block' : 'none' }};">
+                        {{ $adminUnreadNotificationsCount > 0 ? $adminUnreadNotificationsCount : '' }}
+                    </span>
                 </a>
             </div>
             <div class="profile-name">{{ Auth::user()->name ?? 'Admin' }}</div>
@@ -445,6 +443,23 @@
                 <a href="{{ route('admin.activity-logs.index') }}" class="nav-link {{ request()->routeIs('admin.activity-logs.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-clock-history"></i></div>
                     Nhật ký hoạt động
+                </a>
+            </div>
+
+            <div class="nav-item">
+                <a href="{{ route('admin.chat-analytics.index') }}" class="nav-link {{ request()->routeIs('admin.chat-analytics.*') ? 'active' : '' }}">
+                    <div class="nav-icon"><i class="bi bi-chat-dots"></i></div>
+                    Thống kê Chat
+                </a>
+            </div>
+
+            <div class="nav-item">
+                <a href="{{ route('admin.chat-support.index') }}" class="nav-link {{ request()->routeIs('admin.chat-support.*') ? 'active' : '' }}">
+                    <div class="nav-icon"><i class="bi bi-chat-left-text"></i></div>
+                    <span style="display: inline-flex; align-items: center; gap: 8px; width: 100%;">
+                        <span>Hộp thư Chat</span>
+                        <span id="vw-admin-chat-unread-nav" class="badge rounded-pill bg-danger" style="font-size: 0.75em; display: none;"></span>
+                    </span>
                 </a>
             </div>
             
@@ -641,11 +656,80 @@
         document.addEventListener('DOMContentLoaded', function() {
             const savedColor = localStorage.getItem('sidebarColor');
             const savedSecondaryColor = localStorage.getItem('sidebarSecondaryColor');
-            
+
             if (savedColor && savedSecondaryColor) {
                 changeSidebarColor(savedColor, savedSecondaryColor, null);
             }
+
+            const isChatSupportPage = {{ request()->routeIs('admin.chat-support.*') ? 'true' : 'false' }};
+            const unreadNotificationsCount = Number({{ (int) $adminUnreadNotificationsCount }});
+            const seenKey = 'vw_admin_chat_seen_user_id_v1';
+
+            const bellBadge = document.getElementById('vw-admin-bell-badge');
+            const navBadge = document.getElementById('vw-admin-chat-unread-nav');
+
+            function setBadge(chatCount) {
+                const c = Number(chatCount || 0);
+                const chatShow = c > 0;
+
+                if (navBadge) {
+                    navBadge.textContent = chatShow ? String(c) : '';
+                    navBadge.style.display = chatShow ? 'inline-block' : 'none';
+                }
+
+                if (bellBadge) {
+                    const total = unreadNotificationsCount + c;
+                    const show = total > 0;
+                    bellBadge.textContent = show ? String(total) : '';
+                    bellBadge.style.display = show ? 'inline-block' : 'none';
+                }
+            }
+
+            let timer = null;
+            let backoffMs = 2500;
+            const baseMs = 2500;
+            const maxMs = 20000;
+
+            function schedule(ms) {
+                if (timer) clearTimeout(timer);
+                timer = setTimeout(poll, ms);
+            }
+
+            async function poll() {
+                if (document.visibilityState === 'hidden') {
+                    schedule(baseMs);
+                    return;
+                }
+
+                const sinceId = Number(localStorage.getItem(seenKey) || 0);
+                const url = `{{ route('admin.chat-support.unread') }}?since_id=${encodeURIComponent(sinceId)}`;
+
+                try {
+                    const res = await fetch(url, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' });
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    const data = await res.json();
+                    if (!data || data.ok !== true) throw new Error('Bad response');
+
+                    const count = Number(data.count || 0);
+                    const maxId = Number(data.max_id || 0);
+
+                    if (isChatSupportPage && maxId > 0) {
+                        localStorage.setItem(seenKey, String(maxId));
+                        setBadge(0);
+                    } else {
+                        setBadge(count);
+                    }
+
+                    backoffMs = baseMs;
+                    schedule(baseMs);
+                } catch (e) {
+                    backoffMs = Math.min(maxMs, Math.max(baseMs, backoffMs * 2));
+                    schedule(backoffMs);
+                }
+            }
+
+            poll();
         });
     </script>
 </body>
-</html> 
+</html>
