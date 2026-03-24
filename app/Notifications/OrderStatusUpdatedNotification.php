@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\Order;
 use Illuminate\Bus\Queueable;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class OrderStatusUpdatedNotification extends Notification
@@ -18,7 +19,7 @@ class OrderStatusUpdatedNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'mail'];
     }
 
     protected function statusLabel(string $status): string
@@ -46,5 +47,17 @@ class OrderStatusUpdatedNotification extends Notification
             'message' => 'Đơn ' . $orderCode . ' đã chuyển từ "' . $this->statusLabel($this->oldStatus) . '" sang "' . $this->statusLabel($this->newStatus) . '".',
             'url' => route('orders.quote', ['orderCode' => $orderCode]),
         ];
+    }
+
+    public function toMail(object $notifiable): MailMessage
+    {
+        $orderCode = (string) ($this->order->order_code ?? '');
+        $url = route('orders.quote', ['orderCode' => $orderCode]);
+
+        return (new MailMessage)
+            ->subject('Cập nhật đơn hàng ' . $orderCode)
+            ->line('Đơn ' . $orderCode . ' đã chuyển từ "' . $this->statusLabel($this->oldStatus) . '" sang "' . $this->statusLabel($this->newStatus) . '".')
+            ->action('Xem đơn hàng', $url)
+            ->line('Cảm ơn bạn đã mua hàng.');
     }
 }

@@ -744,7 +744,7 @@ Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(
     // Activity logs
     Route::get('activity-logs', [\App\Http\Controllers\Admin\ActivityLogController::class, 'index'])->name('activity-logs.index');
 
-    Route::get('chat-analytics', [ChatAnalyticsController::class, 'index'])->name('chat-analytics.index');
+    Route::resource('borrow-requests', \App\Http\Controllers\Admin\BorrowRequestController::class);
 
     Route::get('chat-support', [\App\Http\Controllers\Admin\ChatSupportController::class, 'index'])->name('chat-support.index');
     Route::get('chat-support/unread', [\App\Http\Controllers\Admin\ChatSupportController::class, 'unread'])->name('chat-support.unread');

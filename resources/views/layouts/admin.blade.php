@@ -447,9 +447,9 @@
             </div>
 
             <div class="nav-item">
-                <a href="{{ route('admin.chat-analytics.index') }}" class="nav-link {{ request()->routeIs('admin.chat-analytics.*') ? 'active' : '' }}">
-                    <div class="nav-icon"><i class="bi bi-chat-dots"></i></div>
-                    Thống kê Chat
+                <a href="{{ route('admin.borrow-requests.index') }}" class="nav-link {{ request()->routeIs('admin.borrow-requests.*') ? 'active' : '' }}">
+                    <div class="nav-icon"><i class="bi bi-clipboard-check"></i></div>
+                    Quản lý mượn hàng
                 </a>
             </div>
 
