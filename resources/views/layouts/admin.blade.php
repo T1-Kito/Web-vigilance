@@ -447,6 +447,13 @@
             </div>
 
             <div class="nav-item">
+                <a href="{{ route('admin.customers.index') }}" class="nav-link {{ request()->routeIs('admin.customers.*') ? 'active' : '' }}">
+                    <div class="nav-icon"><i class="bi bi-person-badge"></i></div>
+                    Quản lý khách hàng
+                </a>
+            </div>
+
+            <div class="nav-item">
                 <a href="{{ route('admin.borrow-requests.index') }}" class="nav-link {{ request()->routeIs('admin.borrow-requests.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-clipboard-check"></i></div>
                     Quản lý mượn hàng
@@ -686,9 +693,11 @@
             }
 
             let timer = null;
-            let backoffMs = 2500;
-            const baseMs = 2500;
-            const maxMs = 20000;
+            let backoffMs = 10000;
+            const slowMs = 10000;
+            const fastMs = 2500;
+            const maxMs = 60000;
+            let aborter = null;
 
             function schedule(ms) {
                 if (timer) clearTimeout(timer);
@@ -696,8 +705,12 @@
             }
 
             async function poll() {
+                if (!navBadge && !bellBadge) {
+                    return;
+                }
+
                 if (document.visibilityState === 'hidden') {
-                    schedule(baseMs);
+                    schedule(slowMs);
                     return;
                 }
 
@@ -705,7 +718,14 @@
                 const url = `{{ route('admin.chat-support.unread') }}?since_id=${encodeURIComponent(sinceId)}`;
 
                 try {
-                    const res = await fetch(url, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' });
+                    if (aborter) aborter.abort();
+                    aborter = new AbortController();
+
+                    const res = await fetch(url, {
+                        headers: { 'Accept': 'application/json' },
+                        credentials: 'same-origin',
+                        signal: aborter.signal,
+                    });
                     if (!res.ok) throw new Error('HTTP ' + res.status);
                     const data = await res.json();
                     if (!data || data.ok !== true) throw new Error('Bad response');
@@ -720,10 +740,10 @@
                         setBadge(count);
                     }
 
-                    backoffMs = baseMs;
-                    schedule(baseMs);
+                    backoffMs = count > 0 ? fastMs : slowMs;
+                    schedule(backoffMs);
                 } catch (e) {
-                    backoffMs = Math.min(maxMs, Math.max(baseMs, backoffMs * 2));
+                    backoffMs = Math.min(maxMs, Math.max(slowMs, backoffMs * 2));
                     schedule(backoffMs);
                 }
             }

@@ -63,7 +63,12 @@ class BorrowRequestController extends Controller
         $validated = $request->validate([
             'requested_by_name' => 'nullable|string|max:255',
             'approved_by_name' => 'nullable|string|max:255',
+            'department' => 'nullable|string|max:255',
             'customer_name' => 'nullable|string|max:255',
+            'contact_name' => 'nullable|string|max:255',
+            'tax_code' => 'nullable|string|max:255',
+            'email' => 'nullable|string|email|max:255',
+            'contact_phone' => 'nullable|string|max:30',
             'purpose' => 'nullable|string|max:255',
             'current_project' => 'nullable|string|max:255',
             'borrow_from' => 'nullable|date',
@@ -101,7 +106,12 @@ class BorrowRequestController extends Controller
                 'requested_by_admin_id' => Auth::id(),
                 'requested_by_name' => $validated['requested_by_name'] ?? null,
                 'approved_by_name' => $validated['approved_by_name'] ?? null,
+                'department' => $validated['department'] ?? null,
                 'customer_name' => $validated['customer_name'] ?? null,
+                'contact_name' => $validated['contact_name'] ?? null,
+                'tax_code' => $validated['tax_code'] ?? null,
+                'email' => $validated['email'] ?? null,
+                'contact_phone' => $validated['contact_phone'] ?? null,
                 'purpose' => $validated['purpose'] ?? null,
                 'current_project' => $validated['current_project'] ?? null,
                 'borrow_from' => $borrowFrom ? $borrowFrom->toDateString() : null,
@@ -176,7 +186,12 @@ class BorrowRequestController extends Controller
         $validated = $request->validate([
             'requested_by_name' => 'nullable|string|max:255',
             'approved_by_name' => 'nullable|string|max:255',
+            'department' => 'nullable|string|max:255',
             'customer_name' => 'nullable|string|max:255',
+            'contact_name' => 'nullable|string|max:255',
+            'tax_code' => 'nullable|string|max:255',
+            'email' => 'nullable|string|email|max:255',
+            'contact_phone' => 'nullable|string|max:30',
             'purpose' => 'nullable|string|max:255',
             'current_project' => 'nullable|string|max:255',
             'borrow_from' => 'nullable|date',
@@ -197,7 +212,7 @@ class BorrowRequestController extends Controller
         $items = is_array($validated['items'] ?? null) ? $validated['items'] : [];
 
         return DB::transaction(function () use ($borrowRequest, $validated, $items, $request) {
-            $before = $borrowRequest->only(['requested_by_name', 'approved_by_name', 'customer_name', 'purpose', 'current_project', 'borrow_from', 'borrow_to', 'deposit_text', 'deposit_amount', 'status', 'note']);
+            $before = $borrowRequest->only(['requested_by_name', 'approved_by_name', 'department', 'customer_name', 'contact_name', 'tax_code', 'email', 'contact_phone', 'purpose', 'current_project', 'borrow_from', 'borrow_to', 'deposit_text', 'deposit_amount', 'status', 'note']);
 
             $borrowFrom = isset($validated['borrow_from']) && $validated['borrow_from'] ? Carbon::parse($validated['borrow_from']) : null;
             $borrowTo = isset($validated['borrow_to']) && $validated['borrow_to'] ? Carbon::parse($validated['borrow_to']) : null;
@@ -215,7 +230,12 @@ class BorrowRequestController extends Controller
             $borrowRequest->update([
                 'requested_by_name' => $validated['requested_by_name'] ?? null,
                 'approved_by_name' => $validated['approved_by_name'] ?? null,
+                'department' => $validated['department'] ?? null,
                 'customer_name' => $validated['customer_name'] ?? null,
+                'contact_name' => $validated['contact_name'] ?? null,
+                'tax_code' => $validated['tax_code'] ?? null,
+                'email' => $validated['email'] ?? null,
+                'contact_phone' => $validated['contact_phone'] ?? null,
                 'purpose' => $validated['purpose'] ?? null,
                 'current_project' => $validated['current_project'] ?? null,
                 'borrow_from' => $borrowFrom ? $borrowFrom->toDateString() : null,
@@ -254,7 +274,7 @@ class BorrowRequestController extends Controller
                 $line++;
             }
 
-            $after = $borrowRequest->fresh()->only(['requested_by_name', 'approved_by_name', 'customer_name', 'purpose', 'current_project', 'borrow_from', 'borrow_to', 'deposit_text', 'deposit_amount', 'status', 'note']);
+            $after = $borrowRequest->fresh()->only(['requested_by_name', 'approved_by_name', 'department', 'customer_name', 'contact_name', 'tax_code', 'email', 'contact_phone', 'purpose', 'current_project', 'borrow_from', 'borrow_to', 'deposit_text', 'deposit_amount', 'status', 'note']);
 
             ActivityLogger::log('borrow_request.update', $borrowRequest, 'Cập nhật phiếu mượn hàng: ' . ($borrowRequest->code ?? ''), [
                 'before' => $before,

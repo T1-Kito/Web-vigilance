@@ -744,6 +744,11 @@ Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(
     // Activity logs
     Route::get('activity-logs', [\App\Http\Controllers\Admin\ActivityLogController::class, 'index'])->name('activity-logs.index');
 
+    Route::get('customers/lookup', [\App\Http\Controllers\Admin\CustomerController::class, 'lookup'])->name('customers.lookup');
+    Route::get('customers/import', [\App\Http\Controllers\Admin\CustomerController::class, 'importForm'])->name('customers.import.form');
+    Route::post('customers/import-excel', [\App\Http\Controllers\Admin\CustomerController::class, 'importExcel'])->name('customers.importExcel');
+    Route::resource('customers', \App\Http\Controllers\Admin\CustomerController::class);
+
     Route::resource('borrow-requests', \App\Http\Controllers\Admin\BorrowRequestController::class);
 
     Route::get('chat-support', [\App\Http\Controllers\Admin\ChatSupportController::class, 'index'])->name('chat-support.index');

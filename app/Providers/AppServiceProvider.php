@@ -6,6 +6,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Pagination\Paginator;
 use App\Models\CartItem;
 use App\Models\Product;
 use App\Models\Banner;
@@ -25,6 +26,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Paginator::useBootstrapFive();
+
         // Đăng ký Observer cho Product
         if (class_exists('App\\Observers\\ProductObserver')) {
             Product::observe('App\\Observers\\ProductObserver');

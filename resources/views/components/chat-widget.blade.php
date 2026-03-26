@@ -94,7 +94,7 @@
     .vw-chat-contact-pop{position:absolute;right:0;bottom:100%;display:none;flex-direction:column;align-items:flex-end;gap:10px;margin-bottom:10px;z-index:2}
     .vw-chat-widget.is-menu .vw-chat-contact-pop{display:flex}
     .vw-chat-contact-menu{background:#fff;border-radius:16px;box-shadow:0 14px 44px rgba(15,23,42,.22);border:1px solid rgba(15,23,42,.10);overflow:hidden;min-width:240px;padding:6px 0}
-    .vw-chat-menu-item{display:flex;align-items:center;gap:12px;width:100%;border:0;background:transparent;padding:12px 14px;cursor:pointer;text-align:left;font:inherit;font-size:14px;font-weight:800;color:#0f172a;transition:background .12s ease}
+    .vw-chat-menu-item{display:flex;align-items:center;gap:12px;width:100%;border:0;background:transparent;padding:12px 14px;cursor:pointer;text-align:left;font:inherit;font-size:14px;color:#0f172a;transition:background .12s ease}
     .vw-chat-menu-item:hover,.vw-chat-menu-item:focus{background:rgba(43,47,142,.07);outline:none}
     .vw-chat-menu-item__icon{flex:0 0 40px;width:40px;height:40px;border-radius:999px;display:flex;align-items:center;justify-content:center;overflow:hidden}
     .vw-chat-menu-item__icon--staff{background:transparent;border-radius:0}
