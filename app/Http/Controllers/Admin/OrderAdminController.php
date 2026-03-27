@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Order;
 use App\Support\ActivityLogger;
+use Illuminate\Support\Facades\Notification;
 
 class OrderAdminController extends Controller
 {
@@ -98,6 +99,15 @@ class OrderAdminController extends Controller
                         $oldStatus,
                         (string) ($after['status'] ?? '')
                     ));
+                } else {
+                    $email = trim((string) ($order->customer_email ?? ''));
+                    if ($email !== '') {
+                        Notification::route('mail', $email)->notify(new \App\Notifications\OrderStatusUpdatedNotification(
+                            $order,
+                            $oldStatus,
+                            (string) ($after['status'] ?? '')
+                        ));
+                    }
                 }
             } catch (\Throwable $e) {
                 // ignore notification failure

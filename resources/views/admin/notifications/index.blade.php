@@ -22,6 +22,21 @@
     </div>
 
     <div class="p-3">
+        <div class="alert alert-light d-flex align-items-center justify-content-between" style="border-radius: 12px; border: 1px solid rgba(15,23,42,0.08);">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-chat-left-text"></i>
+                <div>
+                    <div class="fw-bold">Tin nhắn chat</div>
+                    <div class="text-muted" style="font-size: 0.95rem;">
+                        <span id="vw-admin-notif-chat-text">Đang kiểm tra...</span>
+                    </div>
+                </div>
+            </div>
+            <a href="{{ route('admin.chat-support.index') }}" class="btn btn-primary" style="border-radius: 12px;">
+                Mở hộp thư
+            </a>
+        </div>
+
         @if($notifications->count() === 0)
             <div class="p-4 text-center text-muted">Chưa có thông báo nào.</div>
         @else
@@ -65,4 +80,59 @@
         @endif
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const textEl = document.getElementById('vw-admin-notif-chat-text');
+        const seenKey = 'vw_admin_chat_seen_user_id_v1';
+
+        let timer = null;
+        let backoffMs = 2500;
+        const baseMs = 2500;
+        const maxMs = 20000;
+
+        function setText(count) {
+            if (!textEl) return;
+            const c = Number(count || 0);
+            if (c > 0) {
+                textEl.textContent = 'Chưa đọc: ' + c;
+            } else {
+                textEl.textContent = 'Không có tin nhắn mới';
+            }
+        }
+
+        function schedule(ms) {
+            if (timer) clearTimeout(timer);
+            timer = setTimeout(poll, ms);
+        }
+
+        async function poll() {
+            if (document.visibilityState === 'hidden') {
+                schedule(baseMs);
+                return;
+            }
+
+            const sinceId = Number(localStorage.getItem(seenKey) || 0);
+            const url = `{{ route('admin.chat-support.unread') }}?since_id=${encodeURIComponent(sinceId)}`;
+
+            try {
+                const res = await fetch(url, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                if (!data || data.ok !== true) throw new Error('Bad response');
+
+                setText(Number(data.count || 0));
+
+                backoffMs = baseMs;
+                schedule(baseMs);
+            } catch (e) {
+                setText(0);
+                backoffMs = Math.min(maxMs, Math.max(baseMs, backoffMs * 2));
+                schedule(backoffMs);
+            }
+        }
+
+        poll();
+    });
+</script>
 @endsection

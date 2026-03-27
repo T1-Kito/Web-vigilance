@@ -17,6 +17,8 @@
     $companyAddressRaw = $order->company_address ?: '151-155 Bến Vân Đồn, Phường Khánh Hội, TP HCM';
     $companyAddressSafe = str_replace('151-155', '<span style="white-space:nowrap;">151-155</span>', e($companyAddressRaw));
 
+    $invoiceName = $order->invoice_company_name ?: '...';
+    $invoiceAddress = $order->invoice_address ?: '...';
     $receiverPhone = $order->customer_phone ?: $order->receiver_phone;
     $receiverEmail = $order->customer_email ?: '...';
     $receiverTax = $order->customer_tax_code ?: '...';
@@ -137,7 +139,7 @@
     .q-redbar { background: #d32f2f; color: #fff; font-weight: 500; text-transform: uppercase; font-size: 12px; padding: 6px 8px; border: 1px solid #999; border-bottom: none; }
 
     .q-table { width: 100%; border-collapse: collapse; font-size: 11px; }
-    .q-table th, .q-table td { border: 1px solid #999; padding: 4px 5px; vertical-align: top; }
+    .q-table th, .q-table td { border: 1px solid #999; padding: 4px 5px; }
     .q-table thead th { font-weight: 500; text-align: center; }
     .q-table .sub { font-style: italic; font-weight: 700; font-size: 10px; }
     .q-table .left { text-align: left; }
@@ -309,12 +311,13 @@
                 <div class="q-block mt-2">
                     <div class="q-block-grid">
                         <div>
-                            <div class="q-line"><span class="q-label">CÔNG TY (Address):</span> {{ $order->receiver_name }}</div>
-                            <div class="q-line"><span class="q-label">Địa chỉ (Address):</span> {{ $order->receiver_address }}</div>
+                            <div class="q-line"><span class="q-label">CÔNG TY (Address):</span> {{ $invoiceName }}</div>
+                            <div class="q-line"><span class="q-label">Địa chỉ (Address):</span> {{ $invoiceAddress }}</div>
                             <div class="q-line"><span class="q-label">Mã số thuế (Tax code):</span> {{ $receiverTax }}</div>
                             <div class="q-line"><span class="q-label">Điện thoại (Tel):</span> {{ $receiverPhone }}</div>
                             <div class="q-line"><span class="q-label">Email:</span> {{ $receiverEmail }}</div>
-                            <div class="q-line"><span class="q-label">Người liên hệ (Att):</span> {{ $receiverAtt }}</div>
+                            <div class="q-line"><span class="q-label">Người nhận:</span> {{ $order->receiver_name }}</div>
+                            <div class="q-line"><span class="q-label">Địa chỉ giao hàng:</span> {{ $order->receiver_address }}</div>
                         </div>
                         <div class="q-col-right">
                             <div class="q-line"><span class="q-label">Số báo giá (Quote No.):</span> {{ $orderCode }}</div>
@@ -416,8 +419,8 @@
                     <ul>
                         <li>- Thời gian giao hàng (Delivery): Giao hàng ngay sau khi thực hiện xác nhận đơn hàng và thực hiện đúng thủ tục thanh toán.</li>
                         <li><b>- Hàng hoá (thiết bị) được giao trong khu vực TP HCM có mức phí như sau:</b></li>
-                        <li>- Phí giao hàng áp dụng cho khu vực Tp HCM nội thành và ngoại thành từ 3.000.000 VND/đơn hàng sẽ được miễn phí, trường hợp còn lại nội thành là 50.000 VND/đơn hàng, ngoại thành là 80.000 VND/đơn hàng.</li>
-                        <li>- Đối với trường hợp ngoại tỉnh, khác khu vực Tp HCM khách hàng tự chọn đơn vị vận chuyển, và Vĩ Khang sẽ giao hàng tại kho hàng Tp HCM (Chi phí này người mua sẽ tự thoả thuận với đơn vị vận chuyển hoặc liên hệ nhân viên kinh doanh để được hỗ trợ.)</li>
+                        <li>- Phí giao hàng áp dụng cho khu vực Tp HCM nội thành và ngoại thành từ 3.000.000 VND/đơn hàng sẽ được miễn phí giao hàng trong bán kính 5Km, trường hợp còn lại nội thành là 50.000 VND/đơn hàng, ngoại thành là 80.000 VND/đơn hàng.</li>
+                        <li>- Đối với trường hợp ngoại tỉnh, khác khu vực Tp HCM khách hàng tự chọn đơn vị vận chuyển, và  Vigilance sẽ giao hàng tại kho hàng Tp HCM (Chi phí này người mua sẽ tự thoả thuận với đơn vị vận chuyển hoặc liên hệ nhân viên kinh doanh để được hỗ trợ.)</li>
                     </ul>
 
                     <div class="sep"></div>
@@ -430,7 +433,7 @@
 
                     <div class="sep"></div>
 
-                    <div><b>Bảo hành (Warranty):</b> Tất cả sản phẩm do Vigilance Việt Nam phân phối đều được tiếp nhận và bảo hành tại trụ sở chính của công ty: G4, Cư xá Vĩnh Hội, Phường Khánh Hội, Tp HCM.</div>
+                    <div><b>Bảo hành (Warranty):</b> Tất cả sản phẩm do Vigilance Việt Nam phân phối đều được tiếp nhận và bảo hành tại trụ sở chính của công ty: 96 Đường số 14, KDC Him Lam, Phường Tân Hưng,TP.HCM.</div>
 
                     <div class="sep"></div>
 

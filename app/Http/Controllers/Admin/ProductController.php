@@ -15,6 +15,55 @@ use App\Support\ActivityLogger;
 
 class ProductController extends Controller
 {
+    public function lookup(Request $request)
+    {
+        $q = trim((string) $request->query('q', ''));
+        if ($q === '' || mb_strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        $normalized = preg_replace('/[^\p{L}\p{N}\s\-]+/u', ' ', $q) ?? $q;
+        $normalized = preg_replace('/\s+/u', ' ', $normalized) ?? $normalized;
+        $tokens = array_values(array_filter(explode(' ', $normalized), function ($t) {
+            return mb_strlen($t) >= 2;
+        }));
+
+        $products = Product::query()
+            ->select(['id', 'name', 'slug', 'price', 'discount_percent', 'serial_number'])
+            ->where(function ($query) use ($q, $tokens) {
+                $query->where(function ($q2) use ($q) {
+                    $q2->where('name', 'like', "%{$q}%")
+                        ->orWhere('serial_number', 'like', "%{$q}%")
+                        ->orWhere('slug', 'like', "%{$q}%");
+                });
+
+                foreach ($tokens as $token) {
+                    $query->orWhere(function ($q3) use ($token) {
+                        $q3->where('name', 'like', "%{$token}%")
+                            ->orWhere('serial_number', 'like', "%{$token}%")
+                            ->orWhere('slug', 'like', "%{$token}%");
+                    });
+                }
+            })
+            ->orderByDesc('is_featured')
+            ->orderBy('sort_order')
+            ->orderByDesc('created_at')
+            ->limit(20)
+            ->get();
+
+        $items = $products->map(function (Product $p) {
+            return [
+                'id' => $p->id,
+                'name' => (string) ($p->name ?? ''),
+                'serial_number' => (string) ($p->serial_number ?? ''),
+                'price' => (float) ($p->price ?? 0),
+                'final_price' => (float) ($p->final_price ?? ($p->price ?? 0)),
+            ];
+        })->values();
+
+        return response()->json($items);
+    }
+
     public function index(Request $request)
     {
         $query = Product::with('category');

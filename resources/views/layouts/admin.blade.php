@@ -212,6 +212,16 @@
             align-items: center;
             justify-content: center;
         }
+
+        .nav-group-title {
+            margin: 14px 0 6px;
+            padding: 0 14px;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.78);
+        }
         
         /* Main Content */
         .admin-main {
@@ -285,7 +295,7 @@
         
         .logout-btn:hover {
             background: #dc2626;
-            transform: translateY(-2px);
+            transform: translateY(-1px);
         }
         
         /* Content Cards */
@@ -358,11 +368,9 @@
                 </div>
                 <a href="{{ route('admin.notifications.index') }}" class="btn btn-sm btn-light position-absolute" style="top: -8px; right: -8px; border-radius: 999px; padding: 6px 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.12);">
                     <i class="bi bi-bell"></i>
-                    @if($adminUnreadNotificationsCount > 0)
-                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.65em;">
-                            {{ $adminUnreadNotificationsCount }}
-                        </span>
-                    @endif
+                    <span id="vw-admin-bell-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.65em; display: {{ $adminUnreadNotificationsCount > 0 ? 'inline-block' : 'none' }};">
+                        {{ $adminUnreadNotificationsCount > 0 ? $adminUnreadNotificationsCount : '' }}
+                    </span>
                 </a>
             </div>
             <div class="profile-name">{{ Auth::user()->name ?? 'Admin' }}</div>
@@ -371,13 +379,15 @@
         
         <!-- Navigation Menu -->
         <div class="nav-menu">
+            <div class="nav-group-title">Tổng quan</div>
             <div class="nav-item">
                 <a href="{{ route('home') }}" class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-speedometer2"></i></div>
                     Bảng điều khiển
                 </a>
             </div>
-            
+
+            <div class="nav-group-title">Sản phẩm</div>
             <div class="nav-item">
                 <a href="{{ route('admin.products.index') }}" class="nav-link {{ request()->routeIs('admin.products.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-tags"></i></div>
@@ -398,14 +408,16 @@
                     Quản lý banner
                 </a>
             </div>
-            
+
+            <div class="nav-group-title">Đơn hàng</div>
             <div class="nav-item">
                 <a href="{{ route('admin.orders.index') }}" class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-cart-check"></i></div>
                     Quản lý đơn hàng
                 </a>
             </div>
-            
+
+            <div class="nav-group-title">Bảo hành</div>
             <div class="nav-item">
                 <a href="{{ route('admin.warranties.index') }}" class="nav-link {{ request()->routeIs('admin.warranties.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-shield-check"></i></div>
@@ -426,7 +438,8 @@
                     Phiếu nhận & trả bảo hành
                 </a>
             </div>
-            
+
+            <div class="nav-group-title">Quản trị</div>
             @php
                 $superAdminEmail = strtolower(trim((string) env('SUPER_ADMIN_EMAIL', '')));
                 $currentEmail = strtolower(trim((string) (Auth::user()->email ?? '')));
@@ -447,14 +460,43 @@
                     Nhật ký hoạt động
                 </a>
             </div>
-            
+
+            <div class="nav-group-title">Khách hàng</div>
+            <div class="nav-item">
+                <a href="{{ route('admin.customers.index') }}" class="nav-link {{ request()->routeIs('admin.customers.*') ? 'active' : '' }}">
+                    <div class="nav-icon"><i class="bi bi-person-badge"></i></div>
+                    Quản lý khách hàng
+                </a>
+            </div>
+
+            <div class="nav-group-title">Mượn hàng</div>
+            <div class="nav-item">
+                <a href="{{ route('admin.borrow-requests.index') }}" class="nav-link {{ request()->routeIs('admin.borrow-requests.*') ? 'active' : '' }}">
+                    <div class="nav-icon"><i class="bi bi-clipboard-check"></i></div>
+                    Quản lý mượn hàng
+                </a>
+            </div>
+
+            <div class="nav-group-title">Chat</div>
+            <div class="nav-item">
+                <a href="{{ route('admin.chat-support.index') }}" class="nav-link {{ request()->routeIs('admin.chat-support.*') ? 'active' : '' }}">
+                    <div class="nav-icon"><i class="bi bi-chat-left-text"></i></div>
+                    <span style="display: inline-flex; align-items: center; gap: 8px; width: 100%;">
+                        <span>Hộp thư Chat</span>
+                        <span id="vw-admin-chat-unread-nav" class="badge rounded-pill bg-danger" style="font-size: 0.75em; display: none;"></span>
+                    </span>
+                </a>
+            </div>
+
+            <div class="nav-group-title">Báo cáo</div>
             <div class="nav-item">
                 <a href="#" class="nav-link">
                     <div class="nav-icon"><i class="bi bi-graph-up"></i></div>
                     Báo cáo doanh thu
                 </a>
             </div>
-            
+
+            <div class="nav-group-title">Hệ thống</div>
             <div class="nav-item">
                 <a href="#" class="nav-link">
                     <div class="nav-icon"><i class="bi bi-gear"></i></div>
@@ -641,11 +683,93 @@
         document.addEventListener('DOMContentLoaded', function() {
             const savedColor = localStorage.getItem('sidebarColor');
             const savedSecondaryColor = localStorage.getItem('sidebarSecondaryColor');
-            
+
             if (savedColor && savedSecondaryColor) {
                 changeSidebarColor(savedColor, savedSecondaryColor, null);
             }
+
+            const isChatSupportPage = {{ request()->routeIs('admin.chat-support.*') ? 'true' : 'false' }};
+            const unreadNotificationsCount = Number({{ (int) $adminUnreadNotificationsCount }});
+            const seenKey = 'vw_admin_chat_seen_user_id_v1';
+
+            const bellBadge = document.getElementById('vw-admin-bell-badge');
+            const navBadge = document.getElementById('vw-admin-chat-unread-nav');
+
+            function setBadge(chatCount) {
+                const c = Number(chatCount || 0);
+                const chatShow = c > 0;
+
+                if (navBadge) {
+                    navBadge.textContent = chatShow ? String(c) : '';
+                    navBadge.style.display = chatShow ? 'inline-block' : 'none';
+                }
+
+                if (bellBadge) {
+                    const total = unreadNotificationsCount + c;
+                    const show = total > 0;
+                    bellBadge.textContent = show ? String(total) : '';
+                    bellBadge.style.display = show ? 'inline-block' : 'none';
+                }
+            }
+
+            let timer = null;
+            let backoffMs = 10000;
+            const slowMs = 10000;
+            const fastMs = 2500;
+            const maxMs = 60000;
+            let aborter = null;
+
+            function schedule(ms) {
+                if (timer) clearTimeout(timer);
+                timer = setTimeout(poll, ms);
+            }
+
+            async function poll() {
+                if (!navBadge && !bellBadge) {
+                    return;
+                }
+
+                if (document.visibilityState === 'hidden') {
+                    schedule(slowMs);
+                    return;
+                }
+
+                const sinceId = Number(localStorage.getItem(seenKey) || 0);
+                const url = `{{ route('admin.chat-support.unread') }}?since_id=${encodeURIComponent(sinceId)}`;
+
+                try {
+                    if (aborter) aborter.abort();
+                    aborter = new AbortController();
+
+                    const res = await fetch(url, {
+                        headers: { 'Accept': 'application/json' },
+                        credentials: 'same-origin',
+                        signal: aborter.signal,
+                    });
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    const data = await res.json();
+                    if (!data || data.ok !== true) throw new Error('Bad response');
+
+                    const count = Number(data.count || 0);
+                    const maxId = Number(data.max_id || 0);
+
+                    if (isChatSupportPage && maxId > 0) {
+                        localStorage.setItem(seenKey, String(maxId));
+                        setBadge(0);
+                    } else {
+                        setBadge(count);
+                    }
+
+                    backoffMs = count > 0 ? fastMs : slowMs;
+                    schedule(backoffMs);
+                } catch (e) {
+                    backoffMs = Math.min(maxMs, Math.max(slowMs, backoffMs * 2));
+                    schedule(backoffMs);
+                }
+            }
+
+            poll();
         });
     </script>
 </body>
-</html> 
+</html>
