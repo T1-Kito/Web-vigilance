@@ -58,7 +58,6 @@
                                 <td style="word-break: break-word; white-space: normal;">{{ $c->email }}</td>
                                 <td>{{ $c->phone }}</td>
                                 <td class="text-end">
-                                    <a class="btn btn-sm btn-outline-primary" href="{{ route('admin.customers.show', $c) }}">Xem</a>
                                     <a class="btn btn-sm btn-primary" href="{{ route('admin.customers.edit', $c) }}">Sửa</a>
                                     <form action="{{ route('admin.customers.destroy', $c) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('Xóa khách hàng này?')">
                                         @csrf

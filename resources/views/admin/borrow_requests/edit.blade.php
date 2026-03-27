@@ -110,27 +110,18 @@
                                         </select>
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label fw-bold">Đề xuất (cọc)</label>
-                                        @php $dep = old('deposit_text', $borrowRequest->deposit_text ?: 'Không cọc'); @endphp
-                                        <div class="d-flex align-items-center gap-3" style="min-height: 38px;">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="radio" name="deposit_text" id="depositNone" value="Không cọc" {{ $dep==='Không cọc' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="depositNone">Không cọc</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="radio" name="deposit_text" id="depositYes" value="Có cọc" {{ $dep==='Có cọc' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="depositYes">Có cọc</label>
-                                            </div>
-                                        </div>
+                                        <label class="form-label fw-bold">Đặt cọc</label>
+                                        <input type="hidden" name="deposit_text" value="Có cọc">
+                                        <div class="text-muted" style="min-height: 38px; display:flex; align-items:center;">Bắt buộc</div>
                                     </div>
 
                                     @php
                                         $depAmount = old('deposit_amount', $borrowRequest->deposit_amount);
                                         $depAmountVal = $depAmount !== null && $depAmount !== '' ? rtrim(rtrim(number_format((float) $depAmount, 2, '.', ''), '0'), '.') : '';
                                     @endphp
-                                    <div class="col-md-6" id="depositAmountWrap" style="display:none;">
+                                    <div class="col-md-6" id="depositAmountWrap">
                                         <label class="form-label fw-bold">Số tiền cọc</label>
-                                        <input type="text" inputmode="numeric" name="deposit_amount_display" class="form-control" value="" placeholder="Nhập số tiền" autocomplete="off">
+                                        <input type="text" inputmode="numeric" name="deposit_amount_display" class="form-control" value="" placeholder="Nhập số tiền" autocomplete="off" required>
                                         <input type="hidden" name="deposit_amount" value="{{ $depAmountVal }}">
                                     </div>
 
@@ -170,7 +161,7 @@
                                         @foreach($oldItems as $i => $it)
                                             <tr>
                                                 <td class="text-center stt"></td>
-                                                <td><input type="text" name="items[{{ $i }}][item_name]" class="form-control" value="{{ $it['item_name'] ?? '' }}" maxlength="255"></td>
+                                                <td><input type="text" name="items[{{ $i }}][item_name]" class="form-control" value="{{ $it['item_name'] ?? '' }}" maxlength="255" list="productDatalist"></td>
                                                 <td><input type="text" name="items[{{ $i }}][unit]" class="form-control" value="{{ $it['unit'] ?? '' }}" maxlength="50"></td>
                                                 <td><input type="number" step="0.01" name="items[{{ $i }}][quantity]" class="form-control" value="{{ $it['quantity'] ?? '' }}"></td>
                                                 <td><input type="text" inputmode="numeric" name="items[{{ $i }}][value]" class="form-control" value="{{ $it['value'] ?? '' }}" autocomplete="off"></td>
@@ -182,7 +173,7 @@
                                         @foreach($borrowRequest->items as $i => $it)
                                             <tr>
                                                 <td class="text-center stt"></td>
-                                                <td><input type="text" name="items[{{ $i }}][item_name]" class="form-control" value="{{ $it->item_name }}" maxlength="255"></td>
+                                                <td><input type="text" name="items[{{ $i }}][item_name]" class="form-control" value="{{ $it->item_name }}" maxlength="255" list="productDatalist"></td>
                                                 <td><input type="text" name="items[{{ $i }}][unit]" class="form-control" value="{{ $it->unit }}" maxlength="50"></td>
                                                 <td><input type="number" step="0.01" name="items[{{ $i }}][quantity]" class="form-control" value="{{ $it->quantity }}"></td>
                                                 <td><input type="text" inputmode="numeric" name="items[{{ $i }}][value]" class="form-control" value="{{ $it->value }}" autocomplete="off"></td>
@@ -193,7 +184,7 @@
                                         @if($borrowRequest->items->count() === 0)
                                             <tr>
                                                 <td class="text-center stt"></td>
-                                                <td><input type="text" name="items[0][item_name]" class="form-control" maxlength="255"></td>
+                                                <td><input type="text" name="items[0][item_name]" class="form-control" maxlength="255" list="productDatalist"></td>
                                                 <td><input type="text" name="items[0][unit]" class="form-control" maxlength="50"></td>
                                                 <td><input type="number" step="0.01" name="items[0][quantity]" class="form-control"></td>
                                                 <td><input type="text" inputmode="numeric" name="items[0][value]" class="form-control" autocomplete="off"></td>
@@ -204,6 +195,7 @@
                                     @endif
                                 </tbody>
                             </table>
+                            <datalist id="productDatalist"></datalist>
                         </div>
 
                         <div class="d-flex justify-content-end mt-3">
@@ -236,6 +228,53 @@ document.addEventListener('DOMContentLoaded', function() {
     const email = document.getElementById('email');
     let customerCache = {};
     let lookupTimer = null;
+
+    const productDatalist = document.getElementById('productDatalist');
+    let productCache = {};
+    let productLookupTimer = null;
+
+    async function lookupProducts(q) {
+        const url = `{{ route('admin.products.lookup') }}?q=${encodeURIComponent(q)}`;
+        const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!res.ok) return [];
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+    }
+
+    function renderProductDatalist(rows) {
+        if (!productDatalist) return;
+        productDatalist.innerHTML = '';
+        productCache = {};
+        rows.forEach((p) => {
+            if (!p || !p.name) return;
+            const key = String(p.name).trim().toLowerCase();
+            productCache[key] = p;
+            const opt = document.createElement('option');
+            opt.value = p.name;
+            productDatalist.appendChild(opt);
+        });
+    }
+
+    function applyProductIfMatched(inputEl) {
+        if (!inputEl) return;
+        const key = String(inputEl.value || '').trim().toLowerCase();
+        const p = productCache[key];
+        if (!p) return;
+
+        const tr = inputEl.closest('tr');
+        if (!tr) return;
+
+        const qtyInp = tr.querySelector('input[name^="items["][name$="][quantity]"]');
+        const valInp = tr.querySelector('input[name^="items["][name$="][value]"]');
+
+        if (qtyInp && (qtyInp.value === '' || qtyInp.value === null)) {
+            qtyInp.value = '1';
+        }
+
+        if (valInp && (valInp.value === '' || valInp.value === null)) {
+            valInp.value = formatVnNumber(String(p.final_price ?? p.price ?? ''));
+        }
+    }
 
     async function lookupCustomers(q) {
         const url = `{{ route('admin.customers.lookup') }}?q=${encodeURIComponent(q)}`;
@@ -325,19 +364,6 @@ document.addEventListener('DOMContentLoaded', function() {
         depositAmountDisplay.addEventListener('blur', syncDepositAmount);
     }
 
-    function toggleDepositAmount() {
-        if (!depositAmountWrap) return;
-        const dep = document.querySelector('input[name="deposit_text"]:checked');
-        const isYes = dep && dep.value === 'Có cọc';
-        depositAmountWrap.style.display = isYes ? '' : 'none';
-        if (!isYes) {
-            const inp = depositAmountWrap.querySelector('input[name="deposit_amount"]');
-            if (inp) inp.value = '';
-            const disp = depositAmountWrap.querySelector('input[name="deposit_amount_display"]');
-            if (disp) disp.value = '';
-        }
-    }
-
     if (form) {
         form.addEventListener('submit', function() {
             syncDepositAmount();
@@ -349,6 +375,30 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (tableBody) {
+        tableBody.addEventListener('input', function(e) {
+            const t = e.target;
+            if (!t || !t.matches('input[name^="items["][name$="][item_name]"]')) return;
+            const q = String(t.value || '').trim();
+            if (productLookupTimer) clearTimeout(productLookupTimer);
+            if (q.length < 2) return;
+            productLookupTimer = setTimeout(async function() {
+                const rows = await lookupProducts(q);
+                renderProductDatalist(rows);
+            }, 250);
+        });
+
+        tableBody.addEventListener('change', function(e) {
+            const t = e.target;
+            if (!t || !t.matches('input[name^="items["][name$="][item_name]"]')) return;
+            applyProductIfMatched(t);
+        });
+
+        tableBody.addEventListener('blur', function(e) {
+            const t = e.target;
+            if (!t || !t.matches('input[name^="items["][name$="][item_name]"]')) return;
+            applyProductIfMatched(t);
+        }, true);
+
         tableBody.querySelectorAll('input[name^="items["][name$="][value]"]').forEach(function(inp) {
             formatMoneyInput(inp);
         });
@@ -400,7 +450,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const tr2 = document.createElement('tr');
                     tr2.innerHTML = `
                         <td class="text-center stt"></td>
-                        <td><input type="text" name="items[0][item_name]" class="form-control" maxlength="255"></td>
+                        <td><input type="text" name="items[0][item_name]" class="form-control" maxlength="255" list="productDatalist"></td>
                         <td><input type="text" name="items[0][unit]" class="form-control" maxlength="50"></td>
                         <td><input type="number" step="0.01" name="items[0][quantity]" class="form-control"></td>
                         <td><input type="text" inputmode="numeric" name="items[0][value]" class="form-control" autocomplete="off"></td>
@@ -420,7 +470,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td class="text-center stt"></td>
-            <td><input type="text" name="items[${idx}][item_name]" class="form-control" maxlength="255"></td>
+            <td><input type="text" name="items[${idx}][item_name]" class="form-control" maxlength="255" list="productDatalist"></td>
             <td><input type="text" name="items[${idx}][unit]" class="form-control" maxlength="50"></td>
             <td><input type="number" step="0.01" name="items[${idx}][quantity]" class="form-control"></td>
             <td><input type="text" inputmode="numeric" name="items[${idx}][value]" class="form-control" autocomplete="off"></td>
@@ -428,8 +478,8 @@ document.addEventListener('DOMContentLoaded', function() {
             <td class="text-center"><button type="button" class="btn btn-danger btn-sm remove-row"><i class="bi bi-x"></i></button></td>
         `;
         tableBody.appendChild(tr);
-        reindex();
         bindRemove();
+        reindex();
     });
 
     function maybeFillBorrowTo() {
@@ -443,14 +493,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (borrowFrom) borrowFrom.addEventListener('change', maybeFillBorrowTo);
 
-    document.querySelectorAll('input[name="deposit_text"]').forEach(r => {
-        r.addEventListener('change', toggleDepositAmount);
-    });
-
     reindex();
     bindRemove();
     maybeFillBorrowTo();
-    toggleDepositAmount();
+    if (depositAmountWrap) depositAmountWrap.style.display = '';
 });
 </script>
 @endsection

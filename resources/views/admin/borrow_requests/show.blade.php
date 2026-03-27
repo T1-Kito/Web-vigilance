@@ -29,11 +29,18 @@
         .br-company-name { font-weight: 800; color: #ef4444; font-size: 1rem; }
         .br-title { text-align:center; font-weight: 700; margin: 18px 0 4px; letter-spacing: 0.5px;font-size: 22px; }
         .br-subtitle { text-align:center; font-size: 0.95rem; margin: 0 0 12px; }
-        .br-info { margin-top: 10px; }
+        .br-info { margin-top: 10px; font-size: 1.02rem; }
         .br-row { display:flex; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
-        .br-field { width: 100%; display:flex; align-items:flex-end; gap: 10px; }
+        .br-field { width: 100%; align-items:flex-start; gap: 10px; }
+        .br-field.half { width: calc(50% - 8px); min-width: 0; align-items: baseline; }
         .br-field .lbl { flex: 0 0 160px; font-weight: 600; }
-        .br-line { flex: 1 1 auto; min-width: 180px; padding: 0 4px 2px; border-bottom: 1px dotted #111827; }
+        .br-field.half .lbl { flex: 0 0 160px; }
+        .br-field.phone { gap: 6px; }
+        .br-field.phone .lbl { flex: 0 0 110px; }
+        .br-field.time-inline { gap: 0; }
+        .br-field.time-inline .lbl { display: none; }
+        .br-field.time-inline .br-time-right { margin-left: 0; padding-left: 0; }
+        .br-line { flex: 1 1 auto; min-width: 0; padding: 0 4px 2px; border-bottom: none; overflow-wrap: anywhere; word-break: break-word; line-height: 1.25; }
         .br-line.short { flex: 0 0 220px; }
         .br-line.wide { flex: 1 1 420px; }
         .br-muted { color: #374151; font-weight: 500; }
@@ -41,7 +48,10 @@
         .br-time-left { flex: 0 0 160px; }
         .br-time-left .lbl { display:block; }
         .br-time-left .note { display:block; font-weight: 500; font-size: 0.9em; line-height: 1.2; margin-top: 2px; }
-        .br-time-right { flex: 1 1 auto; }
+        .br-time-right { flex: 1 1 auto; display:flex; gap: 16px; flex-wrap: nowrap; }
+        .br-time-col { flex: 1 1 0; display:flex; align-items: baseline; gap: 10px; min-width: 0; }
+        .br-time-col .t-lbl { flex: 0 0 auto; font-weight: 600; }
+        .br-time-col .br-line { flex: 1 1 auto; }
         .br-time-row { display:flex; align-items:flex-end; gap: 10px; margin-bottom: 6px; }
         .br-time-row:last-child { margin-bottom: 0; }
         .br-time-row .t-lbl { flex: 0 0 auto; font-weight: 600; }
@@ -53,18 +63,15 @@
         .br-terms ul { margin: 6px 0 0 20px; }
         .br-terms li { margin: 4px 0; }
         .br-disclaimer { margin-top: 10px; font-size: 0.95rem; }
-        .br-table th, .br-table td { border: 1.2px solid #111827; padding: 10px 8px; font-size: 0.95rem; }
+        .br-table th, .br-table td { border: 1.2px solid #111827; padding: 10px 8px; font-size: 1rem; }
         .br-table th { text-align:center; font-weight: 600; background: #f3f4f6; }
-        .br-table td { vertical-align: top; }
+        .br-table td { vertical-align: middle; }
         .br-check { display:flex; align-items:center; gap: 8px; margin-top: 6px; }
         .br-box { width: 14px; height: 14px; border: 1.5px solid #111827; display:inline-block; }
         .br-box.checked { background: #111827; box-shadow: inset 0 0 0 2px #fff; }
-        .br-sign { display:flex; justify-content:space-between; gap: 16px; margin-top: 26px; }
-        .br-sign .side { width: 25%; text-align:center; }
-        .br-sign .mid { width: 50%; text-align:center; }
-        .br-sign .mid-title { font-weight: 700; margin-bottom: 6px; }
-        .br-sign .mid-row { display:flex; justify-content:space-between; gap: 16px; }
-        .br-sign .mid-col { width: 50%; text-align:center; }
+        .br-sign { display:grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 26px; }
+        .br-sign .sig-col { text-align:center; }
+        .br-sign .sig-group { grid-column: 2 / span 2; text-align:center; font-weight: 700; }
         .br-sign .cap { font-weight: 700; }
         .br-foot { margin-top: 18px; }
 
@@ -75,7 +82,21 @@
             .br-form-wrap { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; }
             .container-fluid { padding: 0 !important; }
             .br-a4 { max-width: none !important; box-shadow: none !important; border: none !important; }
-            @page { size: A4; margin: 10mm; }
+            html, body { font-size: 13px !important; line-height: 1.15 !important; }
+            .br-a4 { padding: 14px 16px !important; }
+            .br-header-right { font-size: 0.9rem !important; line-height: 1.25 !important; }
+            .br-title { margin: 10px 0 2px !important; font-size: 19px !important; }
+            .br-subtitle { margin: 0 0 8px !important; font-size: 0.9rem !important; }
+            .br-row { margin-bottom: 4px !important; }
+            .br-table th, .br-table td { padding: 6px 5px !important; font-size: 0.9rem !important; }
+            .br-table { margin-top: 6px !important; }
+            .br-terms { margin-top: 8px !important; font-size: 0.9rem !important; }
+            .br-terms .sec { margin-top: 6px !important; }
+            .br-terms ul { margin-top: 4px !important; }
+            .br-terms li { margin: 2px 0 !important; }
+            .br-disclaimer { margin-top: 6px !important; font-size: 0.9rem !important; }
+            .br-sign { margin-top: 14px !important; }
+            @page { size: A4; margin: 5mm; }
         }
     </style>
 
@@ -160,18 +181,15 @@
                 </div>
 
                 <div class="br-row">
-                    <div class="br-field">
+                    <div class="br-field half">
                         <span class="lbl">Email:</span>
                         @php $email = $borrowRequest->email ?: ''; @endphp
-                        <span class="br-line wide">{{ $email }}</span>
+                        <span class="br-line">{{ $email }}</span>
                     </div>
-                </div>
-
-                <div class="br-row">
-                    <div class="br-field">
+                    <div class="br-field half phone">
                         <span class="lbl">Số điện thoại:</span>
                         @php $contactPhone = $borrowRequest->contact_phone ?: ''; @endphp
-                        <span class="br-line wide">{{ $contactPhone }}</span>
+                        <span class="br-line">{{ $contactPhone }}</span>
                     </div>
                 </div>
 
@@ -184,18 +202,15 @@
                 </div>
 
                 <div class="br-row" style="margin-bottom: 6px;">
-                    <div class="br-field br-time">
-                        <div class="br-time-left">
-                            <span class="lbl">Thời gian mượn:</span>
-                            <span class="note">(tối đa 07 ngày)</span>
-                        </div>
+                    <div class="br-field time-inline">
+                        <span class="lbl">&nbsp;</span>
                         <div class="br-time-right">
-                            <div class="br-time-row">
-                                <span class="t-lbl">Từ ngày:</span>
+                            <div class="br-time-col">
+                                <span class="t-lbl">Thời gian mượn từ ngày:</span>
                                 @php $borrowFrom = $borrowRequest->borrow_from ? $borrowRequest->borrow_from->format('d/m/Y') : ''; @endphp
                                 <span class="br-line short">{{ $borrowFrom }}</span>
                             </div>
-                            <div class="br-time-row">
+                            <div class="br-time-col">
                                 <span class="t-lbl">Đến ngày:</span>
                                 @php $borrowTo = $borrowRequest->borrow_to ? $borrowRequest->borrow_to->format('d/m/Y') : ''; @endphp
                                 <span class="br-line short">{{ $borrowTo }}</span>
@@ -232,14 +247,14 @@
                     $totalQty = $borrowRequest->items->sum(function ($x) { return (float) ($x->quantity ?? 0); });
                     $totalValue = $borrowRequest->items->sum(function ($x) { return (float) ($x->value ?? 0); });
                     $totalQtyLabel = $totalQty ? rtrim(rtrim(number_format((float) $totalQty, 2, '.', ''), '0'), '.') : '';
-                    $totalValueLabel = $totalValue ? (number_format((float) $totalValue, 0, ',', '.') . ' đ') : '';
+                    $totalValueLabel = $totalValue ? (number_format((float) $totalValue, 0, ',', '.')) : '';
                 @endphp
                 <tfoot>
                     <tr>
                         <td></td>
-                        <td colspan="2" style="text-align:center;">Tổng cộng: {{ $totalValueLabel }}</td>
+                        <td colspan="2" style="text-align:center;">Tổng cộng:</td>
                         <td style="text-align:center;">{{ $totalQtyLabel }}</td>
-                        <td style="text-align:center;"></td>
+                        <td style="text-align:center;">{{ $totalValueLabel }}</td>
                         <td></td>
                     </tr>
                 </tfoot>
@@ -268,17 +283,10 @@
                         <div class="ttl">3. Đặt cọc:</div>
                         @php
                             $depText = (string) ($borrowRequest->deposit_text ?? '');
-                            $hasDeposit = $depText === 'Có cọc';
-                            $tickDepYes = $hasDeposit ? '☑' : '☐';
-                            $tickDepNo = !$hasDeposit ? '☑' : '☐';
                             $depAmount = $borrowRequest->deposit_amount;
                             $depAmountLabel = $depAmount !== null && $depAmount !== '' ? number_format((float) $depAmount, 0, ',', '.') : '';
                         @endphp
-                        <div style="margin-bottom: 4px;">
-                            Có cọc {{ $tickDepYes }}
-                            &nbsp;&nbsp;Không cọc {{ $tickDepNo }}
-                        </div>
-                        <div>Số tiền cọc: <span class="br-line short">{{ $depAmountLabel }}</span> (vnđ)</div>
+                        <div style="margin-bottom: 4px;">Số tiền cọc: <span class="br-line short">{{ $depAmountLabel }}</span> (vnđ)</div>
                         <div style="font-style: italic; line-height: 1.35;">
                             (Lưu ý: số tiền cọc này sẽ hoàn trả sau khi khách hàng trả hàng đủ &amp; đúng theo thỏa thuận. Nếu phát hiện hàng bị hư hỏng, so với hiện trạng ban đầu, số tiền cọc sẽ được bên Vigilance giữ lại để cân trừ sau khi có biên bản xác nhận mức độ hỏng, thiệt hại giữa 2 bên).
                         </div>
@@ -299,26 +307,26 @@
                 </div>
 
                 <div class="br-sign">
-                    <div class="side">
+                    <div></div>
+                    <div class="sig-group">Chấp nhận bởi</div>
+                    <div></div>
+
+                    <div class="sig-col">
                         <div class="cap">Người đề nghị</div>
                         <div style="margin-top: 70px; font-weight: 700;">{{ $requestedByDisplay }}</div>
                     </div>
 
-                    <div class="mid">
-                        <div class="mid-title">Chấp nhận bởi</div>
-                        <div class="mid-row">
-                            <div class="mid-col">
-                                <div class="cap">HCKT</div>
-                                <div style="margin-top: 70px; font-weight: 700;"></div>
-                            </div>
-                            <div class="mid-col">
-                                <div class="cap">Giám Đốc</div>
-                                <div style="margin-top: 70px; font-weight: 700;">{{ $approvedByDisplay }}</div>
-                            </div>
-                        </div>
+                    <div class="sig-col">
+                        <div class="cap">HCKT</div>
+                        <div style="margin-top: 70px; font-weight: 700;"></div>
                     </div>
 
-                    <div class="side">
+                    <div class="sig-col">
+                        <div class="cap">Giám Đốc</div>
+                        <div style="margin-top: 70px; font-weight: 700;">{{ $approvedByDisplay }}</div>
+                    </div>
+
+                    <div class="sig-col">
                         <div class="cap">Xuất kho bởi</div>
                         <div style="margin-top: 70px; font-weight: 700;"></div>
                     </div>

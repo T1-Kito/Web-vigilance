@@ -73,8 +73,8 @@ class BorrowRequestController extends Controller
             'current_project' => 'nullable|string|max:255',
             'borrow_from' => 'nullable|date',
             'borrow_to' => 'nullable|date',
-            'deposit_text' => 'nullable|string|max:255',
-            'deposit_amount' => 'nullable|numeric|min:0|required_if:deposit_text,Có cọc',
+            'deposit_text' => 'required|in:Có cọc',
+            'deposit_amount' => 'required|numeric|min:0',
             'status' => 'required|in:proposed,processing,borrowing,returned,overdue',
             'note' => 'nullable|string',
 
@@ -96,11 +96,8 @@ class BorrowRequestController extends Controller
                 $borrowTo = $borrowFrom->copy()->addDays(7);
             }
 
-            $depositText = $validated['deposit_text'] ?? null;
-            $depositAmount = $validated['deposit_amount'] ?? null;
-            if ($depositText !== 'Có cọc') {
-                $depositAmount = null;
-            }
+            $depositText = $validated['deposit_text'];
+            $depositAmount = $validated['deposit_amount'];
 
             $br = BorrowRequest::create([
                 'requested_by_admin_id' => Auth::id(),
@@ -196,8 +193,8 @@ class BorrowRequestController extends Controller
             'current_project' => 'nullable|string|max:255',
             'borrow_from' => 'nullable|date',
             'borrow_to' => 'nullable|date',
-            'deposit_text' => 'nullable|string|max:255',
-            'deposit_amount' => 'nullable|numeric|min:0|required_if:deposit_text,Có cọc',
+            'deposit_text' => 'required|in:Có cọc',
+            'deposit_amount' => 'required|numeric|min:0',
             'status' => 'required|in:proposed,processing,borrowing,returned,overdue',
             'note' => 'nullable|string',
 
@@ -221,11 +218,8 @@ class BorrowRequestController extends Controller
                 $borrowTo = $borrowFrom->copy()->addDays(7);
             }
 
-            $depositText = $validated['deposit_text'] ?? null;
-            $depositAmount = $validated['deposit_amount'] ?? null;
-            if ($depositText !== 'Có cọc') {
-                $depositAmount = null;
-            }
+            $depositText = $validated['deposit_text'];
+            $depositAmount = $validated['deposit_amount'];
 
             $borrowRequest->update([
                 'requested_by_name' => $validated['requested_by_name'] ?? null,

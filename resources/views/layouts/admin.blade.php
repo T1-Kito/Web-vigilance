@@ -212,6 +212,16 @@
             align-items: center;
             justify-content: center;
         }
+
+        .nav-group-title {
+            margin: 14px 0 6px;
+            padding: 0 14px;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.78);
+        }
         
         /* Main Content */
         .admin-main {
@@ -285,7 +295,7 @@
         
         .logout-btn:hover {
             background: #dc2626;
-            transform: translateY(-2px);
+            transform: translateY(-1px);
         }
         
         /* Content Cards */
@@ -369,13 +379,15 @@
         
         <!-- Navigation Menu -->
         <div class="nav-menu">
+            <div class="nav-group-title">Tổng quan</div>
             <div class="nav-item">
                 <a href="{{ route('home') }}" class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-speedometer2"></i></div>
                     Bảng điều khiển
                 </a>
             </div>
-            
+
+            <div class="nav-group-title">Sản phẩm</div>
             <div class="nav-item">
                 <a href="{{ route('admin.products.index') }}" class="nav-link {{ request()->routeIs('admin.products.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-tags"></i></div>
@@ -396,14 +408,16 @@
                     Quản lý banner
                 </a>
             </div>
-            
+
+            <div class="nav-group-title">Đơn hàng</div>
             <div class="nav-item">
                 <a href="{{ route('admin.orders.index') }}" class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-cart-check"></i></div>
                     Quản lý đơn hàng
                 </a>
             </div>
-            
+
+            <div class="nav-group-title">Bảo hành</div>
             <div class="nav-item">
                 <a href="{{ route('admin.warranties.index') }}" class="nav-link {{ request()->routeIs('admin.warranties.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-shield-check"></i></div>
@@ -424,7 +438,8 @@
                     Phiếu nhận & trả bảo hành
                 </a>
             </div>
-            
+
+            <div class="nav-group-title">Quản trị</div>
             @php
                 $superAdminEmail = strtolower(trim((string) env('SUPER_ADMIN_EMAIL', '')));
                 $currentEmail = strtolower(trim((string) (Auth::user()->email ?? '')));
@@ -446,6 +461,7 @@
                 </a>
             </div>
 
+            <div class="nav-group-title">Khách hàng</div>
             <div class="nav-item">
                 <a href="{{ route('admin.customers.index') }}" class="nav-link {{ request()->routeIs('admin.customers.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-person-badge"></i></div>
@@ -453,6 +469,7 @@
                 </a>
             </div>
 
+            <div class="nav-group-title">Mượn hàng</div>
             <div class="nav-item">
                 <a href="{{ route('admin.borrow-requests.index') }}" class="nav-link {{ request()->routeIs('admin.borrow-requests.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-clipboard-check"></i></div>
@@ -460,6 +477,7 @@
                 </a>
             </div>
 
+            <div class="nav-group-title">Chat</div>
             <div class="nav-item">
                 <a href="{{ route('admin.chat-support.index') }}" class="nav-link {{ request()->routeIs('admin.chat-support.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-chat-left-text"></i></div>
@@ -469,14 +487,16 @@
                     </span>
                 </a>
             </div>
-            
+
+            <div class="nav-group-title">Báo cáo</div>
             <div class="nav-item">
                 <a href="#" class="nav-link">
                     <div class="nav-icon"><i class="bi bi-graph-up"></i></div>
                     Báo cáo doanh thu
                 </a>
             </div>
-            
+
+            <div class="nav-group-title">Hệ thống</div>
             <div class="nav-item">
                 <a href="#" class="nav-link">
                     <div class="nav-icon"><i class="bi bi-gear"></i></div>
