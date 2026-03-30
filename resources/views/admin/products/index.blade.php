@@ -98,7 +98,7 @@
             <thead>
                 <tr style="background: linear-gradient(135deg, #1e3a8a, #1e40af); color: white;">
                     <th style="padding: 18px 15px; text-align: center; font-weight: 600; border-bottom: 2px solid #3b82f6;">#</th>
-                    <th style="padding: 18px 15px; text-align: center; font-weight: 600; border-bottom: 2px solid #3b82f6;">Thứ tự</th>
+                    <th style="padding: 18px 15px; text-align: center; font-weight: 600; border-bottom: 2px solid #3b82f6;">Mã sản phẩm</th>
                     <th style="padding: 18px 15px; text-align: center; font-weight: 600; border-bottom: 2px solid #3b82f6;">Ảnh</th>
                     <th style="padding: 18px 15px; text-align: left; font-weight: 600; border-bottom: 2px solid #3b82f6;">Tên sản phẩm</th>
                     <th style="padding: 18px 15px; text-align: center; font-weight: 600; border-bottom: 2px solid #3b82f6;">Hãng</th>
@@ -113,8 +113,8 @@
                         @foreach($products as $product)
                 <tr id="product-{{ $product->id }}" style="border-bottom: 1px solid #e5e7eb; transition: all 0.3s ease;" onmouseover="this.style.backgroundColor='#f8fafc'" onmouseout="this.style.backgroundColor='white'">
                     <td style="padding: 15px; text-align: center; font-weight: 600; color: #6b7280;">{{ $loop->iteration }}</td>
-                    <td style="padding: 15px; text-align: center; font-weight: 700; color: #1f2937; font-size: 1.1em;">
-                        {{ $product->sort_order ?? 999 }}
+                    <td style="padding: 15px; text-align: center; font-weight: 700; color: #1f2937; font-size: 0.95em; white-space: nowrap;">
+                        {{ $product->serial_number ?: ('SP-' . str_pad($product->id, 4, '0', STR_PAD_LEFT)) }}
                     </td>
                     <td style="padding: 15px; text-align: center;">
                         <img src="{{ asset('images/products/' . $product->image) }}" alt="{{ $product->name }}" style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
@@ -149,19 +149,36 @@
                                 @endif
                             </td>
                     <td style="padding: 15px; text-align: center;">
-                        <div style="display: flex; justify-content: center; gap: 8px;">
-                            <a href="{{ route('admin.products.edit', $product->id) . '?return_url=' . urlencode(request()->fullUrl()) }}" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; border: none; padding: 8px 12px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 0.9em; display: flex; align-items: center; gap: 5px; transition: all 0.3s ease;" title="Sửa sản phẩm">
-                                <i class="bi bi-pencil-square"></i>Sửa
-                            </a>
-                            <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" style="display: inline;">
-                                    @csrf
-                                    @method('DELETE')
-                                <button type="submit" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 600; font-size: 0.9em; display: flex; align-items: center; gap: 5px; cursor: pointer; transition: all 0.3s ease;" onclick="return confirm('Bạn có chắc muốn xóa sản phẩm này?')" title="Xóa sản phẩm">
-                                    <i class="bi bi-trash"></i>Xóa
-                                </button>
-                                </form>
+                        <div class="dropdown">
+                            <button
+                                class="btn btn-link text-white p-1 rounded-2"
+                                type="button"
+                                data-bs-toggle="dropdown"
+                                aria-expanded="false"
+                                title="Thao tác"
+                                style="background: rgba(15,23,42,0.08); border-radius: 999px; width: 36px; height: 36px; display:inline-flex; align-items:center; justify-content:center;"
+                            >
+                                <i class="bi bi-three-dots-vertical fs-5 lh-1"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 small">
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('admin.products.edit', $product->id) . '?return_url=' . urlencode(request()->fullUrl()) }}">
+                                        <i class="bi bi-pencil-square me-2 text-primary"></i>Sửa
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider my-1"></li>
+                                <li>
+                                    <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" onsubmit="return confirm('Bạn có chắc muốn xóa sản phẩm này?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="dropdown-item text-danger">
+                                            <i class="bi bi-trash me-2"></i>Xóa
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
                         </div>
-                            </td>
+                    </td>
                         </tr>
                         @endforeach
                     </tbody>

@@ -232,7 +232,7 @@
                             <th style="border: none; padding: 16px 12px; font-weight: 700; color: #495057;">Số seri</th>
                             <th style="border: none; padding: 16px 12px; font-weight: 700; color: #495057;">Sản phẩm / Model</th>
                             <th style="border: none; padding: 16px 12px; font-weight: 700; color: #495057;">Khách hàng</th>
-                            <th style="border: none; padding: 16px 12px; font-weight: 700; color: #495057;">Ngày mua</th>
+                            <th style="border: none; padding: 16px 12px; font-weight: 700; color: #495057;">Ngày bán</th>
                             <th style="border: none; padding: 16px 12px; font-weight: 700; color: #495057;">Hết hạn</th>
                             <th style="border: none; padding: 16px 12px; font-weight: 700; color: #495057;">Trạng thái</th>
                             <th style="border: none; padding: 16px 12px; font-weight: 700; color: #495057;">Yêu cầu</th>

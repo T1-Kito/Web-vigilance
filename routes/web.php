@@ -692,10 +692,7 @@ Route::get('/bao-gia/{orderCode}/thanh-cong', [\App\Http\Controllers\OrderContro
 
 // Route group cho admin - đổi prefix sang cp-admin để tránh trùng thư mục public/admin
 Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(function () {
-    // Trang /admin (root) -> chuyển vào trang quản trị mặc định
-    Route::get('/', function () {
-        return redirect()->route('admin.products.index');
-    })->name('dashboard');
+    Route::get('/', [\App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
 
     // Product management
     Route::get('products/lookup', [App\Http\Controllers\Admin\ProductController::class, 'lookup'])->name('products.lookup');
@@ -724,7 +721,12 @@ Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::get('warranties/{warranty}/create-repair-form', [App\Http\Controllers\Admin\RepairFormController::class, 'createFromWarranty'])->name('repair-forms.createFromWarranty');
     Route::get('warranty-claims/{warrantyClaim}/create-repair-form', [App\Http\Controllers\Admin\RepairFormController::class, 'createFromClaim'])->name('repair-forms.createFromClaim');
 
-    // Order management
+    // Order management (create trước {orderId} để không nuốt "create")
+    Route::get('orders/create', [\App\Http\Controllers\Admin\OrderAdminController::class, 'create'])->name('orders.create');
+    Route::post('orders', [\App\Http\Controllers\Admin\OrderAdminController::class, 'store'])->name('orders.store');
+    Route::get('orders/line-options/{product}', [\App\Http\Controllers\Admin\OrderAdminController::class, 'lineOptions'])->name('orders.line-options');
+    // Modal hiển thị lịch sử mua hàng của khách (theo MST/SĐT từ form tạo đơn)
+    Route::get('orders/customer-history', [\App\Http\Controllers\Admin\OrderAdminController::class, 'customerPurchaseHistory'])->name('orders.customer-history');
     Route::get('orders', [\App\Http\Controllers\Admin\OrderAdminController::class, 'index'])->name('orders.index');
     Route::get('orders/{orderId}', [\App\Http\Controllers\Admin\OrderAdminController::class, 'show'])->name('orders.show');
     Route::patch('orders/{order}', [\App\Http\Controllers\Admin\OrderAdminController::class, 'update'])->name('orders.update');
@@ -750,6 +752,11 @@ Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::get('customers/import', [\App\Http\Controllers\Admin\CustomerController::class, 'importForm'])->name('customers.import.form');
     Route::post('customers/import-excel', [\App\Http\Controllers\Admin\CustomerController::class, 'importExcel'])->name('customers.importExcel');
     Route::resource('customers', \App\Http\Controllers\Admin\CustomerController::class);
+
+    // Quản lý thông tin khách đặt hàng (dưới mục khách hàng)
+    Route::get('customer-order-info', [\App\Http\Controllers\Admin\CustomerOrderInfoController::class, 'index'])->name('customer-order-info.index');
+    Route::get('customer-order-info/{customerKey}', [\App\Http\Controllers\Admin\CustomerOrderInfoController::class, 'show'])->name('customer-order-info.show');
+    Route::delete('customer-order-info/{customerKey}', [\App\Http\Controllers\Admin\CustomerOrderInfoController::class, 'destroy'])->name('customer-order-info.destroy');
 
     Route::resource('borrow-requests', \App\Http\Controllers\Admin\BorrowRequestController::class);
 

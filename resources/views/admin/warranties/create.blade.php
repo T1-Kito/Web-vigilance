@@ -177,7 +177,7 @@
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    <label for="purchase_date" class="form-label fw-bold">Ngày mua *</label>
+                                    <label for="purchase_date" class="form-label fw-bold">Ngày bán *</label>
                                     <input type="date" 
                                            class="form-control @error('purchase_date') is-invalid @enderror" 
                                            id="purchase_date" 

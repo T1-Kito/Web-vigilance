@@ -282,10 +282,10 @@
         }
     @endphp
     @if(!$isEmbed)
-        <div class="d-none d-md-block">
+        <div class="d-none d-lg-block">
             @include('components.header', ['featuredProducts' => $featuredProducts ?? null])
         </div>
-        <div class="d-md-none">
+        <div class="d-lg-none">
             <div class="header-topbar py-1 small" style="background: var(--brand-primary); color: #fff; border-bottom: 1px solid #F1F1F1;">
                 <div class="container-fluid d-flex align-items-center" style="font-size: 1em;">
                     <div class="flex-grow-1 overflow-hidden" style="min-width: 0;">
@@ -372,7 +372,7 @@
         $unreadNotificationsCount = auth()->check() ? auth()->user()->unreadNotifications()->count() : 0;
     @endphp
     @if(!$isEmbed)
-        <nav class="app-bottom-nav d-md-none" aria-label="App navigation">
+        <nav class="app-bottom-nav d-lg-none" aria-label="App navigation">
             <div class="nav-inner">
                 <a class="nav-item-btn {{ $isHome ? 'active' : '' }}" href="{{ route('home') }}">
                     <i class="bi bi-house"></i>
@@ -401,7 +401,7 @@
         </nav>
     @endif
 
-    <div class="offcanvas offcanvas-bottom d-md-none" tabindex="-1" id="mobileAccount" aria-labelledby="mobileAccountLabel" style="height: 100vh; max-height: 100vh; border-top-left-radius: 0; border-top-right-radius: 0;">
+    <div class="offcanvas offcanvas-bottom d-lg-none" tabindex="-1" id="mobileAccount" aria-labelledby="mobileAccountLabel" style="height: 100vh; max-height: 100vh; border-top-left-radius: 0; border-top-right-radius: 0;">
         <div class="offcanvas-header" style="border-bottom: 1px solid rgba(15, 23, 42, 0.08);">
             <h5 class="offcanvas-title fw-bold" id="mobileAccountLabel" style="color: var(--brand-secondary);">Tài khoản</h5>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>

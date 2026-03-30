@@ -65,11 +65,11 @@
     <style>
         :root {
             --sidebar-width: 280px;
-            --sidebar-bg: #1e3a8a;
-            --sidebar-hover: #3b82f6;
-            --sidebar-active: #fbbf24;
-            --sidebar-active-text: #1f2937;
-            --content-bg: #f8fafc;
+            --sidebar-bg: #0f172a;
+            --sidebar-hover: #334155;
+            --sidebar-active: rgba(255, 255, 255, 0.12);
+            --sidebar-active-text: #ffffff;
+            --content-bg: #f1f5f9;
         }
         
         body {
@@ -84,7 +84,7 @@
             top: 0;
             height: 100vh;
             width: var(--sidebar-width);
-            background: linear-gradient(180deg, var(--sidebar-bg) 0%, #1e40af 100%);
+            background: linear-gradient(180deg, var(--sidebar-bg) 0%, #1e293b 100%);
             color: white;
             overflow-y: auto;
             z-index: 1000;
@@ -118,16 +118,26 @@
         
         /* Alternative: Logo với background trắng nhẹ nhàng */
         .logo-section.white-bg {
-            background: rgba(255,255,255,0.95);
-            border-radius: 12px;
-            margin: 15px 12px;
-            padding: 15px 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.90) 100%);
+            border-radius: 14px;
+            margin: 14px 14px 10px;
+            padding: 14px 10px;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            box-shadow: 0 10px 26px rgba(2, 6, 23, 0.10);
         }
         
         .logo-section.white-bg img {
             filter: none;
             opacity: 1;
+        }
+
+        .logo-section.white-bg .company-logo {
+            width: 130px;
+            max-width: 100%;
+            height: 40px;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto;
         }
         
         /* Profile Section */
@@ -196,7 +206,7 @@
             background: var(--sidebar-active);
             color: var(--sidebar-active-text);
             font-weight: 600;
-            box-shadow: 0 4px 15px rgba(251, 191, 36, 0.3);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
         }
         
         .nav-link.active:hover {
@@ -381,27 +391,51 @@
         <div class="nav-menu">
             <div class="nav-group-title">Tổng quan</div>
             <div class="nav-item">
-                <a href="{{ route('home') }}" class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}">
+                <a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-speedometer2"></i></div>
                     Bảng điều khiển
                 </a>
             </div>
 
-            <div class="nav-group-title">Sản phẩm</div>
+            <div class="nav-group-title">Vận hành</div>
+            <div class="nav-item">
+                <a href="{{ route('admin.orders.index') }}" class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
+                    <div class="nav-icon"><i class="bi bi-cart-check"></i></div>
+                    Quản lý đơn hàng
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ route('admin.customers.index') }}" class="nav-link {{ request()->routeIs('admin.customers.*') ? 'active' : '' }}">
+                    <div class="nav-icon"><i class="bi bi-person-badge"></i></div>
+                    Quản lý khách hàng
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ route('admin.customer-order-info.index') }}" class="nav-link {{ request()->routeIs('admin.customer-order-info.*') ? 'active' : '' }}">
+                    <div class="nav-icon"><i class="bi bi-person-workspace"></i></div>
+                    Quản lý thông tin khách đặt hàng
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ route('admin.borrow-requests.index') }}" class="nav-link {{ request()->routeIs('admin.borrow-requests.*') ? 'active' : '' }}">
+                    <div class="nav-icon"><i class="bi bi-clipboard-check"></i></div>
+                    Quản lý mượn hàng
+                </a>
+            </div>
+
+            <div class="nav-group-title">Sản phẩm &amp; hiển thị</div>
             <div class="nav-item">
                 <a href="{{ route('admin.products.index') }}" class="nav-link {{ request()->routeIs('admin.products.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-tags"></i></div>
                     Quản lý sản phẩm
                 </a>
             </div>
-            
             <div class="nav-item">
                 <a href="{{ route('admin.categories.index') }}" class="nav-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-grid"></i></div>
                     Quản lý danh mục
                 </a>
             </div>
-            
             <div class="nav-item">
                 <a href="{{ route('admin.banners.index') }}" class="nav-link {{ request()->routeIs('admin.banners.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-images"></i></div>
@@ -409,42 +443,26 @@
                 </a>
             </div>
 
-            <div class="nav-group-title">Đơn hàng</div>
-            <div class="nav-item">
-                <a href="{{ route('admin.orders.index') }}" class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
-                    <div class="nav-icon"><i class="bi bi-cart-check"></i></div>
-                    Quản lý đơn hàng
-                </a>
-            </div>
-
-            <div class="nav-group-title">Bảo hành</div>
+            <div class="nav-group-title">Bảo hành &amp; sửa chữa</div>
             <div class="nav-item">
                 <a href="{{ route('admin.warranties.index') }}" class="nav-link {{ request()->routeIs('admin.warranties.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-shield-check"></i></div>
-                    Quản lý bảo hành
+                    Quản lý số seri (BH)
                 </a>
             </div>
-            
-            <div class="nav-item">
-                <a href="{{ route('admin.warranties.claims') }}" class="nav-link {{ request()->routeIs('admin.warranties.claims') ? 'active' : '' }}">
-                    <div class="nav-icon"><i class="bi bi-list-check"></i></div>
-                    Yêu cầu bảo hành
-                </a>
-            </div>
-            
             <div class="nav-item">
                 <a href="{{ route('admin.repair-forms.index') }}" class="nav-link {{ request()->routeIs('admin.repair-forms.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-file-earmark-text"></i></div>
-                    Phiếu nhận & trả bảo hành
+                    Phiếu nhận &amp; trả bảo hành
                 </a>
             </div>
 
-            <div class="nav-group-title">Quản trị</div>
             @php
                 $superAdminEmail = strtolower(trim((string) env('SUPER_ADMIN_EMAIL', '')));
                 $currentEmail = strtolower(trim((string) (Auth::user()->email ?? '')));
                 $canManageUsers = ($superAdminEmail === '') || ($currentEmail !== '' && $currentEmail === $superAdminEmail);
             @endphp
+            <div class="nav-group-title">Quản trị</div>
             @if($canManageUsers)
                 <div class="nav-item">
                     <a href="{{ route('admin.users.index') }}" class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
@@ -453,7 +471,6 @@
                     </a>
                 </div>
             @endif
-
             <div class="nav-item">
                 <a href="{{ route('admin.activity-logs.index') }}" class="nav-link {{ request()->routeIs('admin.activity-logs.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-clock-history"></i></div>
@@ -461,23 +478,7 @@
                 </a>
             </div>
 
-            <div class="nav-group-title">Khách hàng</div>
-            <div class="nav-item">
-                <a href="{{ route('admin.customers.index') }}" class="nav-link {{ request()->routeIs('admin.customers.*') ? 'active' : '' }}">
-                    <div class="nav-icon"><i class="bi bi-person-badge"></i></div>
-                    Quản lý khách hàng
-                </a>
-            </div>
-
-            <div class="nav-group-title">Mượn hàng</div>
-            <div class="nav-item">
-                <a href="{{ route('admin.borrow-requests.index') }}" class="nav-link {{ request()->routeIs('admin.borrow-requests.*') ? 'active' : '' }}">
-                    <div class="nav-icon"><i class="bi bi-clipboard-check"></i></div>
-                    Quản lý mượn hàng
-                </a>
-            </div>
-
-            <div class="nav-group-title">Chat</div>
+            <div class="nav-group-title">Báo cáo &amp; hỗ trợ</div>
             <div class="nav-item">
                 <a href="{{ route('admin.chat-support.index') }}" class="nav-link {{ request()->routeIs('admin.chat-support.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-chat-left-text"></i></div>
@@ -487,8 +488,6 @@
                     </span>
                 </a>
             </div>
-
-            <div class="nav-group-title">Báo cáo</div>
             <div class="nav-item">
                 <a href="#" class="nav-link">
                     <div class="nav-icon"><i class="bi bi-graph-up"></i></div>
@@ -502,13 +501,6 @@
                     <div class="nav-icon"><i class="bi bi-gear"></i></div>
                     Cài đặt hệ thống
                 </a>
-            </div>
-            
-            <div class="nav-item">
-                <div class="nav-link" style="cursor: pointer;" onclick="toggleColorPicker()">
-                    <div class="nav-icon"><i class="bi bi-palette"></i></div>
-                    Thay đổi màu
-                </div>
             </div>
             
             <div class="nav-item" style="margin-top: 30px;">
@@ -553,52 +545,6 @@
         @yield('content')
     </div>
     
-    <!-- Color Picker Modal -->
-    <div class="modal fade" id="colorPickerModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content" style="border-radius: 15px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
-                <div class="modal-header" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-radius: 15px 15px 0 0; border: none;">
-                    <h5 class="modal-title">
-                        <i class="bi bi-palette me-2"></i>Thay đổi màu sidebar
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <div class="mb-4">
-                        <label class="form-label fw-bold mb-3">Chọn màu chủ đạo:</label>
-                        <div class="d-flex flex-wrap gap-2 mb-3">
-                            <div class="color-option" data-color="#1e3a8a" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #1e3a8a, #1e40af); cursor: pointer; border: 3px solid #e5e7eb; transition: all 0.3s ease;" onclick="changeSidebarColor('#1e3a8a', '#1e40af')"></div>
-                            <div class="color-option" data-color="#059669" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #059669, #047857); cursor: pointer; border: 3px solid #e5e7eb; transition: all 0.3s ease;" onclick="changeSidebarColor('#059669', '#047857')"></div>
-                            <div class="color-option" data-color="#7c3aed" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #7c3aed, #6d28d9); cursor: pointer; border: 3px solid #e5e7eb; transition: all 0.3s ease;" onclick="changeSidebarColor('#7c3aed', '#6d28d9')"></div>
-                            <div class="color-option" data-color="#dc2626" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #dc2626, #b91c1c); cursor: pointer; border: 3px solid #e5e7eb; transition: all 0.3s ease;" onclick="changeSidebarColor('#dc2626', '#b91c1c')"></div>
-                            <div class="color-option" data-color="#ea580c" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #ea580c, #c2410c); cursor: pointer; border: 3px solid #e5e7eb; transition: all 0.3s ease;" onclick="changeSidebarColor('#ea580c', '#c2410c')"></div>
-                            <div class="color-option" data-color="#0891b2" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #0891b2, #0e7490); cursor: pointer; border: 3px solid #e5e7eb; transition: all 0.3s ease;" onclick="changeSidebarColor('#0891b2', '#0e7490')"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-4">
-                        <label class="form-label fw-bold mb-3">Hoặc chọn màu tùy chỉnh:</label>
-                        <div class="d-flex align-items-center gap-3">
-                            <input type="color" id="customColor" class="form-control form-control-color" style="width: 60px; height: 60px; border-radius: 50%; border: 3px solid #e5e7eb; cursor: pointer;">
-                            <button type="button" class="btn btn-primary" onclick="applyCustomColor()">
-                                <i class="bi bi-check-lg me-2"></i>Áp dụng
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="d-flex justify-content-between">
-                        <button type="button" class="btn btn-outline-secondary" onclick="resetToDefault()">
-                            <i class="bi bi-arrow-clockwise me-2"></i>Mặc định
-                        </button>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                            <i class="bi bi-x-lg me-2"></i>Đóng
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -620,74 +566,7 @@
             }
         });
         
-        // Color picker functions
-        function toggleColorPicker() {
-            const modal = new bootstrap.Modal(document.getElementById('colorPickerModal'));
-            modal.show();
-        }
-        
-        function changeSidebarColor(primaryColor, secondaryColor, event) {
-            const sidebar = document.getElementById('sidebar');
-            const profileSection = document.querySelector('.profile-section');
-            
-            // Update sidebar background
-            if (sidebar) {
-            sidebar.style.background = `linear-gradient(180deg, ${primaryColor} 0%, ${secondaryColor} 100%)`;
-            }
-            
-            // Update profile section
-            if (profileSection) {
-                profileSection.style.background = `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`;
-            }
-            
-            // Update active nav item
-            const activeNav = document.querySelector('.nav-link.active');
-            if (activeNav) {
-                activeNav.style.background = `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`;
-            }
-            
-            // Save to localStorage
-            localStorage.setItem('sidebarColor', primaryColor);
-            localStorage.setItem('sidebarSecondaryColor', secondaryColor);
-            
-            // Add visual feedback
-            document.querySelectorAll('.color-option').forEach(option => {
-                option.style.border = '3px solid #e5e7eb';
-            });
-            if (event && event.target) {
-            event.target.style.border = '3px solid #fbbf24';
-            }
-        }
-        
-        function applyCustomColor() {
-            const customColor = document.getElementById('customColor').value;
-            const lighterColor = lightenColor(customColor, 20);
-            changeSidebarColor(customColor, lighterColor, null);
-        }
-        
-        function lightenColor(color, percent) {
-            const num = parseInt(color.replace("#",""), 16);
-            const amt = Math.round(2.55 * percent);
-            const R = (num >> 16) + amt;
-            const G = (num >> 8 & 0x00FF) + amt;
-            const B = (num & 0x0000FF) + amt;
-            return "#" + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 + (G<255?G<1?0:G:255)*0x100 + (B<255?B<1?0:B:255)).toString(16).slice(1);
-        }
-        
-        function resetToDefault() {
-            changeSidebarColor('#1e3a8a', '#1e40af', null);
-            document.getElementById('customColor').value = '#1e3a8a';
-        }
-        
-        // Load saved color on page load
         document.addEventListener('DOMContentLoaded', function() {
-            const savedColor = localStorage.getItem('sidebarColor');
-            const savedSecondaryColor = localStorage.getItem('sidebarSecondaryColor');
-
-            if (savedColor && savedSecondaryColor) {
-                changeSidebarColor(savedColor, savedSecondaryColor, null);
-            }
-
             const isChatSupportPage = {{ request()->routeIs('admin.chat-support.*') ? 'true' : 'false' }};
             const unreadNotificationsCount = Number({{ (int) $adminUnreadNotificationsCount }});
             const seenKey = 'vw_admin_chat_seen_user_id_v1';
