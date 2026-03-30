@@ -22,26 +22,34 @@ class ProductController extends Controller
             return response()->json([]);
         }
 
+        $lower = static function (string $s): string {
+            return mb_strtolower($s, 'UTF-8');
+        };
+
         $normalized = preg_replace('/[^\p{L}\p{N}\s\-]+/u', ' ', $q) ?? $q;
         $normalized = preg_replace('/\s+/u', ' ', $normalized) ?? $normalized;
         $tokens = array_values(array_filter(explode(' ', $normalized), function ($t) {
             return mb_strlen($t) >= 2;
         }));
 
+        $lq = $lower($q);
+        $likeFull = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $lq) . '%';
+
         $products = Product::query()
             ->select(['id', 'name', 'slug', 'price', 'discount_percent', 'serial_number'])
-            ->where(function ($query) use ($q, $tokens) {
-                $query->where(function ($q2) use ($q) {
-                    $q2->where('name', 'like', "%{$q}%")
-                        ->orWhere('serial_number', 'like', "%{$q}%")
-                        ->orWhere('slug', 'like', "%{$q}%");
+            ->where(function ($query) use ($tokens, $lower, $likeFull) {
+                $query->where(function ($q2) use ($likeFull) {
+                    $q2->whereRaw('LOWER(name) LIKE ?', [$likeFull])
+                        ->orWhereRaw('LOWER(COALESCE(serial_number, "")) LIKE ?', [$likeFull])
+                        ->orWhereRaw('LOWER(COALESCE(slug, "")) LIKE ?', [$likeFull]);
                 });
 
                 foreach ($tokens as $token) {
-                    $query->orWhere(function ($q3) use ($token) {
-                        $q3->where('name', 'like', "%{$token}%")
-                            ->orWhere('serial_number', 'like', "%{$token}%")
-                            ->orWhere('slug', 'like', "%{$token}%");
+                    $lt = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $lower($token)) . '%';
+                    $query->orWhere(function ($q3) use ($lt) {
+                        $q3->whereRaw('LOWER(name) LIKE ?', [$lt])
+                            ->orWhereRaw('LOWER(COALESCE(serial_number, "")) LIKE ?', [$lt])
+                            ->orWhereRaw('LOWER(COALESCE(slug, "")) LIKE ?', [$lt]);
                     });
                 }
             })

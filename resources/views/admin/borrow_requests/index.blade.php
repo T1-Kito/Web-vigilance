@@ -90,20 +90,39 @@
                         </td>
                         <td style="padding: 14px 12px; text-align:center; font-weight:700;">{{ (int) ($r->items_count ?? 0) }}</td>
                         <td style="padding: 14px 12px; text-align:center;">
-                            <div style="display:flex; justify-content:center; gap: 8px; flex-wrap: wrap;">
-                                <a href="{{ route('admin.borrow-requests.show', $r) }}" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; padding: 8px 12px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 0.9em; display: inline-flex; align-items: center; gap: 5px;">
-                                    <i class="bi bi-eye"></i>Xem
-                                </a>
-                                <a href="{{ route('admin.borrow-requests.edit', $r) }}" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; border: none; padding: 8px 12px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 0.9em; display: inline-flex; align-items: center; gap: 5px;">
-                                    <i class="bi bi-pencil-square"></i>Sửa
-                                </a>
-                                <form action="{{ route('admin.borrow-requests.destroy', $r) }}" method="POST" style="display:inline;" onsubmit="return confirm('Bạn có chắc muốn xóa phiếu này?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 600; font-size: 0.9em; display: inline-flex; align-items: center; gap: 5px; cursor:pointer;">
-                                        <i class="bi bi-trash"></i>Xóa
-                                    </button>
-                                </form>
+                            <div class="dropdown">
+                                <button
+                                    class="btn btn-link text-white p-1 rounded-2"
+                                    type="button"
+                                    data-bs-toggle="dropdown"
+                                    aria-expanded="false"
+                                    title="Thao tác"
+                                    style="background: rgba(15,23,42,0.08); border-radius: 999px; width: 36px; height: 36px; display:inline-flex; align-items:center; justify-content:center;"
+                                >
+                                    <i class="bi bi-three-dots-vertical fs-5 lh-1"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 small">
+                                    <li>
+                                        <a class="dropdown-item" href="{{ route('admin.borrow-requests.show', $r) }}">
+                                            <i class="bi bi-eye me-2 text-primary"></i>Xem
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{{ route('admin.borrow-requests.edit', $r) }}">
+                                            <i class="bi bi-pencil-square me-2 text-primary"></i>Sửa
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider my-1"></li>
+                                    <li>
+                                        <form action="{{ route('admin.borrow-requests.destroy', $r) }}" method="POST" onsubmit="return confirm('Bạn có chắc muốn xóa phiếu này?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="dropdown-item text-danger">
+                                                <i class="bi bi-trash me-2"></i>Xóa
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
                             </div>
                         </td>
                     </tr>
