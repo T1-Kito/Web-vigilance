@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Models\ActivityLog;
 use App\Models\Product;
 use App\Models\Category;
 use Illuminate\Support\Str;
@@ -609,5 +610,143 @@ class ProductController extends Controller
             ];
         }
         return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\SimpleArrayExport($data), 'products_export.xlsx');
+    }
+
+    /**
+     * JSON: lịch sử thay đổi sản phẩm (từ activity_logs — before/after khi cập nhật).
+     */
+    public function activityHistory(Product $product)
+    {
+        $categoryNames = Category::query()->pluck('name', 'id')->all();
+
+        $logs = ActivityLog::query()
+            ->where('subject_type', Product::class)
+            ->where('subject_id', $product->id)
+            ->whereIn('action', ['product.update', 'product.create'])
+            ->orderByDesc('created_at')
+            ->limit(100)
+            ->get();
+
+        $items = [];
+        foreach ($logs as $log) {
+            $props = is_array($log->properties) ? $log->properties : [];
+            $row = [
+                'id' => $log->id,
+                'action' => $log->action,
+                'at' => $log->created_at?->timezone('Asia/Ho_Chi_Minh')->format('d/m/Y H:i'),
+                'user_email' => $log->user_email ?? '',
+                'description' => $log->description ?? '',
+                'changes' => [],
+            ];
+
+            if ($log->action === 'product.update' && isset($props['before'], $props['after']) && is_array($props['before']) && is_array($props['after'])) {
+                $row['changes'] = $this->diffProductSnapshots($props['before'], $props['after'], $categoryNames);
+            } elseif ($log->action === 'product.create' && $props !== []) {
+                $row['changes'] = $this->productCreateSnapshotRows($props, $categoryNames);
+            }
+
+            $items[] = $row;
+        }
+
+        return response()->json([
+            'ok' => true,
+            'product_id' => $product->id,
+            'product_name' => $product->name,
+            'items' => $items,
+        ]);
+    }
+
+    /**
+     * @return array<int, array{label: string, from: string, to: string}>
+     */
+    private function diffProductSnapshots(array $before, array $after, array $categoryNames): array
+    {
+        $keys = [
+            'name' => 'Tên sản phẩm',
+            'brand' => 'Hãng',
+            'serial_number' => 'Mã sản phẩm',
+            'price' => 'Giá bán',
+            'discount_percent' => 'Giảm giá (%)',
+            'category_id' => 'Danh mục',
+            'status' => 'Hiển thị',
+            'is_featured' => 'Nổi bật',
+            'sort_order' => 'Thứ tự hiển thị',
+        ];
+
+        $out = [];
+        foreach ($keys as $key => $label) {
+            $b = $before[$key] ?? null;
+            $a = $after[$key] ?? null;
+            if ($this->productFieldEquals($key, $b, $a)) {
+                continue;
+            }
+            $out[] = [
+                'label' => $label,
+                'from' => $this->formatProductFieldForHistory($key, $b, $categoryNames),
+                'to' => $this->formatProductFieldForHistory($key, $a, $categoryNames),
+            ];
+        }
+
+        return $out;
+    }
+
+    private function productFieldEquals(string $key, $b, $a): bool
+    {
+        if ($key === 'price') {
+            return round((float) $b, 2) === round((float) $a, 2);
+        }
+
+        return $b == $a;
+    }
+
+    private function formatProductFieldForHistory(string $key, $value, array $categoryNames): string
+    {
+        if ($value === null || $value === '') {
+            return '—';
+        }
+        switch ($key) {
+            case 'price':
+                return number_format((float) $value, 0, ',', '.') . 'đ';
+            case 'status':
+                return ((int) $value) === 1 ? 'Hiện' : 'Ẩn';
+            case 'is_featured':
+                return ((int) $value) === 1 ? 'Có' : 'Không';
+            case 'category_id':
+                $id = (int) $value;
+
+                return $categoryNames[$id] ?? ('#' . $id);
+            case 'discount_percent':
+                return (string) $value . '%';
+            default:
+                return (string) $value;
+        }
+    }
+
+    /**
+     * @return array<int, array{label: string, from: string, to: string}>
+     */
+    private function productCreateSnapshotRows(array $props, array $categoryNames): array
+    {
+        $out = [];
+        if (!empty($props['name'])) {
+            $out[] = ['label' => 'Tên sản phẩm', 'from' => '—', 'to' => (string) $props['name']];
+        }
+        if (isset($props['category_id'])) {
+            $cid = (int) $props['category_id'];
+            $out[] = [
+                'label' => 'Danh mục',
+                'from' => '—',
+                'to' => $categoryNames[$cid] ?? ('#' . $cid),
+            ];
+        }
+        if (isset($props['price']) && $props['price'] !== '' && $props['price'] !== null) {
+            $out[] = [
+                'label' => 'Giá bán',
+                'from' => '—',
+                'to' => number_format((float) $props['price'], 0, ',', '.') . 'đ',
+            ];
+        }
+
+        return $out;
     }
 }

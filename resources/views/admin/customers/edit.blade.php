@@ -126,8 +126,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const managedByInp = document.querySelector('input[name="managed_by"]');
     const businessTypeInp = document.querySelector('input[name="business_type"]');
     const mainBusinessInp = document.querySelector('textarea[name="main_business"]');
+    const emailInp = document.querySelector('input[name="email"]');
+    const invoiceRecipientInp = document.querySelector('input[name="invoice_recipient"]');
     const hintEl = document.getElementById('tax_lookup_hint');
     const spinnerEl = document.getElementById('tax_lookup_spinner');
+
+    const CUSTOMERS_LOOKUP = @json(route('admin.customers.lookup'));
 
     if (!taxInp) return;
 
@@ -136,6 +140,30 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function normalizeTaxCode(v) {
         return String(v || '').replace(/\s+/g, '').trim();
+    }
+
+    function normalizeTaxDigits(s) {
+        return String(s || '').replace(/\D/g, '');
+    }
+
+    function isTaxLike(q) {
+        const c = String(q || '').replace(/\s+/g, '');
+        return /^[\d\-]{8,}$/.test(c);
+    }
+
+    async function lookupCustomersByTax(q) {
+        const url = CUSTOMERS_LOOKUP + '?q=' + encodeURIComponent(q);
+        const res = await fetch(url, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } });
+        if (!res.ok) return [];
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+    }
+
+    function pickCustomerExactTax(rows, typedDigits) {
+        if (!rows || !rows.length || !typedDigits) return null;
+        return rows.find(function (r) {
+            return normalizeTaxDigits(r.tax_id || '') === typedDigits;
+        }) || null;
     }
 
     function isAutofilled(el) {
@@ -179,6 +207,8 @@ document.addEventListener('DOMContentLoaded', function () {
             managedByInp,
             businessTypeInp,
             mainBusinessInp,
+            emailInp,
+            invoiceRecipientInp,
         ].filter(Boolean);
 
         for (const el of fields) {
@@ -248,7 +278,37 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         setLoading(true);
-        setHint('Đang tra cứu mã số thuế...', 'text-muted');
+
+        if (isTaxLike(code)) {
+            setHint('Đang kiểm tra danh sách khách hàng…', 'text-muted');
+            try {
+                const typedDigits = normalizeTaxDigits(code);
+                const rows = await lookupCustomersByTax(code);
+                const local = pickCustomerExactTax(rows, typedDigits);
+                if (local) {
+                    taxInp.setCustomValidity('');
+                    setAutofill(nameInp, local.name || '');
+                    setAutofill(phoneInp, local.phone || '');
+                    setAutofill(taxAddrInp, local.tax_address || '');
+                    setAutofill(addrInp, local.address || '');
+                    setAutofill(statusInp, local.company_status || '');
+                    setAutofill(businessTypeInp, local.business_type || '');
+                    setAutofill(repInp, local.representative || '');
+                    setAutofill(managedByInp, local.managed_by || '');
+                    setAutofill(mainBusinessInp, local.main_business || '');
+                    setAutofill(emailInp, local.email || '');
+                    setAutofill(invoiceRecipientInp, local.invoice_recipient || '');
+                    setLoading(false);
+                    setHint('Đã điền từ Quản lý khách hàng (CRM).', 'text-success');
+                    lastFilled = code;
+                    return;
+                }
+            } catch (e) {
+                // ignore, fall through to external lookup
+            }
+        }
+
+        setHint('Đang tra cứu nguồn bên ngoài…', 'text-muted');
         const { ok, json } = await lookupTax(code);
         if (!ok || !json || json.ok !== true || !json.data) {
             const msg = (json && json.message) ? String(json.message) : 'Không tra cứu được mã số thuế.';
@@ -272,7 +332,7 @@ document.addEventListener('DOMContentLoaded', function () {
         setAutofill(mainBusinessInp, json.data.main_business || '');
 
         setLoading(false);
-        const successMsg = 'Đã lấy thông tin từ mã số thuế.';
+        const successMsg = 'Đã lấy thông tin từ tra cứu ngoài (không có trong danh sách khách hàng).';
         setHint(successMsg, 'text-success');
         lastFilled = code;
     }
@@ -287,6 +347,8 @@ document.addEventListener('DOMContentLoaded', function () {
         managedByInp,
         businessTypeInp,
         mainBusinessInp,
+        emailInp,
+        invoiceRecipientInp,
     ].filter(Boolean).forEach(function (el) {
         el.addEventListener('input', function () {
             markUserEdited(el);

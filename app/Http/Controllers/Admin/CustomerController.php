@@ -2454,7 +2454,21 @@ class CustomerController extends Controller
         }
 
         $query = Customer::query()
-            ->select(['id', 'name', 'tax_id', 'tax_address', 'address', 'email', 'phone', 'invoice_recipient', 'representative']);
+            ->select([
+                'id',
+                'name',
+                'tax_id',
+                'tax_address',
+                'address',
+                'email',
+                'phone',
+                'invoice_recipient',
+                'representative',
+                'company_status',
+                'business_type',
+                'managed_by',
+                'main_business',
+            ]);
 
         if ($taxLike && $digits !== '') {
             $query->where(function ($sub) use ($digits, $compact) {
@@ -2488,6 +2502,10 @@ class CustomerController extends Controller
                 'phone' => (string) ($c->phone ?? ''),
                 'invoice_recipient' => (string) ($c->invoice_recipient ?? ''),
                 'representative' => (string) ($c->representative ?? ''),
+                'company_status' => (string) ($c->company_status ?? ''),
+                'business_type' => (string) ($c->business_type ?? ''),
+                'managed_by' => (string) ($c->managed_by ?? ''),
+                'main_business' => (string) ($c->main_business ?? ''),
             ];
         });
 

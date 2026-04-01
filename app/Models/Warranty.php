@@ -17,7 +17,9 @@ class Warranty extends Model
         'customer_phone',
         'customer_email',
         'customer_address',
+        'customer_tax_id',
         'purchase_date',
+        'stock_in_date',
         'warranty_start_date',
         'warranty_end_date',
         'warranty_period_months',
@@ -28,6 +30,7 @@ class Warranty extends Model
 
     protected $casts = [
         'purchase_date' => 'date',
+        'stock_in_date' => 'date',
         'warranty_start_date' => 'date',
         'warranty_end_date' => 'date'
     ];

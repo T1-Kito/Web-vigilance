@@ -397,7 +397,7 @@
                 </a>
             </div>
 
-            <div class="nav-group-title">Vận hành</div>
+            <div class="nav-group-title">Quản lý bán hàng</div>
             <div class="nav-item">
                 <a href="{{ route('admin.orders.index') }}" class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-cart-check"></i></div>

@@ -122,6 +122,20 @@
                             });
                         </script>
 
+                        <div class="mb-3">
+                            <label for="customer_tax_id" class="form-label fw-bold">Mã số thuế</label>
+                            <input type="text"
+                                   class="form-control @error('customer_tax_id') is-invalid @enderror"
+                                   id="customer_tax_id"
+                                   name="customer_tax_id"
+                                   value="{{ old('customer_tax_id') }}"
+                                   placeholder="Không bắt buộc">
+                            <small class="text-muted">Không bắt buộc. Gõ MST để tự điền thông tin CRM.</small>
+                            @error('customer_tax_id')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
@@ -130,7 +144,11 @@
                                            class="form-control @error('customer_name') is-invalid @enderror" 
                                            id="customer_name" 
                                            name="customer_name" 
-                                           value="{{ old('customer_name') }}">
+                                           value="{{ old('customer_name') }}"
+                                           list="warrantyCustomerDatalist"
+                                           autocomplete="off"
+                                           placeholder="Tên khách hàng">
+                                    <datalist id="warrantyCustomerDatalist"></datalist>
                                     @error('customer_name')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -174,36 +192,53 @@
                             @enderror
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-4">
+                        <div class="row g-2">
+                            <div class="col-6 col-xl-3">
+                                <div class="mb-3">
+                                    <label for="stock_in_date" class="form-label fw-bold">Ngày nhập hàng</label>
+                                    <input type="date"
+                                           class="form-control @error('stock_in_date') is-invalid @enderror"
+                                           id="stock_in_date"
+                                           name="stock_in_date"
+                                           value="{{ old('stock_in_date') }}"
+                                           max="{{ now()->toDateString() }}">
+                                    <small class="text-muted">Tuỳ chọn.</small>
+                                    @error('stock_in_date')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="col-6 col-xl-3">
                                 <div class="mb-3">
                                     <label for="purchase_date" class="form-label fw-bold">Ngày bán *</label>
                                     <input type="date" 
                                            class="form-control @error('purchase_date') is-invalid @enderror" 
                                            id="purchase_date" 
                                            name="purchase_date" 
-                                           value="{{ old('purchase_date') }}" 
+                                           value="{{ old('purchase_date') }}"
+                                           max="{{ now()->toDateString() }}"
                                            required>
                                     @error('purchase_date')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-6 col-xl-3">
                                 <div class="mb-3">
                                     <label for="warranty_start_date" class="form-label fw-bold">Ngày bắt đầu bảo hành *</label>
                                     <input type="date" 
                                            class="form-control @error('warranty_start_date') is-invalid @enderror" 
                                            id="warranty_start_date" 
                                            name="warranty_start_date" 
-                                           value="{{ old('warranty_start_date') }}" 
+                                           value="{{ old('warranty_start_date') }}"
+                                           max="{{ now()->toDateString() }}"
                                            required>
                                     @error('warranty_start_date')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-6 col-xl-3">
                                 <div class="mb-3">
                                     <label for="warranty_period_months" class="form-label fw-bold">Thời hạn bảo hành (tháng) *</label>
                                     <input type="number" 
@@ -281,7 +316,7 @@
                             </li>
                             <li class="mb-2">
                                 <i class="bi bi-check text-success me-2"></i>
-                                Ngày bắt đầu bảo hành ≥ ngày mua
+                                Chọn ngày bán xong, ngày bắt đầu bảo hành tự theo ngày bán (có thể sửa)
                             </li>
                             <li class="mb-2">
                                 <i class="bi bi-check text-success me-2"></i>
@@ -310,24 +345,131 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Auto-calculate warranty end date
+    const CUSTOMERS_LOOKUP = @json(route('admin.customers.lookup'));
+    const purchaseDate = document.getElementById('purchase_date');
     const warrantyStartDate = document.getElementById('warranty_start_date');
     const warrantyPeriod = document.getElementById('warranty_period_months');
-    
-    function calculateEndDate() {
-        if (warrantyStartDate.value && warrantyPeriod.value) {
-            const startDate = new Date(warrantyStartDate.value);
-            const endDate = new Date(startDate);
-            endDate.setMonth(endDate.getMonth() + parseInt(warrantyPeriod.value));
-            
-            // Display calculated end date (log)
-            const endDateStr = endDate.toISOString().split('T')[0];
-            console.log('Ngày kết thúc bảo hành sẽ là:', endDateStr);
+    const customerName = document.getElementById('customer_name');
+    const customerTaxId = document.getElementById('customer_tax_id');
+    const customerPhone = document.getElementById('customer_phone');
+    const customerEmail = document.getElementById('customer_email');
+    const customerAddress = document.getElementById('customer_address');
+    const customerDatalist = document.getElementById('warrantyCustomerDatalist');
+    var customerCache = {};
+    var nameTimer = null;
+    var taxTimer = null;
+
+    function syncWarrantyStartFromPurchase() {
+        if (purchaseDate && warrantyStartDate && purchaseDate.value) {
+            warrantyStartDate.value = purchaseDate.value;
+            warrantyStartDate.dispatchEvent(new Event('change', { bubbles: true }));
         }
     }
-    
-    warrantyStartDate.addEventListener('change', calculateEndDate);
-    warrantyPeriod.addEventListener('change', calculateEndDate);
+    if (purchaseDate) {
+        purchaseDate.addEventListener('change', syncWarrantyStartFromPurchase);
+    }
+
+    function calculateEndDate() {
+        if (warrantyStartDate && warrantyPeriod && warrantyStartDate.value && warrantyPeriod.value) {
+            const startDate = new Date(warrantyStartDate.value);
+            const endDate = new Date(startDate);
+            endDate.setMonth(endDate.getMonth() + parseInt(warrantyPeriod.value, 10));
+            console.log('Ngày kết thúc bảo hành sẽ là:', endDate.toISOString().split('T')[0]);
+        }
+    }
+    if (warrantyStartDate) warrantyStartDate.addEventListener('change', calculateEndDate);
+    if (warrantyPeriod) warrantyPeriod.addEventListener('change', calculateEndDate);
+
+    async function lookupCustomers(q) {
+        const res = await fetch(CUSTOMERS_LOOKUP + '?q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' });
+        if (!res.ok) return [];
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+    }
+
+    function renderCustomerDatalist(rows) {
+        if (!customerDatalist) return;
+        customerDatalist.innerHTML = '';
+        customerCache = {};
+        rows.forEach(function (c) {
+            if (!c || !c.name) return;
+            customerCache[String(c.name).trim().toLowerCase()] = c;
+            var opt = document.createElement('option');
+            opt.value = c.name;
+            customerDatalist.appendChild(opt);
+        });
+    }
+
+    function applyCustomerIfNameMatched() {
+        if (!customerName) return;
+        var key = String(customerName.value || '').trim().toLowerCase();
+        var c = customerCache[key];
+        if (!c) return;
+        if (customerTaxId && (!customerTaxId.value || !String(customerTaxId.value).trim())) customerTaxId.value = c.tax_id || '';
+        if (customerPhone && (!customerPhone.value || !String(customerPhone.value).trim())) customerPhone.value = c.phone || '';
+        if (customerEmail && (!customerEmail.value || !String(customerEmail.value).trim())) customerEmail.value = c.email || '';
+        if (customerAddress && (!customerAddress.value || !String(customerAddress.value).trim())) {
+            customerAddress.value = (c.address || c.tax_address || '').trim();
+        }
+    }
+
+    if (customerName) {
+        customerName.addEventListener('input', function () {
+            var q = String(customerName.value || '').trim();
+            if (nameTimer) clearTimeout(nameTimer);
+            if (q.length < 2) return;
+            nameTimer = setTimeout(async function () {
+                var rows = await lookupCustomers(q);
+                renderCustomerDatalist(rows);
+            }, 280);
+        });
+        customerName.addEventListener('change', applyCustomerIfNameMatched);
+    }
+
+    function normalizeTaxDigits(s) {
+        return String(s || '').replace(/\D/g, '');
+    }
+
+    function isTaxCodeLikeQuery(q) {
+        var compact = String(q || '').replace(/\s+/g, '');
+        return /^[\d\-]{8,}$/.test(compact);
+    }
+
+    function pickCustomerRowForTax(rows, typedDigits) {
+        if (!rows || !rows.length) return null;
+        var exact = rows.find(function (r) { return normalizeTaxDigits(r.tax_id || '') === typedDigits; });
+        return exact || rows[0];
+    }
+
+    function applyCustomerFromRow(c) {
+        if (!c) return;
+        if (customerName && c.name) customerName.value = c.name;
+        if (customerTaxId && c.tax_id) customerTaxId.value = c.tax_id;
+        if (customerPhone && c.phone) customerPhone.value = c.phone;
+        if (customerEmail && c.email) customerEmail.value = c.email;
+        var addr = (c.address || c.tax_address || '').trim();
+        if (customerAddress && addr) customerAddress.value = addr;
+    }
+
+    if (customerTaxId) {
+        customerTaxId.addEventListener('input', function () {
+            var q = String(customerTaxId.value || '').trim();
+            if (taxTimer) clearTimeout(taxTimer);
+            if (!isTaxCodeLikeQuery(q)) return;
+            taxTimer = setTimeout(async function () {
+                var rows = await lookupCustomers(q);
+                var c = pickCustomerRowForTax(rows, normalizeTaxDigits(q));
+                if (c) applyCustomerFromRow(c);
+            }, 320);
+        });
+        customerTaxId.addEventListener('change', async function () {
+            var q = String(customerTaxId.value || '').trim();
+            if (!isTaxCodeLikeQuery(q)) return;
+            var rows = await lookupCustomers(q);
+            var c = pickCustomerRowForTax(rows, normalizeTaxDigits(q));
+            if (c) applyCustomerFromRow(c);
+        });
+    }
 });
 </script>
 @endsection 

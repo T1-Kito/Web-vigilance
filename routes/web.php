@@ -699,6 +699,7 @@ Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::get('products/export-excel', [App\Http\Controllers\Admin\ProductController::class, 'exportExcel'])->name('products.exportExcel');
     Route::post('products/import-excel', [App\Http\Controllers\Admin\ProductController::class, 'importExcel'])->name('products.importExcel');
     Route::post('products/{product}/delete-image', [App\Http\Controllers\Admin\ProductController::class, 'deleteAdditionalImage'])->name('products.deleteImage');
+    Route::get('products/{product}/activity-history', [App\Http\Controllers\Admin\ProductController::class, 'activityHistory'])->name('products.activity-history');
     Route::resource('products', App\Http\Controllers\Admin\ProductController::class);
     
     // Category management

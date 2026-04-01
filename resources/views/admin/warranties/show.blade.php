@@ -52,6 +52,12 @@
                             <label class="fw-bold text-muted mb-1">Ngày mua:</label>
                             <p class="mb-0 fs-5" style="color: #2c3e50;">{{ $warranty->purchase_date->format('d/m/Y') }}</p>
                         </div>
+                        @if($warranty->stock_in_date)
+                        <div class="col-md-6 mb-3">
+                            <label class="fw-bold text-muted mb-1">Ngày nhập hàng:</label>
+                            <p class="mb-0 fs-5" style="color: #2c3e50;">{{ $warranty->stock_in_date->format('d/m/Y') }}</p>
+                        </div>
+                        @endif
                         <div class="col-md-6 mb-3">
                             <label class="fw-bold text-muted mb-1">Ngày bắt đầu bảo hành:</label>
                             <p class="mb-0 fs-5" style="color: #2c3e50;">{{ $warranty->warranty_start_date->format('d/m/Y') }}</p>
@@ -128,6 +134,12 @@
                 </div>
                 <div class="card-body p-4">
                     <div class="row">
+                        @if($warranty->customer_tax_id)
+                        <div class="col-md-6 mb-3">
+                            <label class="fw-bold text-muted mb-1">Mã số thuế:</label>
+                            <p class="mb-0 fs-5" style="color: #2c3e50;">{{ $warranty->customer_tax_id }}</p>
+                        </div>
+                        @endif
                         @if($warranty->customer_name)
                         <div class="col-md-6 mb-3">
                             <label class="fw-bold text-muted mb-1">Tên khách hàng:</label>

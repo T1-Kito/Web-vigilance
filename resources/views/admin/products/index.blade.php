@@ -103,9 +103,9 @@
                     <th style="padding: 18px 15px; text-align: left; font-weight: 600; border-bottom: 2px solid #3b82f6;">Tên sản phẩm</th>
                     <th style="padding: 18px 15px; text-align: center; font-weight: 600; border-bottom: 2px solid #3b82f6;">Hãng</th>
                     <th style="padding: 18px 15px; text-align: right; font-weight: 600; border-bottom: 2px solid #3b82f6;">Giá bán</th>
-                    <th style="padding: 18px 15px; text-align: center; font-weight: 600; border-bottom: 2px solid #3b82f6;">Khuyến mãi</th>
                     <th style="padding: 18px 15px; text-align: center; font-weight: 600; border-bottom: 2px solid #3b82f6;">Nổi bật</th>
                     <th style="padding: 18px 15px; text-align: center; font-weight: 600; border-bottom: 2px solid #3b82f6;">Trạng thái</th>
+                    <th style="padding: 18px 15px; text-align: center; font-weight: 600; border-bottom: 2px solid #3b82f6; white-space: nowrap;">Ngày tạo / cập nhật</th>
                     <th style="padding: 18px 15px; text-align: center; font-weight: 600; border-bottom: 2px solid #3b82f6;">Thao tác</th>
                         </tr>
                     </thead>
@@ -126,10 +126,15 @@
                     <td style="padding: 15px; text-align: center; font-weight: 700; color: #1f2937;">
                         {{ $product->brand ?? '-' }}
                     </td>
-                    <td style="padding: 15px; text-align: right; font-weight: 700; color: #059669; font-size: 1.1em;">{{ $product->price ? number_format($product->price, 0, ',', '.') . 'đ' : '-' }}</td>
-                    <td style="padding: 15px; text-align: center;">
-                                @if($product->discount_percent)
-                            <span style="background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #1f2937; padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 0.9em;">Giảm {{ $product->discount_percent }}%</span>
+                    <td style="padding: 15px; text-align: right; font-weight: 700; font-size: 1.1em;">
+                        @if($product->price)
+                            <button
+                                type="button"
+                                class="btn btn-link p-0 product-activity-hist product-activity-hist--price"
+                                style="font-weight: 700; color: #059669; font-size: inherit; text-decoration: underline; text-underline-offset: 2px;"
+                                data-url="{{ route('admin.products.activity-history', $product) }}"
+                                title="Xem lịch sử thay đổi (tên, hãng, giá…)"
+                            >{{ number_format($product->price, 0, ',', '.') }}đ</button>
                         @else
                             <span style="color: #9ca3af;">-</span>
                         @endif
@@ -148,6 +153,20 @@
                             <span style="background: linear-gradient(135deg, #6b7280, #4b5563); color: white; padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 0.9em;">Ẩn</span>
                                 @endif
                             </td>
+                    <td style="padding: 15px; text-align: center; font-size: 0.85em; color: #4b5563; vertical-align: middle;">
+                        <div style="line-height: 1.45; white-space: nowrap;">{{ $product->created_at ? $product->created_at->timezone('Asia/Ho_Chi_Minh')->format('d/m/Y H:i') : '—' }}</div>
+                        @if($product->updated_at)
+                            <button
+                                type="button"
+                                class="btn btn-link p-0 product-activity-hist product-activity-hist--date"
+                                style="line-height: 1.45; font-size: inherit; color: #2563eb; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap;"
+                                data-url="{{ route('admin.products.activity-history', $product) }}"
+                                title="Xem lịch sử thay đổi (tên, hãng, giá…)"
+                            >{{ $product->updated_at->timezone('Asia/Ho_Chi_Minh')->format('d/m/Y H:i') }}</button>
+                        @else
+                            <div style="line-height: 1.45; white-space: nowrap;">—</div>
+                        @endif
+                    </td>
                     <td style="padding: 15px; text-align: center;">
                         <div class="dropdown">
                             <button
@@ -224,5 +243,105 @@ a:hover, button:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
+
+button.product-activity-hist:hover {
+    transform: none !important;
+    box-shadow: none !important;
+}
+button.product-activity-hist--date:hover {
+    color: #1d4ed8 !important;
+}
+button.product-activity-hist--price:hover {
+    color: #047857 !important;
+}
 </style>
+
+<div class="modal fade" id="productActivityModal" tabindex="-1" aria-labelledby="productActivityModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="productActivityModalTitle">Lịch sử cập nhật</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body pt-2" id="productActivityModalBody">
+                <div class="text-muted">Đang tải…</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var modalEl = document.getElementById('productActivityModal');
+    var bodyEl = document.getElementById('productActivityModalBody');
+    var titleEl = document.getElementById('productActivityModalTitle');
+    if (!modalEl || !bodyEl || typeof bootstrap === 'undefined') return;
+    var modal = new bootstrap.Modal(modalEl);
+
+    function escapeHtml(s) {
+        if (s == null || s === '') return '';
+        var d = document.createElement('div');
+        d.textContent = String(s);
+        return d.innerHTML;
+    }
+
+    document.querySelectorAll('.product-activity-hist').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var url = btn.getAttribute('data-url');
+            bodyEl.innerHTML = '<div class="text-muted py-3">Đang tải…</div>';
+            titleEl.textContent = 'Lịch sử cập nhật sản phẩm';
+            modal.show();
+
+            fetch(url, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    if (!data.ok) {
+                        bodyEl.innerHTML = '<div class="alert alert-warning mb-0">Không tải được lịch sử.</div>';
+                        return;
+                    }
+                    titleEl.textContent = 'Lịch sử: ' + (data.product_name || 'Sản phẩm');
+                    var items = data.items || [];
+                    if (items.length === 0) {
+                        bodyEl.innerHTML = '<p class="text-muted mb-0 small">Chưa có nhật ký. Các lần chỉnh sửa trước khi hệ thống ghi log có thể không hiển thị ở đây.</p>';
+                        return;
+                    }
+                    var html = '';
+                    items.forEach(function (ev) {
+                        html += '<div class="border rounded-3 p-3 mb-3" style="background:#f8fafc;">';
+                        html += '<div class="d-flex flex-wrap justify-content-between gap-2 mb-2 align-items-center">';
+                        html += '<div><span class="fw-bold" style="color:#1d4ed8;">' + escapeHtml(ev.at) + '</span> ';
+                        if (ev.action === 'product.create') {
+                            html += '<span class="badge bg-success">Tạo mới</span>';
+                        } else {
+                            html += '<span class="badge bg-secondary">Cập nhật</span>';
+                        }
+                        html += '</div>';
+                        if (ev.user_email) {
+                            html += '<div class="small text-muted">' + escapeHtml(ev.user_email) + '</div>';
+                        }
+                        html += '</div>';
+                        var ch = ev.changes || [];
+                        if (ch.length === 0) {
+                            html += '<div class="small text-muted">' + escapeHtml(ev.description || '') + '</div>';
+                        } else {
+                            html += '<div class="table-responsive"><table class="table table-sm table-bordered mb-0 bg-white small">';
+                            html += '<thead class="table-light"><tr><th>Trường</th><th>Trước</th><th>Sau</th></tr></thead><tbody>';
+                            ch.forEach(function (row) {
+                                html += '<tr><td>' + escapeHtml(row.label) + '</td><td>' + escapeHtml(row.from) + '</td><td>' + escapeHtml(row.to) + '</td></tr>';
+                            });
+                            html += '</tbody></table></div>';
+                        }
+                        html += '</div>';
+                    });
+                    bodyEl.innerHTML = html;
+                })
+                .catch(function () {
+                    bodyEl.innerHTML = '<div class="alert alert-danger mb-0">Lỗi tải dữ liệu.</div>';
+                });
+        });
+    });
+});
+</script>
 @endsection 

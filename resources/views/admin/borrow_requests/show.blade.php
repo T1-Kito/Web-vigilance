@@ -73,15 +73,26 @@
         .br-sign .sig-col { text-align:center; }
         .br-sign .sig-group { grid-column: 2 / span 2; text-align:center; font-weight: 700; }
         .br-sign .cap { font-weight: 700; }
+        .br-sign .sig-line { margin-top: 70px; min-height: 1.2em; }
         .br-foot { margin-top: 18px; }
 
         @media print {
+            html, body {
+                background: #fff !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .admin-main {
+                background: #fff !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
             body * { visibility: hidden !important; }
             .br-form-wrap, .br-form-wrap * { visibility: visible !important; }
-            .br-form-wrap { border: none !important; padding: 0 !important; }
+            .br-form-wrap { border: none !important; padding: 0 !important; background: #fff !important; }
             .br-form-wrap { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; }
-            .container-fluid { padding: 0 !important; }
-            .br-a4 { max-width: none !important; box-shadow: none !important; border: none !important; }
+            .container-fluid { padding: 0 !important; background: #fff !important; }
+            .br-a4 { max-width: none !important; box-shadow: none !important; border: none !important; background: #fff !important; }
             html, body { font-size: 13px !important; line-height: 1.15 !important; }
             .br-a4 { padding: 14px 16px !important; }
             .br-header-right { font-size: 0.9rem !important; line-height: 1.25 !important; }
@@ -313,22 +324,22 @@
 
                     <div class="sig-col">
                         <div class="cap">Người đề nghị</div>
-                        <div style="margin-top: 70px; font-weight: 700;">{{ $requestedByDisplay }}</div>
+                        <div class="sig-line"></div>
                     </div>
 
                     <div class="sig-col">
                         <div class="cap">HCKT</div>
-                        <div style="margin-top: 70px; font-weight: 700;"></div>
+                        <div class="sig-line"></div>
                     </div>
 
                     <div class="sig-col">
                         <div class="cap">Giám Đốc</div>
-                        <div style="margin-top: 70px; font-weight: 700;">{{ $approvedByDisplay }}</div>
+                        <div class="sig-line">{{ $approvedByDisplay }}</div>
                     </div>
 
                     <div class="sig-col">
                         <div class="cap">Xuất kho bởi</div>
-                        <div style="margin-top: 70px; font-weight: 700;"></div>
+                        <div class="sig-line"></div>
                     </div>
                 </div>
             </div>
