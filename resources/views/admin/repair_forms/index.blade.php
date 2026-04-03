@@ -3,7 +3,56 @@
 @section('title', 'Quản lý phiếu bảo hành')
 
 @section('content')
-<div class="container-fluid py-2">
+<style>
+    .rf-page {
+        color: #0f172a;
+    }
+    .rf-page .card {
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        box-shadow: none;
+        background: #fff;
+    }
+
+    .rf-page .row.g-3.mb-4 .card {
+        border: 0 !important;
+        border-radius: 16px !important;
+    }
+    .rf-page .btn {
+        border-radius: 10px;
+    }
+    .rf-page .btn-primary { background: #2563eb; border-color: #2563eb; }
+    .rf-page .table thead th {
+        background: #f8fafc;
+        color: #334155;
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: .02em;
+    }
+    .rf-page .table td {
+        border-color: #eef2f7;
+        vertical-align: middle;
+    }
+    .rf-page .table-hover tbody tr:hover {
+        background: #eaf2ff;
+    }
+    .rf-page .table-hover tbody tr:hover td {
+        background: #eaf2ff;
+    }
+    .rf-page .rf-clickable-row {
+        cursor: pointer;
+    }
+    .rf-page .badge {
+        border-radius: 999px;
+        padding: 6px 12px;
+        font-weight: 700;
+    }
+    .rf-page .btn-group .btn {
+        min-width: 36px;
+    }
+</style>
+<div class="container-fluid py-2 rf-page">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-start align-items-md-center mb-4 flex-column flex-md-row gap-2">
         <div>
@@ -125,7 +174,7 @@
                     </thead>
                     <tbody>
                         @foreach($repairForms as $repairForm)
-                        <tr>
+                        <tr class="rf-clickable-row" data-href="{{ route('admin.repair-forms.show', $repairForm) }}">
                             <td>
                                 <div class="fw-semibold">{{ $repairForm->serial_numbers }}</div>
                                 <div class="text-muted small">{{ $repairForm->created_at->format('d/m/Y H:i') }}</div>
@@ -186,6 +235,16 @@ $(document).ready(function() {
         },
         "pageLength": 25,
         "order": [[0, "desc"]]
+    });
+
+    $('#dataTable').on('click', '.rf-clickable-row', function(e) {
+        if ($(e.target).closest('a,button,form,input,select,textarea,label').length) {
+            return;
+        }
+        const href = $(this).data('href');
+        if (href) {
+            window.location.href = href;
+        }
     });
 });
 </script>

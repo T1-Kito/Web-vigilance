@@ -152,6 +152,19 @@
         vertical-align: middle;
     }
 
+    .po-table tbody tr.po-clickable-row {
+        cursor: pointer;
+        transition: background-color .15s ease;
+    }
+
+    .po-table tbody tr.po-clickable-row:hover {
+        background: #eaf2ff;
+    }
+
+    .po-table tbody tr.po-clickable-row:hover td {
+        background: #eaf2ff;
+    }
+
     .po-row-code { font-weight: 700; color: #0f172a; }
     .po-supplier { font-weight: 600; color: #1e293b; }
     .po-sub-code { color: #94a3b8; font-size: .8rem; }
@@ -254,7 +267,7 @@
                                 return $amount + ($amount * $tax / 100);
                             });
                         @endphp
-                        <tr>
+                        <tr class="po-clickable-row" data-href="{{ route('admin.purchase-orders.show', $o) }}">
                             <td class="po-row-code">{{ $o->code }}</td>
                             <td>
                                 <span class="po-pill {{ $o->order_type === 'return' ? 'bg-warning text-dark' : 'bg-primary text-white' }}">
@@ -339,6 +352,19 @@
                 }
             }
         }
+    });
+})();
+
+(function () {
+    const rows = document.querySelectorAll('.po-clickable-row');
+    rows.forEach((row) => {
+        row.addEventListener('click', function (e) {
+            const blocked = e.target.closest('a, button, form, input, select, textarea, label');
+            if (blocked) return;
+
+            const href = row.getAttribute('data-href');
+            if (href) window.location.href = href;
+        });
     });
 })();
 </script>

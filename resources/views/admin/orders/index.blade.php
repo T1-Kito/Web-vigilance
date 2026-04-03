@@ -125,7 +125,7 @@
                     </thead>
             <tbody>
                 @foreach($orders as $order)
-                <tr style="border-bottom: 1px solid #f1f3f4; transition: all 0.3s ease;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='white'">
+                <tr class="ao-row" data-href="{{ route('admin.orders.show', $order) }}" style="border-bottom: 1px solid #eef2f7;" onmouseover="this.style.backgroundColor='#eaf2ff'" onmouseout="this.style.backgroundColor='white'">
                     <td style="border: none; padding: 16px 12px;">
                         <div class="d-flex align-items-center">
                             <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: 600; font-size: 0.9em;">
@@ -234,15 +234,18 @@
 </div>
 
 <style>
-/* Custom hover effects */
-.table tbody tr:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+/* Đồng bộ hover xanh nhẹ như các bảng khác */
+.ao-row {
+    transition: background-color .15s ease;
+    cursor: pointer;
 }
 
-/* Smooth transitions */
-.table tbody tr {
-    transition: all 0.3s ease;
+.ao-row:hover {
+    background: #eaf2ff;
+}
+
+.ao-row:hover td {
+    background: #eaf2ff;
 }
 
 /* Custom scrollbar */
@@ -265,4 +268,20 @@
     background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.ao-row').forEach(function (row) {
+        row.addEventListener('click', function (e) {
+            const blocked = e.target.closest('a,button,form,input,select,textarea,label,.dropdown-menu,.dropdown-toggle');
+            if (blocked) return;
+
+            const href = row.getAttribute('data-href');
+            if (href) {
+                window.location.href = href;
+            }
+        });
+    });
+});
+</script>
 @endsection 

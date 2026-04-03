@@ -3,6 +3,7 @@
 @section('title', 'Bảng điều khiển')
 
 @section('content')
+
 <div class="container-fluid py-4 px-2 px-lg-3">
     <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4">
         <div>
@@ -16,7 +17,7 @@
 
     <div class="row g-3 mb-4">
         <div class="col-6 col-xl-3">
-            <div class="card border-0 shadow-sm h-100 rounded-3 overflow-hidden">
+            <div class="card db-soft-card db-1 h-100 rounded-3 overflow-hidden">
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
@@ -36,7 +37,7 @@
             </div>
         </div>
         <div class="col-6 col-xl-3">
-            <div class="card border-0 shadow-sm h-100 rounded-3 overflow-hidden">
+            <div class="card db-soft-card db-2 h-100 rounded-3 overflow-hidden">
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
@@ -53,7 +54,7 @@
             </div>
         </div>
         <div class="col-6 col-xl-3">
-            <div class="card border-0 shadow-sm h-100 rounded-3 overflow-hidden">
+            <div class="card db-soft-card db-3 h-100 rounded-3 overflow-hidden">
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
@@ -70,7 +71,7 @@
             </div>
         </div>
         <div class="col-6 col-xl-3">
-            <div class="card border-0 shadow-sm h-100 rounded-3 overflow-hidden">
+            <div class="card db-soft-card db-4 h-100 rounded-3 overflow-hidden">
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>

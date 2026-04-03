@@ -65,16 +65,19 @@
     <style>
         :root {
             --sidebar-width: 280px;
-            --sidebar-bg: #0f172a;
-            --sidebar-hover: #334155;
-            --sidebar-active: rgba(255, 255, 255, 0.12);
-            --sidebar-active-text: #ffffff;
-            --content-bg: #f1f5f9;
+            --sidebar-bg: #f8fafc;
+            --sidebar-hover: #eef4ff;
+            --sidebar-active: #e3eeff;
+            --sidebar-active-text: #2563eb;
+            --sidebar-text: #0f172a;
+            --sidebar-muted: #475569;
+            --content-bg: #ffffff;
         }
         
         body {
             background-color: var(--content-bg);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #0f172a;
         }
         
         /* Sidebar */
@@ -84,68 +87,39 @@
             top: 0;
             height: 100vh;
             width: var(--sidebar-width);
-            background: linear-gradient(180deg, var(--sidebar-bg) 0%, #1e293b 100%);
-            color: white;
+            background: var(--sidebar-bg);
+            color: var(--sidebar-text);
             overflow-y: auto;
             z-index: 1000;
-            box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+            border-right: 1px solid #e2e8f0;
+            box-shadow: none;
         }
         
         /* Logo Section */
         .logo-section {
-            padding: 20px 15px;
+            padding: 14px 12px 10px;
             text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.15);
-            margin-bottom: 5px;
+            border: 0;
+            margin: 0;
+            background: transparent;
         }
         
         .logo-section img {
-            max-width: 160px;
-            max-height: 60px;
-            width: auto;
-            height: auto;
+            width: 170px;
+            max-width: 100%;
             object-fit: contain;
             display: block;
             margin: 0 auto;
-            filter: brightness(0) invert(1);
-            opacity: 0.95;
-            transition: opacity 0.3s ease;
-        }
-        
-        .logo-section:hover img {
-            opacity: 1;
-        }
-        
-        /* Alternative: Logo với background trắng nhẹ nhàng */
-        .logo-section.white-bg {
-            background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.90) 100%);
-            border-radius: 14px;
-            margin: 14px 14px 10px;
-            padding: 14px 10px;
-            border: 1px solid rgba(15, 23, 42, 0.08);
-            box-shadow: 0 10px 26px rgba(2, 6, 23, 0.10);
-        }
-        
-        .logo-section.white-bg img {
             filter: none;
             opacity: 1;
-        }
-
-        .logo-section.white-bg .company-logo {
-            width: 130px;
-            max-width: 100%;
-            height: 40px;
-            object-fit: contain;
-            display: block;
-            margin: 0 auto;
         }
         
         /* Profile Section */
         .profile-section {
-            padding: 20px 20px;
+            padding: 18px 20px;
             text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            background: rgba(255,255,255,0.05);
+            border-bottom: 1px solid #e2e8f0;
+            background: #ffffff;
         }
         
         .profile-avatar {
@@ -188,25 +162,24 @@
             display: flex;
             align-items: center;
             padding: 12px 20px;
-            color: white;
+            color: var(--sidebar-text);
             text-decoration: none;
-            border-radius: 12px;
-            transition: all 0.3s ease;
-            font-weight: 500;
+            border-radius: 10px;
+            transition: none;
+            font-weight: 600;
             font-size: 1.05em;
         }
         
         .nav-link:hover {
-            background: rgba(255,255,255,0.1);
-            color: white;
-            transform: translateX(5px);
+            background: var(--sidebar-hover);
+            color: #2563eb;
         }
         
         .nav-link.active {
             background: var(--sidebar-active);
             color: var(--sidebar-active-text);
-            font-weight: 600;
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+            font-weight: 700;
+            box-shadow: none;
         }
         
         .nav-link.active:hover {
@@ -230,7 +203,7 @@
             font-weight: 800;
             letter-spacing: .05em;
             text-transform: uppercase;
-            color: rgba(255, 255, 255, 0.78);
+            color: #64748b;
         }
         
         /* Main Content */
@@ -242,11 +215,12 @@
         
         /* Header */
         .admin-header {
-            background: white;
-            padding: 20px 30px;
-            border-radius: 15px;
-            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
-            margin-bottom: 25px;
+            background: #ffffff;
+            padding: 18px 24px;
+            border-radius: 14px;
+            border: 1px solid #e2e8f0;
+            box-shadow: none;
+            margin-bottom: 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -310,9 +284,10 @@
         
         /* Content Cards */
         .content-card {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+            background: #ffffff;
+            border-radius: 14px;
+            border: 1px solid #e2e8f0;
+            box-shadow: none;
             overflow: hidden;
         }
         
@@ -359,8 +334,8 @@
     <!-- Sidebar -->
     <div class="admin-sidebar" id="sidebar">
         <!-- Logo Section -->
-        <div class="logo-section white-bg">
-            <img src="{{ asset('logovigilance.jpg') }}" alt="Vigilance Logo" class="company-logo">
+        <div class="logo-section">
+            <img src="{{ asset('logo1.png') }}" alt="Vigilance Logo" class="company-logo">
         </div>
         
         <!-- Profile Section -->
@@ -526,7 +501,7 @@
         <!-- Header -->
         <div class="admin-header">
             <div class="header-logo">
-                <img src="{{ asset('logovigilance.jpg') }}" alt="Vigilance Logo">
+                <img src="{{ asset('logo1.png') }}" alt="Vigilance Logo">
                 <h1 class="page-title">@yield('title')</h1>
             </div>
             <div class="user-info">
