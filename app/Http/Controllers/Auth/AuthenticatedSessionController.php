@@ -63,7 +63,7 @@ class AuthenticatedSessionController extends Controller
 
         // Xác định trang đích theo vai trò
         $redirectTo = (auth()->user() && auth()->user()->role === 'admin')
-            ? route('admin.products.index')
+            ? route('admin.dashboard')
             : route('home');
 
         // Nếu là AJAX request, trả về JSON response

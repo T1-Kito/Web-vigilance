@@ -22,13 +22,14 @@
         .br-actions { display:flex; align-items:center; justify-content:space-between; gap: 12px; flex-wrap: wrap; }
         .br-form-wrap { background:#fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; }
         .br-a4 { max-width: 794px; margin: 0 auto; color: #111827; background: #fff;padding: 26px 30px; box-shadow: 0 12px 30px rgba(0,0,0,0.08); }
-        .br-header { display:flex; justify-content:space-between; gap: 16px; }
-        .br-header-left { width: 35%; }
-        .br-header-left img { max-width: 170px; height: auto; }
-        .br-header-right { width: 65%; text-align: end; line-height: 1.35; font-size: 0.95rem; }
-        .br-company-name { font-weight: 800; color: #ef4444; font-size: 1rem; }
-        .br-title { text-align:center; font-weight: 700; margin: 18px 0 4px; letter-spacing: 0.5px;font-size: 22px; }
-        .br-subtitle { text-align:center; font-size: 0.95rem; margin: 0 0 12px; }
+        .br-header { display:flex; justify-content:space-between; gap: 16px; align-items:flex-end; border-bottom:1px solid #f3a6a6; padding-bottom:4px; margin-bottom:12px; }
+        .br-header-left { width: 50%; }
+        .br-header-left img { max-width: 190px; height: auto; }
+        .br-header-right { width: 50%; text-align: end; }
+        .br-header-right img { max-width: 240px; height: auto;margin-bottom: 20px; }
+        .br-title { text-align:center; font-weight: 700; margin: 22px 0 4px; letter-spacing: 0.5px;font-size: 22px; }
+        .br-subtitle { text-align:center; font-size: 0.95rem; margin: 0 0 8px; }
+        .br-date { text-align:right; font-size: 0.95rem; margin: 0 0 8px; font-style: italic; color:#374151; }
         .br-info { margin-top: 10px; font-size: 1.02rem; }
         .br-row { display:flex; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
         .br-field { width: 100%; align-items:flex-start; gap: 10px; }
@@ -73,20 +74,45 @@
         .br-sign .sig-col { text-align:center; }
         .br-sign .sig-group { grid-column: 2 / span 2; text-align:center; font-weight: 700; }
         .br-sign .cap { font-weight: 700; }
+        .br-sign .sig-line { margin-top: 70px; min-height: 1.2em; }
         .br-foot { margin-top: 18px; }
+        .br-footer {
+            margin-top: 14px;
+            border-top: 1px solid #f3a6a6;
+            padding-top: 6px;
+            font-size: 0.78rem;
+            color: #4b5563;
+            line-height: 1.28;
+        }
+        .br-footer .company {
+            font-weight: 700;
+            color: #dc2626;
+            font-size: 0.92rem;
+            margin-bottom: 3px;
+        }
 
         @media print {
+            html, body {
+                background: #fff !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .admin-main {
+                background: #fff !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
             body * { visibility: hidden !important; }
             .br-form-wrap, .br-form-wrap * { visibility: visible !important; }
-            .br-form-wrap { border: none !important; padding: 0 !important; }
+            .br-form-wrap { border: none !important; padding: 0 !important; background: #fff !important; }
             .br-form-wrap { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; }
-            .container-fluid { padding: 0 !important; }
-            .br-a4 { max-width: none !important; box-shadow: none !important; border: none !important; }
+            .container-fluid { padding: 0 !important; background: #fff !important; }
+            .br-a4 { max-width: none !important; box-shadow: none !important; border: none !important; background: #fff !important; position: relative !important; min-height: calc(297mm - 10mm) !important; }
             html, body { font-size: 13px !important; line-height: 1.15 !important; }
-            .br-a4 { padding: 14px 16px !important; }
-            .br-header-right { font-size: 0.9rem !important; line-height: 1.25 !important; }
-            .br-title { margin: 10px 0 2px !important; font-size: 19px !important; }
-            .br-subtitle { margin: 0 0 8px !important; font-size: 0.9rem !important; }
+            .br-a4 { padding: 14px 16px 24mm 16px !important; }
+            .br-title { margin: 20px 0 2px !important; font-size: 19px !important; }
+            .br-subtitle { margin: 0 0 6px !important; font-size: 0.9rem !important; }
+            .br-date { margin: 0 0 6px !important; font-size: 0.85rem !important; }
             .br-row { margin-bottom: 4px !important; }
             .br-table th, .br-table td { padding: 6px 5px !important; font-size: 0.9rem !important; }
             .br-table { margin-top: 6px !important; }
@@ -96,6 +122,18 @@
             .br-terms li { margin: 2px 0 !important; }
             .br-disclaimer { margin-top: 6px !important; font-size: 0.9rem !important; }
             .br-sign { margin-top: 14px !important; }
+            .br-footer {
+                position: absolute !important;
+                left: 16px !important;
+                right: 16px !important;
+                bottom: 5mm !important;
+                margin-top: 0 !important;
+                padding-top: 5px !important;
+                font-size: 0.76rem !important;
+                line-height: 1.22 !important;
+                color: #4b5563 !important;
+            }
+            .br-footer .company { font-size: 0.86rem !important; }
             @page { size: A4; margin: 5mm; }
         }
     </style>
@@ -126,19 +164,16 @@
         <div class="br-a4">
             <div class="br-header">
                 <div class="br-header-left">
-                    <img src="{{ asset('logovigilance.jpg') }}" alt="Vigilance">
+                    <img src="{{ asset('logo1.png') }}" alt="Logo trái">
                 </div>
                 <div class="br-header-right">
-                    <div class="br-company-name">CÔNG TY CỔ PHẦN VIGILANCE VIỆT NAM</div>
-                    <div>Địa chỉ: Phòng B15.09 Tầng 15, Tháp B Tòa nhà Rivergate</div>
-                    <div>151-155 Bến Vân Đồn, Phường Khánh Hội, TP.HCM</div>
-                    <div>Mã số thuế: 0318231312</div>
-                    <div>Email : vigilancevn@gmail.com</div>
+                    <img src="{{ asset('logo2.png') }}" alt="Logo phải">
                 </div>
             </div>
 
             <div class="br-title">PHIẾU ĐỀ NGHỊ MƯỢN HÀNG</div>
             <div class="br-subtitle">(Số: <span class="br-muted">{{ $borrowRequest->code ?: ('Phiếu #' . $borrowRequest->id) }}</span>)</div>
+            <div class="br-date">TP.HCM, Ngày {{ optional($borrowRequest->created_at)->format('j') }} Tháng {{ optional($borrowRequest->created_at)->format('n') }} Năm {{ optional($borrowRequest->created_at)->format('Y') }}</div>
 
             <div class="br-info">
                 <div class="br-row">
@@ -313,23 +348,29 @@
 
                     <div class="sig-col">
                         <div class="cap">Người đề nghị</div>
-                        <div style="margin-top: 70px; font-weight: 700;">{{ $requestedByDisplay }}</div>
+                        <div class="sig-line"></div>
                     </div>
 
                     <div class="sig-col">
                         <div class="cap">HCKT</div>
-                        <div style="margin-top: 70px; font-weight: 700;"></div>
+                        <div class="sig-line"></div>
                     </div>
 
                     <div class="sig-col">
                         <div class="cap">Giám Đốc</div>
-                        <div style="margin-top: 70px; font-weight: 700;">{{ $approvedByDisplay }}</div>
+                        <div class="sig-line">{{ $approvedByDisplay }}</div>
                     </div>
 
                     <div class="sig-col">
                         <div class="cap">Xuất kho bởi</div>
-                        <div style="margin-top: 70px; font-weight: 700;"></div>
+                        <div class="sig-line"></div>
                     </div>
+                </div>
+
+                <div class="br-footer">
+                    <div class="company">CÔNG TY CỔ PHẦN VIGILANCE VIỆT NAM</div>
+                    <div>Địa chỉ: Phòng B15.09 Tầng 15, Tháp B Tòa nhà Rivergate, 151-155 Bến Vân Đồn, Phường Khánh Hội, TP.HCM</div>
+                    <div>MST: 0318231312 | Hotline: 02887617015 | Email: vigilancevn@gmail.com | Website: https://vigilance.com.vn</div>
                 </div>
             </div>
         </div>

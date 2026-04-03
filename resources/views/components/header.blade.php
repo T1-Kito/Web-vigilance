@@ -317,7 +317,7 @@
                     <li><a class="dropdown-item" href="{{ route('orders.index') }}"><i class="bi bi-bag"></i> Đơn hàng của tôi</a></li>
                     <li><a class="dropdown-item" href="{{ route('wishlist.index') }}"><i class="bi bi-heart"></i> Yêu thích</a></li>
                     @if(Auth::user()->role === 'admin')
-                    <li><a class="dropdown-item" href="{{ route('admin.products.index') }}"><i class="bi bi-speedometer2"></i> Trang quản trị</a></li>
+                    <li><a class="dropdown-item" href="{{ route('admin.dashboard') }}"><i class="bi bi-speedometer2"></i> Trang quản trị</a></li>
                     @endif
                     <li><hr class="dropdown-divider"></li>
                     <li>

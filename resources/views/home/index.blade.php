@@ -110,7 +110,7 @@
 </script>
 
 <!-- Mobile Search Bar -->
-<div class="d-md-none mb-3">
+<div class="d-lg-none mb-3">
     <form action="{{ route('search') }}" method="GET" class="d-flex gap-2">
         <input type="text" name="q" class="form-control rounded-pill" placeholder="Tìm kiếm sản phẩm..." value="{{ request('q') }}" style="border: 2px solid var(--brand-secondary);">
         <button type="submit" class="btn btn-primary rounded-pill" style="width: 50px;">
@@ -406,12 +406,12 @@
 </div>
 
 <!-- Mobile Banner -->
-<div class="d-md-none mb-3">
+<div class="d-lg-none mb-3">
     @include('components.banner-side')
 </div>
 
 <!-- Mobile Chat & Info Boxes -->
-<div class="d-md-none mb-3">
+<div class="d-lg-none mb-3">
     <div class="row g-3">
         <!-- Mobile Chat Widget -->
         <div class="col-12">

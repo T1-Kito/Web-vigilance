@@ -125,8 +125,10 @@ class WarrantyController extends Controller
                 'customer_phone' => 'nullable|string|max:20',
                 'customer_email' => 'nullable|email|max:255',
                 'customer_address' => 'nullable|string|max:500',
-                'purchase_date' => 'required|date',
-                'warranty_start_date' => 'required|date|after_or_equal:purchase_date',
+                'customer_tax_id' => 'nullable|string|max:50',
+                'purchase_date' => 'required|date|before_or_equal:today',
+                'stock_in_date' => 'nullable|date|before_or_equal:today',
+                'warranty_start_date' => 'required|date|after_or_equal:purchase_date|before_or_equal:today',
                 'warranty_period_months' => 'required|integer|min:1|max:60',
                 'invoice_number' => 'nullable|string|max:255',
                 'notes' => 'nullable|string|max:1000'
@@ -178,8 +180,10 @@ class WarrantyController extends Controller
             'customer_phone' => 'nullable|string|max:20',
             'customer_email' => 'nullable|email|max:255',
             'customer_address' => 'nullable|string|max:500',
-            'purchase_date' => 'required|date',
-            'warranty_start_date' => 'required|date|after_or_equal:purchase_date',
+            'customer_tax_id' => 'nullable|string|max:50',
+            'purchase_date' => 'required|date|before_or_equal:today',
+            'stock_in_date' => 'nullable|date|before_or_equal:today',
+            'warranty_start_date' => 'required|date|after_or_equal:purchase_date|before_or_equal:today',
             'warranty_period_months' => 'required|integer|min:1|max:60',
             'invoice_number' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:1000'
@@ -235,7 +239,9 @@ class WarrantyController extends Controller
                     'customer_phone' => $data['customer_phone'] ?? null,
                     'customer_email' => $data['customer_email'] ?? null,
                     'customer_address' => $data['customer_address'] ?? null,
+                    'customer_tax_id' => $data['customer_tax_id'] ?? null,
                     'purchase_date' => $data['purchase_date'],
+                    'stock_in_date' => $data['stock_in_date'] ?? null,
                     'warranty_start_date' => $data['warranty_start_date'],
                     'warranty_end_date' => $warrantyEndDate,
                     'warranty_period_months' => $data['warranty_period_months'],
@@ -291,7 +297,9 @@ class WarrantyController extends Controller
             'customer_phone',
             'customer_email',
             'customer_address',
+            'customer_tax_id',
             'purchase_date',
+            'stock_in_date',
             'warranty_start_date',
             'warranty_end_date',
             'warranty_period_months',
@@ -308,8 +316,10 @@ class WarrantyController extends Controller
             'customer_phone' => 'nullable|string|max:20',
             'customer_email' => 'nullable|email|max:255',
             'customer_address' => 'nullable|string|max:500',
-            'purchase_date' => 'required|date',
-            'warranty_start_date' => 'required|date|after_or_equal:purchase_date',
+            'customer_tax_id' => 'nullable|string|max:50',
+            'purchase_date' => 'required|date|before_or_equal:today',
+            'stock_in_date' => 'nullable|date|before_or_equal:today',
+            'warranty_start_date' => 'required|date|after_or_equal:purchase_date|before_or_equal:today',
             'warranty_period_months' => 'required|integer|min:1|max:60',
             'invoice_number' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:1000'
@@ -348,7 +358,9 @@ class WarrantyController extends Controller
             'customer_phone',
             'customer_email',
             'customer_address',
+            'customer_tax_id',
             'purchase_date',
+            'stock_in_date',
             'warranty_start_date',
             'warranty_end_date',
             'warranty_period_months',
@@ -427,7 +439,7 @@ class WarrantyController extends Controller
         $warranties = Warranty::with('product')->orderByDesc('created_at')->get();
         $data = [];
         $data[] = [
-            'ID','Số seri','Tên sản phẩm','Tên khách hàng','Số điện thoại','Email','Địa chỉ','Ngày mua','Ngày bắt đầu bảo hành','Ngày kết thúc bảo hành','Thời hạn (tháng)','Trạng thái','Số hóa đơn','Ghi chú','Ngày tạo'
+            'ID','Số seri','Tên sản phẩm','Tên khách hàng','Mã số thuế','Số điện thoại','Email','Địa chỉ','Ngày mua','Ngày nhập hàng','Ngày bắt đầu bảo hành','Ngày kết thúc bảo hành','Thời hạn (tháng)','Trạng thái','Số hóa đơn','Ghi chú','Ngày tạo'
         ];
         foreach ($warranties as $w) {
             $format = function ($dt, $fmt = 'd/m/Y') {
@@ -441,10 +453,12 @@ class WarrantyController extends Controller
                 $w->serial_number,
                 optional($w->product)->name,
                 $w->customer_name,
+                $w->customer_tax_id,
                 $w->customer_phone,
                 $w->customer_email,
                 $w->customer_address,
                 $format($w->purchase_date),
+                $format($w->stock_in_date),
                 $format($w->warranty_start_date),
                 $format($w->warranty_end_date),
                 $w->warranty_period_months,

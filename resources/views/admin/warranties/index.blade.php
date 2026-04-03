@@ -3,7 +3,54 @@
 @section('title', 'Quản lý bảo hành')
 
 @section('content')
-<div class="container-fluid">
+<style>
+    .wa-page {
+        color: #0f172a;
+    }
+    .wa-page .modal-content {
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 14px !important;
+        box-shadow: none !important;
+        background: #ffffff !important;
+        color: #0f172a !important;
+    }
+    .wa-page .btn {
+        border-radius: 10px !important;
+        box-shadow: none !important;
+    }
+    .wa-page .btn-primary { background: #2563eb !important; border-color: #2563eb !important; }
+    .wa-page .table-responsive table thead tr,
+    .wa-page .table-responsive table thead th {
+        background: #f8fafc !important;
+        color: #334155 !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+    }
+    .wa-page .table-responsive table tbody tr {
+        border-bottom: 1px solid #eef2f7 !important;
+    }
+    .wa-page .table-responsive table tbody tr:hover {
+        background: #eef4ff !important;
+    }
+    .wa-page .wa-clickable-row {
+        cursor: pointer;
+    }
+    .wa-page .table-responsive table td,
+    .wa-page .table-responsive table th {
+        border: none !important;
+        padding-top: 12px !important;
+        padding-bottom: 12px !important;
+        vertical-align: middle;
+    }
+    .wa-page .wa-actions .btn {
+        padding: 6px 10px !important;
+    }
+    .wa-page .badge {
+        border-radius: 999px !important;
+        padding: 6px 12px !important;
+        font-weight: 700 !important;
+    }
+</style>
+<div class="container-fluid wa-page">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -232,7 +279,7 @@
                             <th style="border: none; padding: 16px 12px; font-weight: 700; color: #495057;">Số seri</th>
                             <th style="border: none; padding: 16px 12px; font-weight: 700; color: #495057;">Sản phẩm / Model</th>
                             <th style="border: none; padding: 16px 12px; font-weight: 700; color: #495057;">Khách hàng</th>
-                            <th style="border: none; padding: 16px 12px; font-weight: 700; color: #495057;">Ngày mua</th>
+                            <th style="border: none; padding: 16px 12px; font-weight: 700; color: #495057;">Ngày bán</th>
                             <th style="border: none; padding: 16px 12px; font-weight: 700; color: #495057;">Hết hạn</th>
                             <th style="border: none; padding: 16px 12px; font-weight: 700; color: #495057;">Trạng thái</th>
                             <th style="border: none; padding: 16px 12px; font-weight: 700; color: #495057;">Yêu cầu</th>
@@ -241,7 +288,7 @@
                     </thead>
                     <tbody>
                         @foreach($warranties as $warranty)
-                        <tr style="border-bottom: 1px solid #f1f3f4; transition: all 0.3s ease;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='white'">
+                        <tr class="wa-clickable-row" data-href="{{ route('admin.warranties.show', $warranty) }}" style="border-bottom: 1px solid #f1f3f4; transition: all 0.3s ease;" onmouseover="this.style.backgroundColor='#eef4ff'" onmouseout="this.style.backgroundColor='white'">
                             <td style="border: none; padding: 16px 12px; font-weight: 600; color: #6c757d;">{{ $warranty->id }}</td>
                             <td style="border: none; padding: 16px 12px;">
                                 <div class="d-flex flex-column">
@@ -314,7 +361,7 @@
                                 @endif
                             </td>
                             <td style="border: none; padding: 16px 12px;">
-                                <div class="d-flex gap-2">
+                                <div class="d-flex gap-2 wa-actions">
                                     <a href="{{ route('admin.warranties.show', $warranty) }}" 
                                        class="btn btn-sm" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; padding: 8px 12px; font-weight: 600; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);" title="Xem chi tiết">
                                         <i class="bi bi-eye"></i>
@@ -451,6 +498,17 @@ $(document).ready(function() {
     
     // Không dùng DataTable vì đã có Laravel pagination
     // DataTable sẽ xung đột với server-side pagination
+
+    // Click cả dòng để xem chi tiết (trừ khu vực nút thao tác)
+    $(document).on('click', '.wa-clickable-row', function(e) {
+        if ($(e.target).closest('a,button,form,input,select,textarea,label').length) {
+            return;
+        }
+        const href = $(this).data('href');
+        if (href) {
+            window.location.href = href;
+        }
+    });
     
     // Xử lý xác nhận xóa tất cả - dùng cả jQuery và vanilla JS để đảm bảo hoạt động
     function checkDeleteConfirmation() {
