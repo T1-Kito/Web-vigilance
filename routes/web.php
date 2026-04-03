@@ -733,6 +733,12 @@ Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::patch('orders/{order}', [\App\Http\Controllers\Admin\OrderAdminController::class, 'update'])->name('orders.update');
     Route::delete('orders/{order}', [\App\Http\Controllers\Admin\OrderAdminController::class, 'destroy'])->name('orders.destroy');
 
+    // Purchase management
+    Route::get('purchase-orders/{purchaseOrder}/export-pdf', [\App\Http\Controllers\Admin\PurchaseOrderController::class, 'exportPdf'])
+        ->name('purchase-orders.export-pdf');
+    Route::resource('purchase-orders', \App\Http\Controllers\Admin\PurchaseOrderController::class)
+        ->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
+
     // Banners management
     Route::resource('banners', \App\Http\Controllers\Admin\BannerController::class);
 

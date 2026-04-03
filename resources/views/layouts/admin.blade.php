@@ -401,7 +401,7 @@
             <div class="nav-item">
                 <a href="{{ route('admin.orders.index') }}" class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-cart-check"></i></div>
-                    Quản lý đơn hàng
+                    Đơn hàng
                 </a>
             </div>
             <div class="nav-item">
@@ -413,16 +413,37 @@
             <div class="nav-item">
                 <a href="{{ route('admin.customer-order-info.index') }}" class="nav-link {{ request()->routeIs('admin.customer-order-info.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-person-workspace"></i></div>
-                    Quản lý thông tin khách đặt hàng
+                    Thông tin khách 
                 </a>
             </div>
             <div class="nav-item">
                 <a href="{{ route('admin.borrow-requests.index') }}" class="nav-link {{ request()->routeIs('admin.borrow-requests.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-clipboard-check"></i></div>
-                    Quản lý mượn hàng
+                    Mượn hàng
                 </a>
             </div>
-
+            <div class="nav-item">
+                <a href="{{ route('admin.warranties.index') }}" class="nav-link {{ request()->routeIs('admin.warranties.*') ? 'active' : '' }}">
+                    <div class="nav-icon"><i class="bi bi-shield-check"></i></div>
+                    Bán & bảo hành
+                </a>
+            </div>
+            <div class="nav-group-title">Quản lí mua hàng</div>
+            <div class="nav-item">
+                <a href="{{ route('admin.purchase-orders.index') }}" class="nav-link {{ request()->routeIs('admin.purchase-orders.*') ? 'active' : '' }}">
+                    <div class="nav-icon"><i class="bi bi-file-earmark-text"></i></div>
+                    Đơn mua hàng
+                </a>
+            </div>
+           
+            <div class="nav-group-title">Bảo hành &amp; sửa chữa</div>
+           
+            <div class="nav-item">
+                <a href="{{ route('admin.repair-forms.index') }}" class="nav-link {{ request()->routeIs('admin.repair-forms.*') ? 'active' : '' }}">
+                    <div class="nav-icon"><i class="bi bi-file-earmark-text"></i></div>
+                    Phiếu bảo hành
+                </a>
+            </div>
             <div class="nav-group-title">Sản phẩm &amp; hiển thị</div>
             <div class="nav-item">
                 <a href="{{ route('admin.products.index') }}" class="nav-link {{ request()->routeIs('admin.products.*') ? 'active' : '' }}">
@@ -443,19 +464,7 @@
                 </a>
             </div>
 
-            <div class="nav-group-title">Bảo hành &amp; sửa chữa</div>
-            <div class="nav-item">
-                <a href="{{ route('admin.warranties.index') }}" class="nav-link {{ request()->routeIs('admin.warranties.*') ? 'active' : '' }}">
-                    <div class="nav-icon"><i class="bi bi-shield-check"></i></div>
-                    Quản lý số seri (BH)
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="{{ route('admin.repair-forms.index') }}" class="nav-link {{ request()->routeIs('admin.repair-forms.*') ? 'active' : '' }}">
-                    <div class="nav-icon"><i class="bi bi-file-earmark-text"></i></div>
-                    Phiếu nhận &amp; trả bảo hành
-                </a>
-            </div>
+           
 
             @php
                 $superAdminEmail = strtolower(trim((string) env('SUPER_ADMIN_EMAIL', '')));

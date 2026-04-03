@@ -26,7 +26,7 @@
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
                             <div class="text-muted small">Tổng phiếu</div>
-                            <div class="h4 mb-0">{{ $repairForms->total() }}</div>
+                            <div class="h4 mb-0">{{ $totalForms ?? $repairForms->total() }}</div>
                         </div>
                         <div class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width:44px;height:44px;">
                             <i class="bi bi-file-earmark-text"></i>
@@ -42,7 +42,7 @@
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
                             <div class="text-muted small">Chưa gửi trả</div>
-                            <div class="h4 mb-0">{{ $repairForms->where('status', 'not_returned')->count() }}</div>
+                            <div class="h4 mb-0">{{ $notReturnedCount ?? 0 }}</div>
                         </div>
                         <div class="rounded-circle bg-warning-subtle text-warning d-flex align-items-center justify-content-center" style="width:44px;height:44px;">
                             <i class="bi bi-hourglass-split"></i>
@@ -58,7 +58,7 @@
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
                             <div class="text-muted small">Đã gửi trả</div>
-                            <div class="h4 mb-0">{{ $repairForms->where('status', 'returned')->count() }}</div>
+                            <div class="h4 mb-0">{{ $returnedCount ?? 0 }}</div>
                         </div>
                         <div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width:44px;height:44px;">
                             <i class="bi bi-check2-circle"></i>

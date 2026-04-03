@@ -22,13 +22,19 @@ class RepairFormController extends Controller
             $query->where('serial_numbers', 'LIKE', "%{$serialSearch}%");
         }
 
+        $statsQuery = clone $query;
+
+        $totalForms = (clone $statsQuery)->count();
+        $notReturnedCount = (clone $statsQuery)->where('status', 'not_returned')->count();
+        $returnedCount = (clone $statsQuery)->where('status', 'returned')->count();
+
         $repairForms = $query
             ->orderByDesc('received_date')
             ->orderByDesc('created_at')
             ->paginate(20)
             ->withQueryString();
-            
-        return view('admin.repair_forms.index', compact('repairForms'));
+
+        return view('admin.repair_forms.index', compact('repairForms', 'totalForms', 'notReturnedCount', 'returnedCount'));
     }
 
     public function create()

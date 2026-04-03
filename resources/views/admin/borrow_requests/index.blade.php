@@ -56,8 +56,8 @@
                     <th style="padding: 16px 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #3b82f6;">Khách hàng</th>
                     <th style="padding: 16px 12px; text-align: center; font-weight: 600; border-bottom: 2px solid #3b82f6;">Thời gian</th>
                     <th style="padding: 16px 12px; text-align: center; font-weight: 600; border-bottom: 2px solid #3b82f6;">Trạng thái</th>
-                    <th style="padding: 16px 12px; text-align: center; font-weight: 600; border-bottom: 2px solid #3b82f6;">Dòng</th>
-                    <th style="padding: 16px 12px; text-align: center; font-weight: 600; border-bottom: 2px solid #3b82f6;">Thao tác</th>
+                    <th style="padding: 16px 12px; text-align: center; font-weight: 600; border-bottom: 2px solid #3b82f6; min-width: 4.5rem;">Dòng</th>
+                    <th style="padding: 16px 12px; text-align: right; font-weight: 600; border-bottom: 2px solid #3b82f6; min-width: 9rem; padding-right: 16px;">Thao tác</th>
                 </tr>
             </thead>
             <tbody>
@@ -89,19 +89,19 @@
                             <span class="badge" style="{{ $badgeStyle }} color:white; border-radius: 20px; padding: 8px 14px; font-weight: 700; font-size: 0.9em;">{{ $stLabel }}</span>
                         </td>
                         <td style="padding: 14px 12px; text-align:center; font-weight:700;">{{ (int) ($r->items_count ?? 0) }}</td>
-                        <td style="padding: 14px 12px; text-align:center;">
-                            <div class="dropdown">
+                        <td style="padding: 14px 12px; text-align: right; vertical-align: middle; position: relative; min-width: 9rem;">
+                            <div class="dropdown" style="display: inline-block; text-align: left;">
                                 <button
-                                    class="btn btn-link text-white p-1 rounded-2"
+                                    class="btn btn-link text-dark p-1 rounded-2 borrow-request-actions-dropdown"
                                     type="button"
                                     data-bs-toggle="dropdown"
                                     aria-expanded="false"
                                     title="Thao tác"
-                                    style="background: rgba(15,23,42,0.08); border-radius: 999px; width: 36px; height: 36px; display:inline-flex; align-items:center; justify-content:center;"
+                                    style="background: rgba(15,23,42,0.08); border-radius: 999px; width: 36px; height: 36px; display:inline-flex; align-items:center; justify-content:center; text-decoration:none;"
                                 >
                                     <i class="bi bi-three-dots-vertical fs-5 lh-1"></i>
                                 </button>
-                                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 small">
+                                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 small" style="z-index: 1080; min-width: 140px;">
                                     <li>
                                         <a class="dropdown-item" href="{{ route('admin.borrow-requests.show', $r) }}">
                                             <i class="bi bi-eye me-2 text-primary"></i>Xem
@@ -139,4 +139,24 @@
         {{ $requests->links() }}
     </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.borrow-request-actions-dropdown').forEach(function (toggleEl) {
+        bootstrap.Dropdown.getOrCreateInstance(toggleEl, {
+            popperConfig: function (defaultBsPopperConfig) {
+                var mods = (defaultBsPopperConfig.modifiers || []).map(function (m) {
+                    if (m.name === 'flip') {
+                        return Object.assign({}, m, { enabled: false });
+                    }
+                    return m;
+                });
+                return Object.assign({}, defaultBsPopperConfig, {
+                    strategy: 'fixed',
+                    modifiers: mods,
+                });
+            },
+        });
+    });
+});
+</script>
 @endsection
