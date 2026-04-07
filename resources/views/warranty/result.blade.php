@@ -71,6 +71,17 @@
                                 $customerNameMasked = '******' . ($last ? (' ' . $last) : '');
                             }
                             $isActiveWarranty = !$warranty->is_expired && $warranty->status !== 'cancelled';
+
+                            $customerDisplayName = (string) ($warranty->customer_name ?? '');
+                            if ($customerDisplayName !== '') {
+                                $customerDisplayName = mb_convert_case(mb_strtolower($customerDisplayName, 'UTF-8'), MB_CASE_TITLE, 'UTF-8');
+                            }
+
+                            $superAdminEmail = strtolower(trim((string) env('SUPER_ADMIN_EMAIL', '')));
+                            $currentEmail = strtolower(trim((string) (auth()->user()->email ?? '')));
+                            $isAdminRole = auth()->check() && (string) (auth()->user()->role ?? '') === 'admin';
+                            $isSuperAdminByEmail = auth()->check() && $superAdminEmail !== '' && $currentEmail === $superAdminEmail;
+                            $canViewSensitiveWarranty = $isAdminRole || $isSuperAdminByEmail;
                         @endphp
                         @if(session('success'))
                             <div class="alert alert-success border-0 shadow-sm" style="border-radius: 15px;">
@@ -126,8 +137,46 @@
                                             <span class="warranty-mock-ico is-customer"><i class="bi bi-person"></i></span>
                                             <span class="warranty-mock-label">Khách hàng:</span>
                                         </div>
-                                        <div class="warranty-mock-value">{{ $customerNameMasked ?? '******' }}</div>
+                                        <div class="warranty-mock-value warranty-customer-name" title="{{ $canViewSensitiveWarranty ? ($warranty->customer_name ?: '-') : ($customerNameMasked ?? '******') }}">{{ $canViewSensitiveWarranty ? ($customerDisplayName ?: '-') : ($customerNameMasked ?? '******') }}</div>
                                     </div>
+
+                                    @if($canViewSensitiveWarranty)
+                                        <div class="warranty-mock-divider"></div>
+                                        <div class="warranty-mock-row split">
+                                            <div class="warranty-mock-left">
+                                                <span class="warranty-mock-ico is-customer"><i class="bi bi-geo-alt"></i></span>
+                                                <span class="warranty-mock-label">Địa chỉ:</span>
+                                            </div>
+                                            <div class="warranty-mock-value">{{ $warranty->customer_address ?: '-' }}</div>
+                                        </div>
+
+                                        <div class="warranty-mock-divider"></div>
+                                        <div class="warranty-mock-row split">
+                                            <div class="warranty-mock-left">
+                                                <span class="warranty-mock-ico is-customer"><i class="bi bi-receipt"></i></span>
+                                                <span class="warranty-mock-label">Mã HĐ:</span>
+                                            </div>
+                                            <div class="warranty-mock-value">{{ $warranty->invoice_number ?: '-' }}</div>
+                                        </div>
+
+                                        <div class="warranty-mock-divider"></div>
+                                        <div class="warranty-mock-row split">
+                                            <div class="warranty-mock-left">
+                                                <span class="warranty-mock-ico is-customer"><i class="bi bi-calendar-event"></i></span>
+                                                <span class="warranty-mock-label">Ngày mua:</span>
+                                            </div>
+                                            <div class="warranty-mock-value">{{ optional($warranty->purchase_date)->format('d/m/Y') ?: '-' }}</div>
+                                        </div>
+
+                                        <div class="warranty-mock-divider"></div>
+                                        <div class="warranty-mock-row split">
+                                            <div class="warranty-mock-left">
+                                                <span class="warranty-mock-ico is-customer"><i class="bi bi-calendar-check"></i></span>
+                                                <span class="warranty-mock-label">Hạn BH:</span>
+                                            </div>
+                                            <div class="warranty-mock-value">{{ optional($warranty->warranty_end_date)->format('d/m/Y') ?: '-' }}</div>
+                                        </div>
+                                    @endif
 
                                     <div class="warranty-mock-support">
                                         <div class="warranty-mock-support-inner">
@@ -291,6 +340,12 @@
     color: #0f172a;
     font-size: 1.3rem;
     word-break: break-word;
+}
+
+.warranty-customer-name {
+    line-height: 1.45;
+    max-width: 360px;
+    text-align: right;
 }
 
 .warranty-mock-support {

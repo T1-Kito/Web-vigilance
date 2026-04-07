@@ -7,11 +7,13 @@ use App\Models\Delivery;
 use App\Models\DeliveryItem;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
+use App\Models\Product;
 use App\Models\SalesOrder;
 use App\Support\ActivityLogger;
 use App\Support\DocumentCodeGenerator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class SalesOrderAdminController extends Controller
 {

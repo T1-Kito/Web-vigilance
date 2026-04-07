@@ -12,6 +12,7 @@
             font-family: Arial, Helvetica, sans-serif;
             background: #f3f4f6;
             color: #111827;
+            font-size: 12px;
         }
 
         .toolbar {
@@ -72,26 +73,26 @@
         }
         .doc-title h1 {
             margin: 0;
-            font-size: 30px;
-            letter-spacing: .3px;
+            font-size: 26px;
+            letter-spacing: .2px;
             font-weight: 700;
         }
         .doc-title .code {
             margin-top: 2px;
-            font-size: 15px;
+            font-size: 13px;
             color: #374151;
         }
 
         .meta-right {
             text-align: right;
-            font-size: 13px;
+            font-size: 12px;
             color: #374151;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .info-grid {
-            font-size: 14px;
-            margin-bottom: 12px;
+            font-size: 12px;
+            margin-bottom: 10px;
         }
         .info-row {
             padding: 6px 0;
@@ -107,8 +108,8 @@
         }
         th, td {
             border: 1px solid #9ca3af;
-            padding: 7px 8px;
-            font-size: 13px;
+            padding: 6px 7px;
+            font-size: 12px;
         }
         th {
             background: #f3f4f6;
@@ -252,7 +253,7 @@
     <div class="footer">
         <div class="name">CÔNG TY CỔ PHẦN VIGILANCE VIỆT NAM</div>
         <div>Địa chỉ: Phòng B15.09 Tầng 15, Tháp B Tòa nhà Rivergate 151-155 Bến Vân Đồn, Phường Khánh Hội, TP.HCM</div>
-        <div>Mã số thuế: 0318231312 | Hotline: 0982751075 | Email: vigilancevn@gmail.com | Website: www.vigilancevn.com.vn</div>
+        <div>Mã số thuế: 0318231312 | Hotline: 0982751075 | Website: www.vigilancevn.com.vn</div>
     </div>
 </div>
 

@@ -62,8 +62,8 @@ class RepairFormController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'serial_number' => 'nullable|string|max:255',
-            'serial_numbers' => 'nullable|string|max:255',
+            'serial_number' => 'nullable|string|max:5000',
+            'serial_numbers' => 'nullable|string|max:5000',
             'warranty_id' => 'nullable|integer',
             'warranty_claim_id' => 'nullable|integer',
             'customer_company' => 'required|string|max:255',
@@ -109,17 +109,30 @@ class RepairFormController extends Controller
 
         if (empty($data['serial_number']) && empty($data['serial_numbers'])) {
             return back()
-                ->withErrors(['serial_number' => 'Vui lòng nhập số seri (SN).'])
+                ->withErrors(['serial_numbers' => 'Vui lòng nhập số seri (SN).'])
                 ->withInput();
         }
 
-        $serialNumber = trim($data['serial_number'] ?: $data['serial_numbers']);
-        $warranty = Warranty::where('serial_number', $serialNumber)->first();
+        $rawSerialInput = trim((string) ($data['serial_numbers'] ?: $data['serial_number']));
+        $rawSerialInput = str_replace(["\r\n", "\r"], "\n", $rawSerialInput);
+        $serialParts = preg_split('/[\n,;\t ]+/', $rawSerialInput, -1, PREG_SPLIT_NO_EMPTY);
+        $serialList = array_values(array_unique(array_map(function ($sn) {
+            return strtoupper(trim((string) $sn));
+        }, $serialParts ?? [])));
+
+        if (empty($serialList)) {
+            return back()
+                ->withErrors(['serial_numbers' => 'Vui lòng nhập ít nhất 1 số seri hợp lệ.'])
+                ->withInput();
+        }
+
+        $firstSerial = $serialList[0];
+        $warranty = Warranty::where('serial_number', $firstSerial)->first();
 
         if (empty($data['warranty_id'])) {
             $data['warranty_id'] = $warranty?->id;
         }
-        $data['serial_numbers'] = $serialNumber;
+        $data['serial_numbers'] = implode(', ', $serialList);
         unset($data['serial_number']);
 
         $purchaseDateUnknown = !empty($data['purchase_date_unknown']);

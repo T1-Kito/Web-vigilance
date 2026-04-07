@@ -30,15 +30,12 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="mb-3">
-                            <label for="serial_number" class="form-label fw-bold">Số seri (SN) <span class="text-danger">*</span></label>
-                            <input type="text" name="serial_number" id="serial_number" class="form-control" list="serial_number_list" required>
-                            <datalist id="serial_number_list">
-                                @foreach($warranties as $warranty)
-                                    <option value="{{ $warranty->serial_number }}">
-                                @endforeach
-                            </datalist>
+                            <label for="serial_numbers" class="form-label fw-bold">Số seri (SN) <span class="text-danger">*</span></label>
+                            <textarea name="serial_numbers" id="serial_numbers" class="form-control" rows="3" placeholder="Nhập nhiều SN, mỗi dòng 1 SN hoặc ngăn cách bằng dấu phẩy" required>{{ old('serial_numbers') }}</textarea>
+                            <div class="form-text">Bạn có thể nhập nhiều SN trong 1 phiếu (ví dụ 5 máy của cùng khách).</div>
                             <div id="serial_autofill_hint" class="form-text" style="display:none"></div>
-                            @error('serial_number')
+                            <div id="serial_suggest_box" class="list-group mt-2" style="display:none; max-height: 220px; overflow:auto;"></div>
+                            @error('serial_numbers')
                                 <div class="text-danger mt-1">{{ $message }}</div>
                             @enderror
                         </div>
@@ -174,7 +171,7 @@ document.addEventListener('DOMContentLoaded', function () {
         normalizedWarrantyMap[normalizeSn(key)] = warrantyMap[key];
     });
 
-    const serialEl = document.getElementById('serial_number');
+    const serialEl = document.getElementById('serial_numbers');
     const customerEl = document.getElementById('customer_company');
     const phoneEl = document.getElementById('contact_phone');
     const equipmentEl = document.getElementById('equipment_name');
@@ -185,9 +182,74 @@ document.addEventListener('DOMContentLoaded', function () {
     const estimatedWarrantyTimeEl = document.getElementById('estimated_warranty_time');
     const estimatedReturnDateEl = document.getElementById('estimated_return_date');
     const hintEl = document.getElementById('serial_autofill_hint');
+    const suggestBoxEl = document.getElementById('serial_suggest_box');
 
     const AUTO_KEY = 'data-autofilled';
     let lastSn = null;
+
+    const allSerials = Object.keys(normalizedWarrantyMap || {});
+
+    function extractSerialParts(raw) {
+        return ((raw || '') + '')
+            .replace(/\r\n?/g, '\n')
+            .split(/[\n,;\t ]+/)
+            .map((x) => normalizeSn(x))
+            .filter(Boolean);
+    }
+
+    function getCurrentSerialToken(raw) {
+        const text = (raw || '') + '';
+        const m = text.match(/([^\n,;\t ]*)$/);
+        return normalizeSn(m ? m[1] : '');
+    }
+
+    function replaceCurrentToken(raw, newToken) {
+        const text = (raw || '') + '';
+        return text.replace(/([^\n,;\t ]*)$/, newToken);
+    }
+
+    function closeSuggestBox() {
+        if (!suggestBoxEl) return;
+        suggestBoxEl.style.display = 'none';
+        suggestBoxEl.innerHTML = '';
+    }
+
+    function openSuggestBox(matches, token) {
+        if (!suggestBoxEl || !serialEl) return;
+        if (!token || !matches.length) {
+            closeSuggestBox();
+            return;
+        }
+
+        suggestBoxEl.innerHTML = '';
+        matches.slice(0, 12).forEach((sn) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'list-group-item list-group-item-action py-2';
+            btn.textContent = sn;
+            btn.addEventListener('click', function () {
+                serialEl.value = replaceCurrentToken(serialEl.value, sn + '\n');
+                closeSuggestBox();
+                tryFillFromSerial();
+                serialEl.focus();
+            });
+            suggestBoxEl.appendChild(btn);
+        });
+        suggestBoxEl.style.display = '';
+    }
+
+    function updateSerialSuggest() {
+        if (!serialEl) return;
+        const token = getCurrentSerialToken(serialEl.value);
+        if (!token || token.length < 2) {
+            closeSuggestBox();
+            return;
+        }
+
+        const used = new Set(extractSerialParts(serialEl.value));
+        const matches = allSerials.filter((sn) => sn.includes(token) && !used.has(sn));
+        openSuggestBox(matches, token);
+    }
 
     function markAutofilled(el) {
         if (!el) return;
@@ -233,18 +295,20 @@ document.addEventListener('DOMContentLoaded', function () {
     syncPurchaseDateUnknown();
 
     function tryFillFromSerial() {
-        const sn = normalizeSn(serialEl ? serialEl.value : '');
-        const info = normalizedWarrantyMap[sn];
+        const raw = (serialEl ? serialEl.value : '') || '';
+        const serials = Array.from(new Set(extractSerialParts(raw)));
+        const firstSn = serials.length ? serials[0] : '';
+        const info = firstSn ? normalizedWarrantyMap[firstSn] : null;
 
-        const snChanged = lastSn !== sn;
-        lastSn = sn;
+        const snChanged = lastSn !== firstSn;
+        lastSn = firstSn;
 
         if (!info) {
             if (hintEl) {
-                hintEl.textContent = sn ? 'Không tìm thấy SN trong hệ thống bảo hành.' : '';
+                hintEl.textContent = firstSn ? 'Không tìm thấy SN đầu tiên trong hệ thống bảo hành.' : '';
                 hintEl.classList.remove('text-success', 'text-muted');
                 hintEl.classList.add('text-danger');
-                hintEl.style.display = sn ? '' : 'none';
+                hintEl.style.display = firstSn ? '' : 'none';
             }
             if (snChanged) {
                 if (customerEl && isAutofilled(customerEl)) customerEl.value = '';
@@ -262,10 +326,18 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
+        let matchedCount = 0;
+        serials.forEach((sn) => {
+            if (normalizedWarrantyMap[sn]) matchedCount++;
+        });
+
         if (hintEl) {
-            hintEl.textContent = '';
-            hintEl.classList.remove('text-success', 'text-danger', 'text-muted');
-            hintEl.style.display = 'none';
+            hintEl.textContent = serials.length > 1
+                ? ('Đã nhận ' + serials.length + ' SN, khớp ' + matchedCount + ' SN. Tự điền theo SN đầu tiên: ' + firstSn)
+                : '';
+            hintEl.classList.remove('text-danger', 'text-muted');
+            hintEl.classList.add('text-success');
+            hintEl.style.display = serials.length > 1 ? '' : 'none';
         }
 
         const canOverwrite = (el) => !el || !el.value || isAutofilled(el);
@@ -296,10 +368,26 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (serialEl) {
-        serialEl.addEventListener('change', tryFillFromSerial);
-        serialEl.addEventListener('keyup', tryFillFromSerial);
-        serialEl.addEventListener('blur', tryFillFromSerial);
+        serialEl.addEventListener('change', function () {
+            tryFillFromSerial();
+            updateSerialSuggest();
+        });
+        serialEl.addEventListener('keyup', function () {
+            tryFillFromSerial();
+            updateSerialSuggest();
+        });
+        serialEl.addEventListener('focus', updateSerialSuggest);
+        serialEl.addEventListener('blur', function () {
+            setTimeout(closeSuggestBox, 150);
+            tryFillFromSerial();
+        });
     }
+
+    document.addEventListener('click', function (e) {
+        if (!suggestBoxEl || !serialEl) return;
+        if (e.target === serialEl || suggestBoxEl.contains(e.target)) return;
+        closeSuggestBox();
+    });
 
     if (receivedDateEl && !receivedDateEl.value) {
         receivedDateEl.value = new Date().toISOString().split('T')[0];
