@@ -1,9 +1,13 @@
 @extends('layouts.admin')
 
-@section('title', 'Chi tiết đơn hàng')
+@section('title', request()->query('type') === 'quote' ? 'Chi tiết báo giá' : 'Chi tiết đơn hàng')
 
 @section('content')
  @php
+     $isQuote = request()->query('type') === 'quote';
+     $hasDeliveries = \Illuminate\Support\Facades\Schema::hasTable('deliveries')
+         ? \App\Models\Delivery::query()->where('order_id', $order->id)->exists()
+         : false;
      $orderCode = $order->order_code ?? ("VK" . str_pad($order->id, 6, '0', STR_PAD_LEFT));
      $quoteUrl = route('orders.quote', ['orderCode' => $order->order_code]);
      $quoteEmbedUrl = $quoteUrl . '?embed=1';
@@ -28,37 +32,42 @@
 
      $mailTo = null;
      if (!empty($order->customer_email)) {
-         $subject = rawurlencode('Đơn hàng ' . $orderCode);
-         $body = rawurlencode("Xin chào,\n\nThông tin đơn hàng: " . $orderCode . "\nTrạng thái: " . $statusLabel . "\nTổng tiền: " . number_format($total, 0, ',', '.') . "đ\n\nTrân trọng,");
+         $subject = rawurlencode(($isQuote ? 'Báo giá ' : 'Đơn hàng ') . $orderCode);
+         $body = rawurlencode("Xin chào,\n\n" . ($isQuote ? 'Thông tin báo giá: ' : 'Thông tin đơn hàng: ') . $orderCode . "\nTrạng thái: " . $statusLabel . "\nTổng tiền: " . number_format($total, 0, ',', '.') . "đ\n\nTrân trọng,");
          $mailTo = 'mailto:' . $order->customer_email . '?subject=' . $subject . '&body=' . $body;
      }
 
      $timelineSteps = [
-         'pending' => 'Đặt hàng',
+         'pending' => $isQuote ? 'Báo giá' : 'Đặt hàng',
          'processing' => 'Đang xử lý',
          'completed' => 'Hoàn thành',
          'cancelled' => 'Đã hủy',
      ];
      $activeStep = array_key_exists($statusKey, $timelineSteps) ? $statusKey : 'pending';
+
+     $backUrl = route('admin.orders.index');
+     if ($isQuote) {
+         $backUrl .= '?type=quote';
+     }
  @endphp
 
  <div class="content-card p-4">
      <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
          <div>
-             <h2 class="fw-bold mb-1" style="color:#0f172a;">Chi tiết đơn hàng</h2>
-             <div class="text-muted">Mã đơn: <span class="fw-semibold">{{ $orderCode }}</span></div>
+             <h2 class="fw-bold mb-1" style="color:#0f172a;">{{ $isQuote ? 'Chi tiết báo giá' : 'Chi tiết đơn hàng' }}</h2>
+             <div class="text-muted">{{ $isQuote ? 'Mã báo giá' : 'Mã đơn' }}: <span class="fw-semibold">{{ $orderCode }}</span></div>
          </div>
          <div class="d-flex align-items-center gap-2">
              <span class="badge bg-{{ $statusBadge }}" style="padding:.6rem .9rem;border-radius:999px;">{{ $statusLabel }}</span>
-             <a href="{{ route('admin.orders.index') }}" class="btn btn-outline-secondary">Quay lại</a>
+             <a href="{{ $backUrl }}" class="btn btn-outline-secondary">Quay lại</a>
          </div>
      </div>
 
      <div class="row g-4">
          <div class="col-lg-8">
-             <div class="card shadow-sm" style="border:none;border-radius:16px;">
+            <div class="card shadow-sm" style="border:none;border-radius:16px;">
                  <div class="card-body">
-                     <div class="fw-bold mb-3" style="font-size:1.05rem;color:#0f172a;">Thông tin đơn hàng</div>
+                    <div class="fw-bold mb-3" style="font-size:1.05rem;color:#0f172a;">{{ $isQuote ? 'Thông tin báo giá' : 'Thông tin đơn hàng' }}</div>
                      <div class="row g-3">
                          <div class="col-md-6">
                              <div class="text-muted" style="font-size:.85rem;">Ngày đặt</div>
@@ -155,7 +164,7 @@
                          @method('PATCH')
                          <div class="row g-2">
                              <div class="col-12">
-                                 <select name="status" class="form-select">
+                                 <select name="status" class="form-select" {{ $hasDeliveries ? 'disabled' : '' }}>
                                      <option value="pending" @if($order->status=='pending') selected @endif>Chờ xử lý</option>
                                      <option value="processing" @if($order->status=='processing') selected @endif>Đang xử lý</option>
                                      <option value="completed" @if($order->status=='completed') selected @endif>Hoàn thành</option>
@@ -163,10 +172,16 @@
                                  </select>
                              </div>
                              <div class="col-12 d-grid">
-                                 <button type="submit" class="btn btn-success">Cập nhật</button>
+                                 <button type="submit" class="btn btn-success" {{ $hasDeliveries ? 'disabled' : '' }}>Cập nhật</button>
                              </div>
                          </div>
                      </form>
+
+                     @if($hasDeliveries)
+                         <div class="alert alert-warning mt-3 mb-0 small">
+                             Đơn hàng đã phát sinh phiếu xuất kho. Trạng thái được quản lý theo chứng từ kho để đảm bảo tính pháp lý.
+                         </div>
+                     @endif
 
                      <hr>
 
@@ -184,11 +199,8 @@
                              <a class="btn btn-outline-primary" href="{{ $quoteUrl }}" target="_blank" rel="noopener">Mở báo giá</a>
                          </div>
 
-                         <div class="col-6 d-grid">
-                             <a class="btn btn-outline-secondary" href="{{ $quoteUrl }}" target="_blank" rel="noopener">In</a>
-                         </div>
-                         <div class="col-6 d-grid">
-                             <a class="btn btn-outline-secondary" href="{{ $quoteUrl }}" target="_blank" rel="noopener">Xuất PDF</a>
+                         <div class="col-12 d-grid">
+                             <a class="btn btn-primary" href="{{ route('admin.orders.workflow', $order) }}">Mở module chứng từ (Xuất kho/Hóa đơn)</a>
                          </div>
 
                          <div class="col-12 d-grid">

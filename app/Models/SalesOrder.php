@@ -4,12 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Order extends Model
+class SalesOrder extends Model
 {
     protected $fillable = [
         'user_id',
-        'order_code',
         'source_quote_id',
+        'sales_order_code',
         'receiver_name',
         'receiver_phone',
         'receiver_address',
@@ -23,28 +23,17 @@ class Order extends Model
         'sales_name',
         'discount_percent',
         'vat_percent',
-        'note',
-        'payment_method',
         'status',
+        'note',
     ];
 
     public function items()
     {
-        return $this->hasMany(OrderItem::class);
+        return $this->hasMany(SalesOrderItem::class);
     }
 
-    public function user()
+    public function quote()
     {
-        return $this->belongsTo(User::class);
-    }
-
-    public function deliveries()
-    {
-        return $this->hasMany(Delivery::class);
-    }
-
-    public function invoices()
-    {
-        return $this->hasMany(Invoice::class);
+        return $this->belongsTo(Quote::class, 'source_quote_id');
     }
 }

@@ -4,12 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Order extends Model
+class Quote extends Model
 {
+    protected $casts = [
+        'valid_until' => 'date',
+    ];
+
     protected $fillable = [
         'user_id',
-        'order_code',
-        'source_quote_id',
+        'source_order_id',
+        'quote_code',
         'receiver_name',
         'receiver_phone',
         'receiver_address',
@@ -24,13 +28,13 @@ class Order extends Model
         'discount_percent',
         'vat_percent',
         'note',
-        'payment_method',
         'status',
+        'valid_until',
     ];
 
     public function items()
     {
-        return $this->hasMany(OrderItem::class);
+        return $this->hasMany(QuoteItem::class);
     }
 
     public function user()
@@ -38,13 +42,18 @@ class Order extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function deliveries()
+    public function sourceOrder()
     {
-        return $this->hasMany(Delivery::class);
+        return $this->belongsTo(Order::class, 'source_order_id');
     }
 
-    public function invoices()
+    public function convertedOrder()
     {
-        return $this->hasMany(Invoice::class);
+        return $this->hasOne(Order::class, 'source_quote_id'); // legacy
+    }
+
+    public function convertedSalesOrder()
+    {
+        return $this->hasOne(SalesOrder::class, 'source_quote_id');
     }
 }

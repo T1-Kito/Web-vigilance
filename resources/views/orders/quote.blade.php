@@ -9,13 +9,11 @@
 
     $items = $order->items ?? collect();
 
-    $orderCode = $order->order_code ?? ("VK" . str_pad($order->id, 6, '0', STR_PAD_LEFT));
+    $orderCode = $order->quote_code ?? $order->order_code ?? ("VK" . str_pad($order->id, 6, '0', STR_PAD_LEFT));
 
     $companyName = $order->company_name ?: 'CÔNG TY CỔ PHẦN VIGILANCE VIỆT NAM';
     $companyTax = $order->company_tax_code ?: '0318231312';
     $companyHotline = $order->company_hotline ?: '02873026078';
-    $companyAddressRaw = $order->company_address ?: '151-155 Bến Vân Đồn, Phường Khánh Hội, TP HCM';
-    $companyAddressSafe = str_replace('151-155', '<span style="white-space:nowrap;">151-155</span>', e($companyAddressRaw));
 
     $invoiceName = $order->invoice_company_name ?: '...';
     $invoiceAddress = $order->invoice_address ?: '...';
@@ -26,6 +24,20 @@
 
     $staffCode = $order->staff_code ?: ($order->user->name ?? '...');
     $salesName = $order->sales_name ?: ($order->user->name ?? '...');
+
+    $pdfFooterAddress = trim((string) ($order->company_address ?? ''));
+    if ($pdfFooterAddress === '') {
+        $pdfFooterAddress = 'Phòng B15.09 Tầng 15, Tháp B Tòa nhà Rivergate 151-155 Bến Vân Đồn, Phường Khánh Hội, TP.HCM';
+    }
+    $sellerEmail = trim((string) ($order->company_email ?? ''));
+    if ($sellerEmail === '') {
+        $sellerEmail = 'vigilancevn@gmail.com';
+    }
+    $sellerWebsite = 'https://www.vigilancevn.com.vn/';
+    $sellerWebsiteLabel = 'www.vigilancevn.com.vn';
+
+    $webLogo1 = is_file(public_path('logo1.png')) ? asset('logo1.png') : asset('images/vigilance-logo.png');
+    $webLogo2 = is_file(public_path('logo2.png')) ? asset('logo2.png') : asset('images/vigilance-logo.png');
 
     $totalBeforeTax = 0;
     $totalTax = 0;
@@ -108,8 +120,10 @@
             return trim(implode(' ', $parts));
         }
     }
+@endphp
 
-    $amountInWords = ucfirst(vn_read_number((int) round($totalAmount))) . ' đồng';
+@php
+    $isPrintMode = (string) request()->query('print') === '1';
 @endphp
 
 <style>
@@ -117,30 +131,64 @@
     .quote-a4-paper { background: #fff; }
     .quote-a4-pad { padding: 14px 16px; }
 
-    .q-top { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .q-logo { display: flex; align-items: flex-start; gap: 12px; }
-    .q-logo img { max-width: 300px; height: auto; }
+    /* Header giống PDF: 2 logo + gạch đỏ, không khung chữ công ty */
+    .br-header-wrap {
+        background: transparent;
+        border: none;
+        padding: 0;
+        margin: 0 0 10px 0;
+    }
+    .br-header { width: 100%; border-collapse: collapse; border: none; }
+    .br-header td { vertical-align: middle; border: none; padding: 0; }
+    .br-header-left { width: 50%; text-align: left; }
+    .br-header-left img { max-width: 185px; height: auto; display: block; }
+    .br-header-right { width: 50%; text-align: right; }
+    .br-header-right img { max-width: 185px; height: auto; display: inline-block; }
+    .br-header-line {
+        height: 1px;
+        background: #dc2626;
+        margin: 8px 0 0 0;
+        padding: 0;
+        border: 0;
+        font-size: 0;
+        line-height: 0;
+    }
 
-    .q-company-right { text-align: right; }
-    .q-company-right .q-company-name { color: #d32f2f; font-weight: 500; font-size: 13px; text-transform: uppercase; }
-    .q-company-right .q-company-meta { font-size: 12px; }
+    /* Khối khách: chỉ viền dưới + gạch dọc giữa (giống PDF) */
+    .q-block {
+        border: none;
+        border-bottom: 1px solid #111;
+        padding: 8px 0;
+    }
+    .q-block-grid { display: table; width: 100%; border-collapse: collapse; }
+    .q-block-grid > div { display: table-cell; width: 50%; vertical-align: top; }
+    .q-block-grid > div:first-child {
+        border-right: 1px solid #111;
+        padding-right: 12px;
+    }
+    .q-col-right { padding-left: 12px; border-left: none; }
+    .q-line { margin: 2px 0; line-height: 1.35; font-size: 12px; }
+    .q-label { font-weight: 700; }
 
-    .q-block { border-top: 1px solid #999; border-bottom: 1px solid #999; padding: 8px 0; }
-    .q-block-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 0; }
-    .q-block-grid > div:first-child { padding-right: 12px; }
-    .q-block-grid > .q-col-right { border-left: 1px solid #535252; padding-left: 12px; }
-    .q-line { font-size: 12px; line-height: 1.25; }
-    .q-label { font-weight: 500; }
+    .q-center-title { text-align: center; margin: 9px 0 8px; }
+    .q-center-title .t1 { font-size: 20px; letter-spacing: 1px; color: #e53935; font-weight: 700; line-height: 1; }
+    .q-center-title .t2 { font-size: 10px; color: #555; margin-top: 2px; font-style: normal; font-weight: 400; }
 
-    .q-center-title { text-align: center; margin: 10px 0 6px; }
-    .q-center-title .t1 { font-weight: 500; font-size: 18px; letter-spacing: 0.4px; }
-    .q-center-title .t2 { font-style: italic; font-weight: 800; font-size: 13px; margin-top: 2px; }
-
-    .q-redbar { background: #d32f2f; color: #fff; font-weight: 500; text-transform: uppercase; font-size: 12px; padding: 6px 8px; border: 1px solid #999; border-bottom: none; }
+    .q-redbar {
+        background: #d32f2f;
+        color: #fff;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 11px;
+        padding: 5px 8px;
+        border: 1px solid #999;
+        border-bottom: none;
+    }
 
     .q-table { width: 100%; border-collapse: collapse; font-size: 11px; }
-    .q-table th, .q-table td { border: 1px solid #999; padding: 4px 5px; }
-    .q-table thead th { font-weight: 500; text-align: center; }
+    .q-table th, .q-table td { border: 1px solid #999; padding: 4px 5px; line-height: 1.35; vertical-align: top; }
+    .q-table thead th { font-weight: 700; text-align: center; vertical-align: middle; }
+    .muted { color: #555; }
     .q-table .sub { font-style: italic; font-weight: 700; font-size: 10px; }
     .q-table .left { text-align: left; }
     .q-table .right { text-align: right; }
@@ -162,16 +210,52 @@
     .q-terms ul { margin: 6px 0 0 18px; padding: 0; }
     .q-terms li { margin: 4px 0; }
 
-    .q-out-terms { font-size: 10.5px; line-height: 1.5; margin-top: 12px; }
-    .q-out-terms .sep { border-top: 2px solid #999; margin: 12px 0; }
-    .q-out-terms ul { margin: 0 0 0 18px; padding: 0; }
-    .q-out-terms li { margin: 4px 0; }
+    .q-out-terms { font-size: 10px; line-height: 1.45; margin-top: 10px; }
+    .q-out-terms .sep { border-top: 2px solid #999; margin: 8px 0; }
+    .q-out-terms ul { margin: 0 0 0 14px; padding: 0; }
+    .q-out-terms li { margin: 3px 0; }
 
-    .q-accept { text-align: center; font-size: 10.5px; margin-top: 10px; }
-    .q-accept .sigline { margin-top: 26px; }
-
-    .q-footer { display: flex; justify-content: space-between; align-items: center; font-size: 10px; margin-top: 18px; }
-    .q-footer .mid { color: #d32f2f; font-weight: 900; }
+    /* Footer giống PDF */
+    .q-footer {
+        margin-top: 12px;
+        border-top: none;
+        padding-top: 0;
+        font-size: 10px;
+        color: #374151;
+    }
+    .q-footer-company {
+        color: #e53935;
+        font-weight: 700;
+        font-size: 12px;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+        letter-spacing: 0.02em;
+    }
+    .q-footer-address {
+        font-size: 10px;
+        line-height: 1.45;
+        margin-bottom: 4px;
+        color: #374151;
+    }
+    .q-footer-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 10px;
+        line-height: 1.45;
+        color: #374151;
+    }
+    .q-footer-table td { vertical-align: top; padding: 0; }
+    .q-footer-table a {
+        color: #1d4ed8;
+        text-decoration: underline;
+    }
+    .q-footer-page {
+        text-align: right;
+        white-space: nowrap;
+        font-weight: 700;
+        color: #374151;
+        width: 48px;
+    }
 
     .no-print { display: block; }
 
@@ -195,8 +279,36 @@
     @page { size: A4; margin: 8mm; }
     @media print {
         .no-print { display: none !important; }
-        .container, .quote-a4-wrap { max-width: none !important; padding: 0 !important; margin: 0 !important; }
-        .quote-a4-paper { border: none !important; }
+
+        /* Chỉ in đúng vùng báo giá */
+        body * {
+            visibility: hidden !important;
+        }
+
+        .quote-a4-wrap,
+        .quote-a4-wrap * {
+            visibility: visible !important;
+        }
+
+        .quote-a4-wrap {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            z-index: 9999 !important;
+            background: #fff !important;
+        }
+
+        .container,
+        .quote-a4-paper {
+            border: none !important;
+            box-shadow: none !important;
+            background: #fff !important;
+        }
+
         .quote-a4-pad { padding: 0 !important; }
     }
 </style>
@@ -222,21 +334,24 @@
                 </div>
             @endif
 
-            @if(auth()->check() && (auth()->user()->role ?? null) === 'admin')
+            @if(auth()->check() && (auth()->user()->role ?? null) === 'admin' && !$isPrintMode)
                 @php
-                    $adminEdit = (string) request()->query('admin_edit') === '1';
-                    $isEmbed = (string) request()->query('embed') === '1';
-                    $quoteUrl = route('orders.quote', ['orderCode' => $order->order_code]);
-                    $quoteEditUrl = $quoteUrl . ($isEmbed ? '?embed=1&admin_edit=1' : '?admin_edit=1');
-                    $quoteViewUrl = $quoteUrl . ($isEmbed ? '?embed=1' : '');
+                    $adminEdit = false;
+                    $quoteEditUrl = route('admin.orders.show', $order) . '?type=quote';
                 @endphp
 
                 <div class="d-flex justify-content-end gap-2 mb-2">
-                    @if($adminEdit)
-                        <a class="btn btn-outline-secondary btn-sm" href="{{ $quoteViewUrl }}">Tắt chỉnh sửa</a>
-                    @else
-                        <a class="btn btn-primary btn-sm" href="{{ $quoteEditUrl }}">Mở chỉnh sửa</a>
-                    @endif
+                    <a class="btn btn-outline-secondary btn-sm" href="{{ route('admin.quotes.index') }}">
+                        <i class="bi bi-arrow-left me-1"></i>Quay lại
+                    </a>
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="window.print()">
+                        <i class="bi bi-printer me-1"></i>In báo giá
+                    </button>
+
+                    <a class="btn btn-outline-danger btn-sm" href="{{ route('orders.quote.pdf', ['orderCode' => $orderCode]) }}">
+                        <i class="bi bi-file-earmark-pdf me-1"></i>Xuất PDF
+                    </a>
+
                 </div>
 
                 @if($adminEdit)
@@ -294,21 +409,21 @@
 
         <div class="quote-a4-paper">
             <div class="quote-a4-pad">
-                <div class="q-top">
-                    <div class="q-logo">
-                        <img src="{{ asset('images/vigilance-logo.png') }}" alt="Vigilance">
-                    </div>
-                    <div class="q-company-right">
-                        <div class="q-company-name">{{ $companyName }}</div>
-                        <div class="q-company-meta">
-                            MST: {{ $companyTax }}<br>
-                            Địa chỉ: {!! $companyAddressSafe !!}<br>
-                            Hotline: {{ $companyHotline }}
-                        </div>
-                    </div>
+                <div class="br-header-wrap">
+                    <table class="br-header">
+                        <tr>
+                            <td class="br-header-left">
+                                <img src="{{ $webLogo1 }}" alt="Vigilance">
+                            </td>
+                            <td class="br-header-right">
+                                <img src="{{ $webLogo2 }}" alt="">
+                            </td>
+                        </tr>
+                    </table>
+                    <div class="br-header-line"></div>
                 </div>
- 
-                <div class="q-block mt-2">
+
+                <div class="q-block">
                     <div class="q-block-grid">
                         <div>
                             <div class="q-line"><span class="q-label">CÔNG TY (Address):</span> {{ $invoiceName }}</div>
@@ -445,24 +560,30 @@
                     <div class="sep"></div>
 
                     <div><b>Những sản phẩm không liệt kê trong danh mục trong báo giá này đều xem là chi phí phát sinh./Products not listed in the list on this quote are considered incurred costs.</b></div>
-
-                    <div class="sep"></div>
-
-                    <div style="text-align:center;">
-                        <div>Đồng ý &amp; Xác nhận bởi (Accepted by):</div>
-                        <div>Customer's Chop &amp; Signature (Ký tên và đóng dấu)</div>
-                    </div>
                 </div>
 
                 <div class="q-footer">
-                    <div>{{ optional($order->created_at)->format('d/m/Y') }} - Mẫu BG{{ $order->id }}</div>
-                    <div class="mid">Vigilance - {{ $companyHotline }}</div>
-                    <div>Báo giá -Trang 1</div>
+                    <div class="q-footer-company">CÔNG TY CỔ PHẦN VIGILANCE VIỆT NAM</div>
+                    <div class="q-footer-address">Địa chỉ: {{ $pdfFooterAddress }}</div>
+                    <table class="q-footer-table">
+                        <tr>
+                            <td>
+                                Mã số thuế: {{ $companyTax }}
+                                | Hotline: {{ $companyHotline }}
+                                | Email : <a href="mailto:{{ $sellerEmail }}">{{ $sellerEmail }}</a>
+                                | Website: <a href="{{ $sellerWebsite }}" target="_blank" rel="noopener noreferrer">{{ $sellerWebsiteLabel }}</a>
+                            </td>
+                            <td class="q-footer-page">1 / 1</td>
+                        </tr>
+                    </table>
                 </div>
 
                 <div class="no-print mt-3 text-center">
-                    @if($order->status === 'pending')
-                        <form method="POST" action="{{ route('orders.quote.confirm', ['orderCode' => $order->order_code]) }}">
+                    @php
+                        $isAdminViewer = auth()->check() && (auth()->user()->role ?? null) === 'admin';
+                    @endphp
+                    @if($order->status === 'pending' && !$isAdminViewer)
+                        <form method="POST" action="{{ route('orders.quote.confirm', ['orderCode' => $orderCode]) }}" class="d-inline">
                             @csrf
                             <button type="submit" class="btn btn-success px-4">Xác nhận đặt hàng</button>
                         </form>
@@ -472,4 +593,14 @@
         </div>
     </div>
 </div>
+
+@if($isPrintMode)
+<script>
+    window.addEventListener('load', function () {
+        setTimeout(function () {
+            window.print();
+        }, 150);
+    });
+</script>
+@endif
 @endsection

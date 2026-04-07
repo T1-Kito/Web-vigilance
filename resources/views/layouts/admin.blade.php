@@ -372,7 +372,33 @@
                 </a>
             </div>
 
-            <div class="nav-group-title">Quản lý bán hàng</div>
+            <div class="nav-group-title">Quản lý báo giá</div>
+            <div class="nav-item">
+                <a href="{{ route('admin.quotes.index') }}" class="nav-link {{ request()->routeIs('admin.quotes.*') ? 'active' : '' }}">
+                    <div class="nav-icon"><i class="bi bi-file-earmark-text"></i></div>
+                    Quản lý báo giá
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ route('admin.sales-orders.index') }}" class="nav-link {{ request()->routeIs('admin.sales-orders.*') ? 'active' : '' }}">
+                    <div class="nav-icon"><i class="bi bi-receipt"></i></div>
+                    Đơn bán ngoài
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ route('admin.deliveries.index') }}" class="nav-link {{ request()->routeIs('admin.deliveries.*') ? 'active' : '' }}">
+                    <div class="nav-icon"><i class="bi bi-truck"></i></div>
+                    Phiếu xuất kho
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ route('admin.invoices.index') }}" class="nav-link {{ request()->routeIs('admin.invoices.*') ? 'active' : '' }}">
+                    <div class="nav-icon"><i class="bi bi-receipt-cutoff"></i></div>
+                    Hóa đơn
+                </a>
+            </div>
+
+            <div class="nav-group-title">Bán hàng web</div>
             <div class="nav-item">
                 <a href="{{ route('admin.orders.index') }}" class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-cart-check"></i></div>

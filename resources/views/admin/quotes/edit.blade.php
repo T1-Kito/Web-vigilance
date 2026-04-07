@@ -1,0 +1,754 @@
+@extends('layouts.admin')
+
+@section('title', 'Sửa báo giá')
+
+@section('content')
+@php
+    $orderCode = $order->quote_code ?? $order->order_code ?? ('VK' . str_pad($order->id, 6, '0', STR_PAD_LEFT));
+
+    $oldItems = old('items');
+    if (is_array($oldItems) && count($oldItems) > 0) {
+        $formItems = collect($oldItems)->values()->map(function ($row) {
+            $productId = (int) ($row['product_id'] ?? 0);
+            return [
+                'id' => isset($row['id']) && $row['id'] !== '' ? (int) $row['id'] : null,
+                'product_id' => $productId,
+                'product_name' => $row['product_name'] ?? ('Sản phẩm #' . $productId),
+                'serial_number' => $row['serial_number'] ?? null,
+                'unit' => $row['unit'] ?? '',
+                'quantity' => (int) ($row['quantity'] ?? 1),
+                'unit_price' => (float) ($row['unit_price'] ?? 0),
+            ];
+        })->all();
+    } else {
+        $formItems = ($order->items ?? collect())->map(function ($item) {
+            return [
+                'id' => (int) $item->id,
+                'product_id' => (int) $item->product_id,
+                'product_name' => (string) ($item->product->name ?? ('Sản phẩm #' . $item->product_id)),
+                'serial_number' => (string) ($item->product->serial_number ?? ''),
+                'unit' => (string) ($item->unit ?? ''),
+                'quantity' => (int) ($item->quantity ?? 1),
+                'unit_price' => (float) ($item->price ?? 0),
+            ];
+        })->values()->all();
+    }
+
+    if (count($formItems) === 0) {
+        $formItems[] = [
+            'id' => null,
+            'product_id' => 0,
+            'product_name' => '',
+            'serial_number' => '',
+            'unit' => '',
+            'quantity' => 1,
+            'unit_price' => 0,
+        ];
+    }
+
+    $subTotal = collect($formItems)->sum(function ($item) {
+        return (float) ($item['unit_price'] ?? 0) * (int) ($item['quantity'] ?? 0);
+    });
+
+    $discountPreview = (float) old('discount_percent', $order->discount_percent ?? 0);
+    $vatPreview = (float) old('vat_percent', $order->vat_percent ?? 8);
+    $afterDiscount = max(0, $subTotal * (1 - ($discountPreview / 100)));
+    $vatAmount = $afterDiscount * ($vatPreview / 100);
+    $grandTotal = $afterDiscount + $vatAmount;
+@endphp
+
+<div class="container-fluid py-4 quote-edit-page">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-1">{{ isset($isCreate) && $isCreate ? 'Tạo báo giá mới' : ('Sửa báo giá: ' . $orderCode) }}</h1>
+            <div class="text-muted">Form mới chuyên nghiệp: thêm, xóa, đổi sản phẩm và cập nhật giá/SL trực tiếp.</div>
+        </div>
+        <div class="d-flex gap-2">
+            @if(!(isset($isCreate) && $isCreate))
+                <a href="{{ route('orders.quote', ['orderCode' => $orderCode]) }}" target="_blank" rel="noopener" class="btn btn-outline-primary">
+                    <i class="bi bi-eye me-1"></i>Xem báo giá
+                </a>
+                @if(($order->status ?? '') === 'approved')
+                    <form method="POST" action="{{ route('admin.quotes.convert-to-order', $order) }}" class="d-inline" onsubmit="return confirm('Chốt báo giá này thành đơn hàng?');">
+                        @csrf
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check2-circle me-1"></i>Chốt thành đơn hàng
+                        </button>
+                    </form>
+                @endif
+            @endif
+            <a href="{{ route('admin.quotes.index') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Quay lại
+            </a>
+        </div>
+    </div>
+
+    @if(session('success'))
+        <div class="alert alert-success">{{ session('success') }}</div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger">{{ session('error') }}</div>
+    @endif
+
+    @if($errors->any())
+        <div class="alert alert-danger">
+            <ul class="mb-0 ps-3">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    <form method="POST" action="{{ isset($isCreate) && $isCreate ? route('admin.quotes.store') : route('admin.quotes.update', $order) }}" id="quote-edit-form">
+        @csrf
+        @if(!(isset($isCreate) && $isCreate))
+            @method('PATCH')
+        @endif
+
+        <div class="row g-4">
+            <div class="col-xl-8">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white fw-bold">1) Thông tin hóa đơn & liên hệ</div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Mã số thuế</label>
+                                <input type="text" id="qe-tax-code" name="customer_tax_code" class="form-control" value="{{ old('customer_tax_code', $order->customer_tax_code) }}">
+                                <div id="qe-tax-hint" class="form-text small mt-1" style="min-height:1.25rem;"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">SĐT liên hệ</label>
+                                <input type="text" id="qe-customer-phone" name="customer_phone" class="form-control" value="{{ old('customer_phone', $order->customer_phone) }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Email</label>
+                                <input type="email" id="qe-customer-email" name="customer_email" class="form-control" value="{{ old('customer_email', $order->customer_email) }}">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Tên công ty (HĐ)</label>
+                                <input type="text" id="qe-invoice-company" name="invoice_company_name" class="form-control" value="{{ old('invoice_company_name', $order->invoice_company_name) }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Người liên hệ (Att)</label>
+                                <input type="text" id="qe-contact-person" name="customer_contact_person" class="form-control" value="{{ old('customer_contact_person', $order->customer_contact_person) }}">
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label">Địa chỉ hóa đơn</label>
+                                <textarea id="qe-invoice-address" name="invoice_address" class="form-control" rows="2">{{ old('invoice_address', $order->invoice_address) }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white fw-bold">2) Thông tin nhận hàng</div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Người nhận</label>
+                                <input type="text" id="qe-receiver-name" name="receiver_name" class="form-control" value="{{ old('receiver_name', $order->receiver_name) }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">SĐT người nhận</label>
+                                <input type="text" id="qe-receiver-phone" name="receiver_phone" class="form-control" value="{{ old('receiver_phone', $order->receiver_phone) }}" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Địa chỉ giao hàng</label>
+                                <textarea id="qe-receiver-address" name="receiver_address" class="form-control" rows="2" required>{{ old('receiver_address', $order->receiver_address) }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
+                        <span>3) Dòng sản phẩm báo giá</span>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="btn-add-item">
+                            <i class="bi bi-plus-lg me-1"></i>Thêm sản phẩm
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table mb-0 align-middle quote-items-table">
+                                <thead>
+                                    <tr>
+                                        <th class="ps-3">Sản phẩm</th>
+                                        <th style="width:130px;">Đơn vị</th>
+                                        <th style="width:110px;">SL</th>
+                                        <th style="width:170px;">Đơn giá</th>
+                                        <th style="width:70px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="quote-items-body">
+                                    @foreach($formItems as $idx => $item)
+                                        <tr data-row>
+                                            <td class="ps-3">
+                                                <input type="hidden" name="items[{{ $idx }}][id]" class="item-id" value="{{ $item['id'] ?? '' }}">
+                                                <input type="hidden" name="items[{{ $idx }}][product_id]" class="item-product-id" value="{{ $item['product_id'] ?? '' }}" required>
+                                                <input type="hidden" name="items[{{ $idx }}][product_name]" class="item-product-name-input" value="{{ $item['product_name'] ?? '' }}">
+                                                <input type="hidden" name="items[{{ $idx }}][serial_number]" class="item-serial-number-input" value="{{ $item['serial_number'] ?? '' }}">
+                                                <input type="text" class="form-control item-product-search" placeholder="Tìm theo tên/mã sản phẩm..." value="{{ $item['product_name'] ?? '' }}" autocomplete="off" required>
+                                            </td>
+                                            <td>
+                                                <input type="text" name="items[{{ $idx }}][unit]" class="form-control" value="{{ $item['unit'] ?? '' }}" placeholder="Cái, bộ...">
+                                            </td>
+                                            <td>
+                                                <input type="number" min="1" max="99999" name="items[{{ $idx }}][quantity]" class="form-control item-qty" value="{{ (int) ($item['quantity'] ?? 1) }}" required>
+                                            </td>
+                                            <td>
+                                                <input type="number" min="0" step="1" name="items[{{ $idx }}][unit_price]" class="form-control item-unit-price" value="{{ (float) ($item['unit_price'] ?? 0) }}" required>
+                                            </td>
+                                            <td class="text-center">
+                                                <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item" title="Xóa dòng">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4">
+                <div class="card border-0 shadow-sm sticky-xl-top quote-edit-side" style="top: 16px;">
+                    <div class="card-header bg-white fw-bold">4) Thông số báo giá</div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Trạng thái</label>
+                                <select name="status" class="form-select" required>
+                                    @foreach($statusOptions as $val => $label)
+                                        <option value="{{ $val }}" @selected(old('status', $order->status) === $val)>{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="col-md-6 col-xl-12">
+                                <label class="form-label">Staff code</label>
+                                <input type="text" name="staff_code" class="form-control" value="{{ old('staff_code', $order->staff_code) }}">
+                            </div>
+                            <div class="col-md-6 col-xl-12">
+                                <label class="form-label">Sales</label>
+                                <input type="text" name="sales_name" class="form-control" value="{{ old('sales_name', $order->sales_name) }}">
+                            </div>
+
+                            <div class="col-md-6 col-xl-12">
+                                <label class="form-label">Chiết khấu (%)</label>
+                                <input type="number" min="0" max="100" step="0.01" name="discount_percent" class="form-control" id="discount-percent" value="{{ old('discount_percent', $order->discount_percent ?? 0) }}">
+                            </div>
+                            <div class="col-md-6 col-xl-12">
+                                <label class="form-label">VAT (%)</label>
+                                <input type="number" min="0" max="100" step="0.01" name="vat_percent" class="form-control" id="vat-percent" value="{{ old('vat_percent', $order->vat_percent ?? 8) }}">
+                            </div>
+
+                            <div class="col-md-6 col-xl-12">
+                                <label class="form-label">Hiệu lực báo giá (đến ngày)</label>
+                                <input type="date" name="valid_until" class="form-control" value="{{ old('valid_until', optional($order->valid_until)->format('Y-m-d') ?? now()->addDays(15)->format('Y-m-d')) }}">
+                                <div class="form-text">Mặc định 15 ngày kể từ hôm nay.</div>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label">Ghi chú</label>
+                                <textarea name="note" class="form-control" rows="3">{{ old('note', $order->note) }}</textarea>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <div class="small text-muted mb-1">Tạm tính theo dữ liệu hiện tại</div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Tạm tính:</span>
+                            <strong id="sum-subtotal">{{ number_format($subTotal, 0, ',', '.') }}đ</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Sau chiết khấu:</span>
+                            <strong id="sum-after-discount">{{ number_format($afterDiscount, 0, ',', '.') }}đ</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>VAT:</span>
+                            <strong id="sum-vat">{{ number_format($vatAmount, 0, ',', '.') }}đ</strong>
+                        </div>
+                        <div class="d-flex justify-content-between pt-2 border-top">
+                            <span class="fw-semibold">Tổng cộng:</span>
+                            <strong class="text-danger" id="sum-total">{{ number_format($grandTotal, 0, ',', '.') }}đ</strong>
+                        </div>
+
+                        <div class="d-grid gap-2 mt-3">
+                            <button type="submit" class="btn btn-primary" @if(!(isset($isCreate) && $isCreate) && (($order->status ?? '') === 'won')) disabled @endif>
+                                <i class="bi bi-check2-circle me-1"></i>{{ isset($isCreate) && $isCreate ? 'Tạo báo giá' : 'Lưu báo giá' }}
+                            </button>
+                            <a href="{{ route('admin.quotes.index') }}" class="btn btn-light border">Hủy</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<template id="quote-item-row-template">
+    <tr data-row>
+        <td class="ps-3">
+            <input type="hidden" name="items[__I__][id]" class="item-id" value="">
+            <input type="hidden" name="items[__I__][product_id]" class="item-product-id" value="" required>
+            <input type="hidden" name="items[__I__][product_name]" class="item-product-name-input" value="">
+            <input type="hidden" name="items[__I__][serial_number]" class="item-serial-number-input" value="">
+            <input type="text" class="form-control item-product-search" placeholder="Tìm theo tên/mã sản phẩm..." value="" autocomplete="off" required>
+        </td>
+        <td>
+            <input type="text" name="items[__I__][unit]" class="form-control" value="" placeholder="Cái, bộ...">
+        </td>
+        <td>
+            <input type="number" min="1" max="99999" name="items[__I__][quantity]" class="form-control item-qty" value="1" required>
+        </td>
+        <td>
+            <input type="number" min="0" step="1" name="items[__I__][unit_price]" class="form-control item-unit-price" value="0" required>
+        </td>
+        <td class="text-center">
+            <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item" title="Xóa dòng">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>
+    </tr>
+</template>
+
+<style>
+    .quote-items-table thead th {
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        font-size: .75rem;
+        color: #64748b;
+        font-weight: 700;
+    }
+    .quote-items-table tbody td {
+        border-color: #edf2f7;
+        vertical-align: middle;
+    }
+    .quote-product-suggest {
+        display: none;
+        position: fixed;
+        z-index: 2100;
+        background: #fff;
+        border: 1px solid #dbe2ea;
+        border-radius: 10px;
+        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.14);
+        max-height: 280px;
+        overflow-y: auto;
+        padding: 6px;
+    }
+    .quote-product-suggest button {
+        width: 100%;
+        border: 0;
+        background: transparent;
+        text-align: left;
+        padding: 9px 10px;
+        border-radius: 8px;
+        font-size: .88rem;
+        color: #334155;
+    }
+    .quote-product-suggest button:hover {
+        background: #f1f5f9;
+    }
+</style>
+
+<script>
+(function () {
+    const form = document.getElementById('quote-edit-form');
+    const tbody = document.getElementById('quote-items-body');
+    const addBtn = document.getElementById('btn-add-item');
+    const tpl = document.getElementById('quote-item-row-template');
+
+    const discountInput = document.getElementById('discount-percent');
+    const vatInput = document.getElementById('vat-percent');
+
+    const subTotalEl = document.getElementById('sum-subtotal');
+    const afterDiscountEl = document.getElementById('sum-after-discount');
+    const vatEl = document.getElementById('sum-vat');
+    const totalEl = document.getElementById('sum-total');
+
+    const LOOKUP_URL = @json(route('admin.products.lookup'));
+    const LINE_OPT_BASE = @json(url('/cp-admin/orders/line-options'));
+    const CUSTOMERS_LOOKUP = @json(route('admin.customers.lookup'));
+    const TAX_URL_TPL = @json(route('admin.customers.taxLookup', ['taxCode' => '__TAX__']));
+
+    const taxInput = document.getElementById('qe-tax-code');
+    const taxHint = document.getElementById('qe-tax-hint');
+    const invoiceCompanyInput = document.getElementById('qe-invoice-company');
+    const invoiceAddressInput = document.getElementById('qe-invoice-address');
+    const contactPersonInput = document.getElementById('qe-contact-person');
+    const customerPhoneInput = document.getElementById('qe-customer-phone');
+    const customerEmailInput = document.getElementById('qe-customer-email');
+    const receiverNameInput = document.getElementById('qe-receiver-name');
+    const receiverPhoneInput = document.getElementById('qe-receiver-phone');
+    const receiverAddressInput = document.getElementById('qe-receiver-address');
+
+    let suggestEl = null;
+    let activeInput = null;
+    let debounceTimer = null;
+    let taxTimer = null;
+    let lineCounter = tbody.querySelectorAll('tr[data-row]').length;
+
+    function money(v) {
+        const n = Number(v || 0);
+        return (isFinite(n) ? n : 0).toLocaleString('vi-VN') + 'đ';
+    }
+
+    function safeNumber(v, fallback = 0) {
+        const n = Number(v);
+        return isFinite(n) ? n : fallback;
+    }
+
+    function normalizeTaxCode(s) {
+        return String(s || '').replace(/\s+/g, '').trim();
+    }
+
+    function normalizeTaxDigits(s) {
+        return String(s || '').replace(/\D/g, '');
+    }
+
+    function isTaxLike(q) {
+        const c = normalizeTaxCode(q);
+        return /^[\d\-]{8,}$/.test(c);
+    }
+
+    function setTaxHint(msg, cls) {
+        if (!taxHint) return;
+        taxHint.textContent = msg || '';
+        taxHint.className = 'form-text small mt-1 ' + (cls || 'text-muted');
+    }
+
+    async function lookupCustomersByTax(q) {
+        const url = CUSTOMERS_LOOKUP + '?q=' + encodeURIComponent(q);
+        const res = await fetch(url, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } });
+        if (!res.ok) return [];
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+    }
+
+    function pickCustomerExactTax(rows, typedDigits) {
+        if (!rows || !rows.length || !typedDigits) return null;
+        return rows.find(function (r) {
+            return normalizeTaxDigits(r.tax_id || '') === typedDigits;
+        }) || null;
+    }
+
+    async function fetchTaxLookup(code) {
+        const url = TAX_URL_TPL.replace('__TAX__', encodeURIComponent(code));
+        const res = await fetch(url, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } });
+        let json = null;
+        try {
+            json = await res.json();
+        } catch (e) { json = null; }
+        return { ok: res.ok, json };
+    }
+
+    function applyTaxPayload(d) {
+        if (!d) return;
+        const v = function (x) { return (x != null && String(x).trim() !== '') ? String(x).trim() : ''; };
+        const setIf = function (node, val) {
+            if (!node || val === '') return;
+            node.value = val;
+        };
+
+        setIf(invoiceCompanyInput, v(d.name));
+        setIf(invoiceAddressInput, v(d.tax_address) || v(d.address));
+        setIf(customerPhoneInput, v(d.phone));
+        setIf(customerEmailInput, v(d.email));
+        setIf(contactPersonInput, v(d.representative) || v(d.invoice_recipient));
+
+        const shipName = v(d.representative) || v(d.name);
+        if (receiverNameInput && (!receiverNameInput.value.trim() || receiverNameInput.dataset.autofill === '1')) {
+            if (shipName) {
+                receiverNameInput.value = shipName;
+                receiverNameInput.dataset.autofill = '1';
+            }
+        }
+
+        if (receiverPhoneInput && (!receiverPhoneInput.value.trim() || receiverPhoneInput.dataset.autofill === '1')) {
+            const ph = v(d.phone);
+            if (ph) {
+                receiverPhoneInput.value = ph;
+                receiverPhoneInput.dataset.autofill = '1';
+            }
+        }
+
+        const shipAddr = v(d.address) || v(d.tax_address);
+        if (receiverAddressInput && (!receiverAddressInput.value.trim() || receiverAddressInput.dataset.autofill === '1')) {
+            if (shipAddr) {
+                receiverAddressInput.value = shipAddr;
+                receiverAddressInput.dataset.autofill = '1';
+            }
+        }
+    }
+
+    ['input', 'change'].forEach(function (evt) {
+        [receiverNameInput, receiverPhoneInput, receiverAddressInput].forEach(function (node) {
+            if (!node) return;
+            node.addEventListener(evt, function () { node.dataset.autofill = '0'; });
+        });
+    });
+
+    if (taxInput) {
+        taxInput.addEventListener('input', function () {
+            const code = normalizeTaxCode(taxInput.value);
+            if (taxTimer) clearTimeout(taxTimer);
+
+            if (!isTaxLike(code)) {
+                setTaxHint('Nhập MST (ít nhất 8 ký tự)', 'text-muted');
+                return;
+            }
+
+            setTaxHint('Đang kiểm tra danh sách khách hàng…', 'text-muted');
+            taxTimer = setTimeout(async function () {
+                const typedDigits = normalizeTaxDigits(code);
+                const rows = await lookupCustomersByTax(code);
+                const local = pickCustomerExactTax(rows, typedDigits);
+
+                if (local) {
+                    setTaxHint('Đã điền từ khách hàng nội bộ (CRM).', 'text-success');
+                    applyTaxPayload({
+                        name: local.name || '',
+                        tax_address: local.tax_address || '',
+                        address: local.address || '',
+                        phone: local.phone || '',
+                        email: local.email || '',
+                        representative: local.representative || '',
+                        invoice_recipient: local.invoice_recipient || '',
+                    });
+                    return;
+                }
+
+                setTaxHint('Không có trong CRM — đang tra cứu nguồn thuế công khai…', 'text-muted');
+                const { ok, json } = await fetchTaxLookup(code);
+                if (!ok || !json || json.ok !== true || !json.data) {
+                    const msg = (json && json.message) ? String(json.message) : 'Không tra cứu được MST ngoài.';
+                    setTaxHint(msg, 'text-danger');
+                    return;
+                }
+
+                setTaxHint('Đã điền từ tra cứu ngoài (không có trong danh sách khách hàng).', 'text-success');
+                applyTaxPayload(json.data);
+            }, 450);
+        });
+    }
+
+    function recalcSummary() {
+        let subtotal = 0;
+        tbody.querySelectorAll('tr[data-row]').forEach(function (row) {
+            const qty = safeNumber(row.querySelector('.item-qty')?.value, 0);
+            const price = safeNumber(row.querySelector('.item-unit-price')?.value, 0);
+            subtotal += Math.max(0, qty) * Math.max(0, price);
+        });
+
+        const discount = Math.max(0, Math.min(100, safeNumber(discountInput?.value, 0)));
+        const vat = Math.max(0, Math.min(100, safeNumber(vatInput?.value, 0)));
+
+        const afterDiscount = Math.max(0, subtotal * (1 - discount / 100));
+        const vatAmount = afterDiscount * (vat / 100);
+        const total = afterDiscount + vatAmount;
+
+        subTotalEl.textContent = money(subtotal);
+        afterDiscountEl.textContent = money(afterDiscount);
+        vatEl.textContent = money(vatAmount);
+        totalEl.textContent = money(total);
+    }
+
+    function ensureSuggest() {
+        if (suggestEl) return suggestEl;
+        suggestEl = document.createElement('div');
+        suggestEl.className = 'quote-product-suggest';
+        document.body.appendChild(suggestEl);
+        return suggestEl;
+    }
+
+    function hideSuggest() {
+        if (suggestEl) suggestEl.style.display = 'none';
+        activeInput = null;
+    }
+
+    function positionSuggest(input) {
+        const box = ensureSuggest();
+        const rect = input.getBoundingClientRect();
+        const width = Math.max(rect.width, 340);
+        box.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)) + 'px';
+        box.style.top = (rect.bottom + 6) + 'px';
+        box.style.width = width + 'px';
+    }
+
+    function setSelectedProduct(row, product) {
+        const idInput = row.querySelector('.item-product-id');
+        const nameHidden = row.querySelector('.item-product-name-input');
+        const serialHidden = row.querySelector('.item-serial-number-input');
+        const searchInput = row.querySelector('.item-product-search');
+
+        idInput.value = product.id;
+        nameHidden.value = product.name || '';
+        serialHidden.value = product.serial_number || '';
+        searchInput.value = product.name || '';
+
+        fetch(`${LINE_OPT_BASE}/${product.id}`, {
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json' },
+        })
+            .then(function (res) { return res.ok ? res.json() : null; })
+            .then(function (json) {
+                if (!json) return;
+                const priceInput = row.querySelector('.item-unit-price');
+                if (priceInput && (!priceInput.value || Number(priceInput.value) <= 0)) {
+                    priceInput.value = Math.round(Number(json.final_price || 0));
+                    recalcSummary();
+                }
+            })
+            .catch(function () {});
+    }
+
+    function renderSuggest(input, rows) {
+        const box = ensureSuggest();
+        if (!rows || !rows.length) {
+            hideSuggest();
+            return;
+        }
+
+        positionSuggest(input);
+        box.innerHTML = '';
+
+        rows.forEach(function (p) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = p.name + (p.serial_number ? (' · ' + p.serial_number) : '');
+            btn.addEventListener('mousedown', function (e) { e.preventDefault(); });
+            btn.addEventListener('click', function () {
+                const row = input.closest('tr[data-row]');
+                if (row) setSelectedProduct(row, p);
+                hideSuggest();
+            });
+            box.appendChild(btn);
+        });
+
+        box.style.display = 'block';
+    }
+
+    async function searchProducts(q) {
+        const url = LOOKUP_URL + '?q=' + encodeURIComponent(q);
+        const res = await fetch(url, {
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json' },
+        });
+        if (!res.ok) return [];
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+    }
+
+    function bindRow(row) {
+        row.querySelector('.btn-remove-item')?.addEventListener('click', function () {
+            const rows = tbody.querySelectorAll('tr[data-row]');
+            if (rows.length <= 1) {
+                alert('Báo giá phải có ít nhất 1 sản phẩm.');
+                return;
+            }
+            row.remove();
+            recalcSummary();
+        });
+
+        row.querySelector('.item-qty')?.addEventListener('input', recalcSummary);
+        row.querySelector('.item-unit-price')?.addEventListener('input', recalcSummary);
+
+        const searchInput = row.querySelector('.item-product-search');
+        if (searchInput) {
+            searchInput.addEventListener('focus', function () {
+                activeInput = searchInput;
+            });
+
+            searchInput.addEventListener('input', function () {
+                const q = String(searchInput.value || '').trim();
+                const rowEl = searchInput.closest('tr[data-row]');
+                if (!rowEl) return;
+
+                if (q.length < 2) {
+                    hideSuggest();
+                    const idInput = rowEl.querySelector('.item-product-id');
+                    idInput.value = '';
+                    return;
+                }
+
+                if (debounceTimer) clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(async function () {
+                    try {
+                        const rows = await searchProducts(q);
+                        renderSuggest(searchInput, rows);
+                    } catch (e) {
+                        hideSuggest();
+                    }
+                }, 260);
+            });
+        }
+    }
+
+    function addRow() {
+        const html = tpl.innerHTML.replace(/__I__/g, String(lineCounter++));
+        const wrap = document.createElement('tbody');
+        wrap.innerHTML = html.trim();
+        const row = wrap.firstElementChild;
+        tbody.appendChild(row);
+        bindRow(row);
+        row.querySelector('.item-product-search')?.focus();
+        recalcSummary();
+    }
+
+    addBtn?.addEventListener('click', addRow);
+    discountInput?.addEventListener('input', recalcSummary);
+    vatInput?.addEventListener('input', recalcSummary);
+
+    tbody.querySelectorAll('tr[data-row]').forEach(bindRow);
+
+    document.addEventListener('click', function (e) {
+        if (!suggestEl) return;
+        if (suggestEl.contains(e.target)) return;
+        if (e.target.closest('.item-product-search')) return;
+        hideSuggest();
+    });
+
+    window.addEventListener('scroll', function () {
+        if (suggestEl && suggestEl.style.display === 'block' && activeInput) {
+            positionSuggest(activeInput);
+        }
+    }, true);
+    window.addEventListener('resize', function () {
+        if (suggestEl && suggestEl.style.display === 'block' && activeInput) {
+            positionSuggest(activeInput);
+        }
+    });
+
+    form?.addEventListener('submit', function (e) {
+        const rows = tbody.querySelectorAll('tr[data-row]');
+        if (rows.length === 0) {
+            e.preventDefault();
+            alert('Vui lòng thêm ít nhất 1 sản phẩm.');
+            return;
+        }
+
+        let invalid = false;
+        rows.forEach(function (row) {
+            const productId = row.querySelector('.item-product-id')?.value;
+            if (!productId) invalid = true;
+        });
+
+        if (invalid) {
+            e.preventDefault();
+            alert('Có dòng sản phẩm chưa chọn đúng sản phẩm. Vui lòng kiểm tra lại.');
+        }
+    });
+
+    recalcSummary();
+})();
+</script>
+@endsection

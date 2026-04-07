@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Quản lý đơn hàng')
+@section('title', $isQuote ? 'Quản lý báo giá' : 'Quản lý đơn hàng')
 
 @section('content')
 <div class="container-fluid">
@@ -8,25 +8,27 @@
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div>
             <h1 class="h3 mb-0" style="color: #2c3e50; font-weight: 700;">
-                <i class="bi bi-cart-check me-2" style="color: #3498db;"></i> Quản lý đơn hàng
+                <i class="bi bi-cart-check me-2" style="color: #3498db;"></i> {{ $isQuote ? 'Quản lý báo giá' : 'Quản lý đơn hàng' }}
             </h1>
-            <p class="text-muted mb-0" style="font-size: 1.1em;">Quản lý và theo dõi tất cả đơn hàng của khách hàng</p>
+            <p class="text-muted mb-0" style="font-size: 1.1em;">
+                {{ $isQuote ? 'Quản lý và theo dõi tất cả báo giá của khách hàng' : 'Quản lý và theo dõi tất cả đơn hàng của khách hàng' }}
+            </p>
         </div>
         <div class="d-flex flex-wrap align-items-center gap-2">
             <a href="{{ route('admin.orders.create') }}" class="btn ao-create-order-btn rounded-pill px-4 fw-semibold" style="white-space: nowrap;">
                 <span class="ao-create-order-btn__icon me-2 d-inline-flex align-items-center justify-content-center">
                     <i class="bi bi-plus-lg"></i>
                 </span>
-                Tạo đơn hàng
+                Tạo {{ $isQuote ? 'báo giá' : 'đơn hàng' }}
             </a>
         <div class="d-flex gap-3">
             <div class="text-end">
                 <div class="h4 mb-0 fw-bold" style="color: #3498db;">{{ $orders->total() }}</div>
-                <small class="text-muted">Tổng đơn hàng</small>
+                <small class="text-muted">{{ $isQuote ? 'Tổng báo giá' : 'Tổng đơn hàng' }}</small>
             </div>
                          <div class="text-end">
                  <div class="h4 mb-0 fw-bold" style="color: #e74c3c;">{{ \App\Models\Order::where('status', 'pending')->count() }}</div>
-                 <small class="text-muted">Chờ xử lý</small>
+                 <small class="text-muted">{{ $isQuote ? 'Báo giá chờ xử lý' : 'Chờ xử lý' }}</small>
              </div>
         </div>
         </div>
@@ -76,16 +78,19 @@
     <div class="card shadow" style="border: none; border-radius: 16px; overflow: hidden;">
         <div class="card-header py-3" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
             <h6 class="m-0 font-weight-bold" style="font-size: 1.2em;">
-                <i class="bi bi-list-ul me-2"></i>Danh sách đơn hàng
+                <i class="bi bi-list-ul me-2"></i>{{ $isQuote ? 'Danh sách báo giá' : 'Danh sách đơn hàng' }}
             </h6>
         </div>
         <div class="card-body p-0">
             <form method="GET" action="{{ route('admin.orders.index') }}" class="row g-2 mb-3 mx-0 px-3 pt-3 align-items-end">
+                @if($isQuote)
+                    <input type="hidden" name="type" value="quote">
+                @endif
                 <div class="col-lg-3 col-md-6">
                     <label class="form-label mb-1 fw-semibold text-secondary small">Từ khoá</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
-                        <input type="text" name="q" class="form-control" value="{{ request('q') }}" placeholder="Mã đơn / Tên / MST / SĐT...">
+                        <input type="text" name="q" class="form-control" value="{{ request('q') }}" placeholder="{{ $isQuote ? 'Mã báo giá / Tên / MST / SĐT...' : 'Mã đơn / Tên / MST / SĐT...' }}">
                     </div>
                 </div>
                 <div class="col-lg-3 col-md-6">
@@ -100,14 +105,14 @@
                     <label class="form-label mb-1 fw-semibold text-secondary small">Trạng thái</label>
                     <select name="status" class="form-select">
                         @foreach($statusOptions as $k => $label)
-                            <option value="{{ $k }}" {{ (string) request('status') === (string) $k ? 'selected' : '' }}>{{ $label }}</option>
+                            <option value="{{ $k }}" {{ (string) request('status', $isQuote ? 'pending' : '') === (string) $k ? 'selected' : '' }}>{{ $label }}</option>
                         @endforeach
                     </select>
                 </div>
                 <div class="col-lg-2 col-md-12 d-flex gap-2 flex-wrap">
                     <button class="btn btn-primary flex-grow-1" type="submit" style="white-space:nowrap;"><i class="bi bi-funnel me-1"></i>Lọc</button>
                     @if(request('q') || request('customer_name') || request('tax_code') || request('status'))
-                        <a class="btn btn-outline-secondary flex-grow-1" href="{{ route('admin.orders.index') }}" style="white-space:nowrap;"><i class="bi bi-x-circle me-1"></i>Xóa</a>
+                        <a class="btn btn-outline-secondary flex-grow-1" href="{{ route('admin.orders.index') . ($isQuote ? '?type=quote' : '') }}" style="white-space:nowrap;"><i class="bi bi-x-circle me-1"></i>Xóa</a>
                     @endif
                 </div>
             </form>
@@ -115,7 +120,7 @@
                 <table class="table mb-0" style="border: none;">
                     <thead>
                         <tr style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
-                            <th style="border: none; padding: 16px 12px; font-weight: 700; color: #495057;">Mã đơn</th>
+                            <th style="border: none; padding: 16px 12px; font-weight: 700; color: #495057;">{{ $isQuote ? 'Mã báo giá' : 'Mã đơn' }}</th>
                             <th style="border: none; padding: 16px 12px; font-weight: 700; color: #495057;">Khách hàng</th>
                             <th style="border: none; padding: 16px 12px; font-weight: 700; color: #495057;">Ngày đặt</th>
                             <th style="border: none; padding: 16px 12px; font-weight: 700; color: #495057;">Trạng thái</th>
@@ -125,7 +130,7 @@
                     </thead>
             <tbody>
                 @foreach($orders as $order)
-                <tr class="ao-row" data-href="{{ route('admin.orders.show', $order) }}" style="border-bottom: 1px solid #eef2f7;" onmouseover="this.style.backgroundColor='#eaf2ff'" onmouseout="this.style.backgroundColor='white'">
+                <tr class="ao-row" data-href="{{ route('admin.orders.show', $order) . ($isQuote ? '?type=quote' : '') }}" style="border-bottom: 1px solid #eef2f7;" onmouseover="this.style.backgroundColor='#eaf2ff'" onmouseout="this.style.backgroundColor='white'">
                     <td style="border: none; padding: 16px 12px;">
                         <div class="d-flex align-items-center">
                             <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: 600; font-size: 0.9em;">
@@ -192,13 +197,13 @@
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 small">
                                 <li>
-                                    <a class="dropdown-item" href="{{ route('admin.orders.show', $order) }}">
+                                    <a class="dropdown-item" href="{{ route('admin.orders.show', $order) . ($isQuote ? '?type=quote' : '') }}">
                                         <i class="bi bi-eye me-2 text-primary"></i>Xem
                                     </a>
                                 </li>
                                 <li><hr class="dropdown-divider my-1"></li>
                                 <li>
-                                    <form action="{{ route('admin.orders.destroy', $order) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn xóa đơn hàng này?')">
+                                    <form action="{{ route('admin.orders.destroy', $order) }}" method="POST" class="d-inline" onsubmit="return confirm('{{ $isQuote ? 'Bạn có chắc muốn xóa báo giá này?' : 'Bạn có chắc muốn xóa đơn hàng này?' }}')">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="dropdown-item text-danger">

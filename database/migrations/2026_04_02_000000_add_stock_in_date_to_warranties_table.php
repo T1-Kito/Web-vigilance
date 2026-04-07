@@ -18,5 +18,6 @@ return new class extends Migration
         Schema::table('warranties', function (Blueprint $table) {
             $table->dropColumn('stock_in_date');
         });
-    }
+    }ALTER TABLE `warranties`
+    ADD `stock_in_date` DATE NULL AFTER `purchase_date`;
 };
