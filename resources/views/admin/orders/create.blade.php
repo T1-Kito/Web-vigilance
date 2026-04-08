@@ -1,17 +1,21 @@
 @extends('layouts.admin')
 
-@section('title', 'Tạo đơn hàng')
+@section('title', isset($isQuote) && $isQuote ? 'Tạo báo giá' : 'Tạo đơn hàng')
 
 @section('content')
 <div class="container-fluid py-4 ao-order-create">
     <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
         <div>
             <h1 class="h3 mb-1 fw-bold" style="color: #0f172a; letter-spacing: -0.02em;">
-                <span class="ao-hero-icon me-2"><i class="bi bi-cart-plus"></i></span>Tạo đơn hàng
+                <span class="ao-hero-icon me-2"><i class="bi bi-cart-plus"></i></span>{{ isset($isQuote) && $isQuote ? 'Tạo báo giá' : 'Tạo đơn hàng' }}
             </h1>
-            <p class="text-muted mb-0 small">MST: ưu tiên khớp trong <strong>danh sách khách hàng</strong>, không có mới tra cứu ngoài · Sau đó chọn sản phẩm và đơn giá từng dòng.</p>
+            <p class="text-muted mb-0 small">
+                MST: ưu tiên khớp trong <strong>danh sách khách hàng</strong>, không có mới tra cứu ngoài · Sau đó chọn sản phẩm và đơn giá từng dòng.
+            </p>
         </div>
-        <a href="{{ route('admin.orders.index') }}" class="btn btn-outline-secondary rounded-pill btn-sm px-3"><i class="bi bi-arrow-left me-1"></i>Quay lại</a>
+        <a href="{{ (isset($isQuote) && $isQuote) ? route('admin.quotes.index') : route('admin.orders.index') }}" class="btn btn-outline-secondary rounded-pill btn-sm px-3">
+            <i class="bi bi-arrow-left me-1"></i>Quay lại
+        </a>
     </div>
 
     @if($errors->any())
@@ -26,6 +30,9 @@
 
     <form method="post" action="{{ route('admin.orders.store') }}" id="admin-order-create-form">
         @csrf
+        @if(isset($isQuote) && $isQuote)
+            <input type="hidden" name="quote_mode" value="1">
+        @endif
 
         <div class="row g-4">
             {{-- Trái: Hóa đơn & liên hệ --}}
@@ -121,7 +128,7 @@
                 <div class="d-flex flex-wrap gap-2 justify-content-end">
                     <a href="{{ route('admin.orders.index') }}" class="btn btn-light border rounded-pill px-4">Hủy</a>
                     <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold shadow-sm" style="background: linear-gradient(135deg, #2563eb, #4f46e5); border: none;">
-                        <i class="bi bi-check2-circle me-1"></i>Lưu đơn hàng
+                        <i class="bi bi-check2-circle me-1"></i>{{ (isset($isQuote) && $isQuote) ? 'Lưu báo giá' : 'Lưu đơn hàng' }}
                     </button>
                 </div>
             </div>
@@ -135,7 +142,7 @@
                 <div class="modal-header" style="background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%); color: #fff; border: 0; padding: 1rem 1.25rem;">
                     <div class="d-flex flex-column">
                         <h5 class="modal-title mb-0 fw-bold" id="aoCustomerHistoryModalLabel">
-                            <i class="bi bi-people me-2"></i>Lưu đơn hàng
+                            <i class="bi bi-people me-2"></i>{{ (isset($isQuote) && $isQuote) ? 'Lưu báo giá' : 'Lưu đơn hàng' }}
                         </h5>
                         <div class="small opacity-75">Hiển thị lịch sử mua hàng của khách theo MST/SĐT</div>
                     </div>
@@ -226,7 +233,7 @@
                 <div class="modal-footer" style="border: 0; padding-top: 0;">
                     <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
                     <button type="button" class="btn btn-primary rounded-pill px-4 fw-semibold" id="aoCustomerHistoryConfirmBtn">
-                        <i class="bi bi-check2-circle me-1"></i>Xác nhận lưu đơn
+                        <i class="bi bi-check2-circle me-1"></i>{{ (isset($isQuote) && $isQuote) ? 'Xác nhận lưu báo giá' : 'Xác nhận lưu đơn' }}
                     </button>
                 </div>
             </div>

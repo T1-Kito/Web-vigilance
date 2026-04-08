@@ -4,18 +4,20 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class OrderItem extends Model
+class QuoteItem extends Model
 {
     protected $fillable = [
-        'order_id',
+        'quote_id',
         'product_id',
         'quantity',
         'price',
-        'sale',
-        'color_id',
-        'parent_order_item_id',
         'unit',
     ];
+
+    public function quote()
+    {
+        return $this->belongsTo(Quote::class);
+    }
 
     public function product()
     {

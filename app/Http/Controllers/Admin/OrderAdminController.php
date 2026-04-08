@@ -4,20 +4,25 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Support\ActivityLogger;
+use App\Support\DocumentCodeGenerator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class OrderAdminController extends Controller
 {
     public function index(Request $request)
     {
+        $type = trim((string) $request->query('type', 'orders'));
+        $isQuote = $type === 'quote';
+
         $statusOptions = [
             '' => 'Tất cả trạng thái',
             'pending' => 'Chờ xử lý',
@@ -49,14 +54,15 @@ class OrderAdminController extends Controller
             $ordersQuery->where('customer_tax_code', 'like', '%' . $taxCode . '%');
         }
 
-        $status = trim((string) $request->query('status', ''));
+        $defaultStatus = $isQuote ? 'pending' : '';
+        $status = trim((string) $request->query('status', $defaultStatus));
         if ($status !== '') {
             $ordersQuery->where('status', $status);
         }
 
         $orders = $ordersQuery->paginate(20)->withQueryString();
 
-        return view('admin.orders.index', compact('orders', 'statusOptions'));
+        return view('admin.orders.index', compact('orders', 'statusOptions', 'isQuote'));
     }
 
     public function create()
@@ -176,6 +182,7 @@ class OrderAdminController extends Controller
 
     public function store(Request $request)
     {
+        $quoteMode = (bool) $request->input('quote_mode', false);
         $validated = $request->validate([
             'receiver_name' => 'required|string|max:255',
             'receiver_phone' => 'required|string|max:50',
@@ -213,7 +220,7 @@ class OrderAdminController extends Controller
         }
 
         $order = DB::transaction(function () use ($validated, $lines) {
-            $orderCode = 'OD' . now()->format('ymd') . Str::upper(Str::random(6));
+            $orderCode = DocumentCodeGenerator::next(Order::query(), 'order_code', 'SO');
 
             $order = Order::create([
                 'user_id' => null,
@@ -269,7 +276,12 @@ class OrderAdminController extends Controller
             'items' => $order->items()->count(),
         ], $request);
 
-        return redirect()->route('admin.orders.show', $order)->with('success', 'Đã tạo đơn hàng thành công!');
+        $url = route('admin.orders.show', $order);
+        if ($quoteMode) {
+            $url .= '?type=quote';
+        }
+
+        return redirect($url)->with('success', $quoteMode ? 'Đã tạo báo giá thành công!' : 'Đã tạo đơn hàng thành công!');
     }
 
     public function show($order)
@@ -282,8 +294,51 @@ class OrderAdminController extends Controller
         return view('admin.orders.show', ['order' => $orderModel]);
     }
 
+    public function workflow(Order $order)
+    {
+        $order->load(['items.product']);
+
+        $deliveries = \App\Models\Delivery::query()
+            ->where('order_id', $order->id)
+            ->orderByDesc('created_at')
+            ->get();
+
+        $invoices = Invoice::query()
+            ->where('order_id', $order->id)
+            ->orderByDesc('created_at')
+            ->get();
+
+        $totalOrdered = (int) $order->items->sum('quantity');
+        $totalDelivered = (int) \App\Models\DeliveryItem::query()
+            ->whereIn('order_item_id', $order->items->pluck('id')->all())
+            ->sum('quantity');
+
+        $hasDelivery = $deliveries->count() > 0;
+        $hasInvoice = $invoices->count() > 0;
+
+        $steps = [
+            ['key' => 'order', 'label' => 'Đơn hàng', 'done' => true],
+            ['key' => 'delivery', 'label' => 'Phiếu xuất kho', 'done' => $hasDelivery],
+            ['key' => 'invoice', 'label' => 'Hóa đơn', 'done' => $hasInvoice],
+            ['key' => 'payment', 'label' => 'Thu tiền/Công nợ', 'done' => false],
+        ];
+
+        return view('admin.orders.workflow', [
+            'order' => $order,
+            'deliveries' => $deliveries,
+            'invoices' => $invoices,
+            'totalOrdered' => $totalOrdered,
+            'totalDelivered' => $totalDelivered,
+            'steps' => $steps,
+        ]);
+    }
+
     public function update(Request $request, Order $order)
     {
+        if (Schema::hasTable('deliveries') && \App\Models\Delivery::query()->where('order_id', $order->id)->exists()) {
+            return back()->with('error', 'Đơn hàng đã có phiếu xuất kho, không được cập nhật trạng thái thủ công. Vui lòng xử lý qua quy trình xuất kho.');
+        }
+
         $validated = $request->validate([
             'status' => 'nullable|in:pending,completed,cancelled,processing',
 

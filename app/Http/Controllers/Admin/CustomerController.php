@@ -2516,9 +2516,13 @@ class CustomerController extends Controller
     {
         $query = Customer::query();
 
-        // Keyword search (global)
-        if ($request->filled('q')) {
-            $q = trim((string) $request->query('q'));
+        $q = trim((string) $request->query('q', ''));
+        $rep = trim((string) $request->query('rep', ''));
+        $status = trim((string) $request->query('status', ''));
+        $bizType = trim((string) $request->query('biz_type', ''));
+        $customerType = trim((string) $request->query('customer_type', ''));
+
+        if ($q !== '') {
             $query->where(function ($sub) use ($q) {
                 $sub->where('name', 'like', "%{$q}%")
                     ->orWhere('tax_id', 'like', "%{$q}%")
@@ -2528,25 +2532,58 @@ class CustomerController extends Controller
             });
         }
 
-        // Advanced filters
-        if ($request->filled('status')) {
-            $status = trim((string) $request->query('status'));
+        if ($rep !== '') {
+            $query->where('representative', 'like', "%{$rep}%");
+        }
+
+        if ($status !== '') {
             $query->where('company_status', 'like', "%{$status}%");
         }
 
-        if ($request->filled('biz_type')) {
-            $bizType = trim((string) $request->query('biz_type'));
+        if ($bizType !== '') {
             $query->where('business_type', 'like', "%{$bizType}%");
         }
 
-        if ($request->filled('rep')) {
-            $rep = trim((string) $request->query('rep'));
-            $query->where('representative', 'like', "%{$rep}%");
+        if ($customerType === 'company') {
+            $query->whereNotNull('tax_id')->where('tax_id', '!=', '');
+        } elseif ($customerType === 'individual') {
+            $query->where(function ($sub) {
+                $sub->whereNull('tax_id')->orWhere('tax_id', '');
+            });
         }
 
         $customers = $query->orderByDesc('created_at')->paginate(20)->withQueryString();
 
-        return view('admin.customers.index', compact('customers'));
+        $baseStatsQuery = Customer::query();
+        $stats = [
+            'total' => (clone $baseStatsQuery)->count(),
+            'new_30_days' => (clone $baseStatsQuery)->where('created_at', '>=', now()->subDays(30))->count(),
+            'company' => (clone $baseStatsQuery)->whereNotNull('tax_id')->where('tax_id', '!=', '')->count(),
+            'active' => (clone $baseStatsQuery)->where(function ($sub) {
+                $sub->where('company_status', 'like', '%đang hoạt động%')
+                    ->orWhere('company_status', 'like', '%hoạt động%')
+                    ->orWhereNull('company_status')
+                    ->orWhere('company_status', '');
+            })->count(),
+        ];
+
+        $statusOptions = Customer::query()
+            ->whereNotNull('company_status')
+            ->where('company_status', '!=', '')
+            ->distinct()
+            ->orderBy('company_status')
+            ->pluck('company_status')
+            ->values();
+
+        $bizTypeOptions = Customer::query()
+            ->whereNotNull('business_type')
+            ->where('business_type', '!=', '')
+            ->distinct()
+            ->orderBy('business_type')
+            ->pluck('business_type')
+            ->values();
+
+        return view('admin.customers.index', compact('customers', 'stats', 'statusOptions', 'bizTypeOptions'));
     }
 
     public function create()

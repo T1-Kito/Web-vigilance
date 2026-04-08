@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Order;
+use App\Models\Quote;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class OrderController extends Controller
 {
@@ -163,6 +165,12 @@ class OrderController extends Controller
 
     public function quote(string $orderCode)
     {
+        $quote = Quote::with(['items.product', 'user'])->where('quote_code', $orderCode)->first();
+        if ($quote) {
+            $categories = \App\Models\Category::with(['children' => function($q) { $q->with('children'); }])->whereNull('parent_id')->ordered()->get();
+            return view('orders.quote', ['order' => $quote, 'categories' => $categories]);
+        }
+
         $order = Order::with(['items.product', 'user'])->where('order_code', $orderCode)->first();
         if (!$order) {
             return redirect()->route('orders.lookup')->with('lookup_error', 'Đơn hàng đã bị xóa hoặc không tồn tại.');
@@ -201,5 +209,34 @@ class OrderController extends Controller
 
         $categories = \App\Models\Category::with(['children' => function($q) { $q->with('children'); }])->whereNull('parent_id')->ordered()->get();
         return view('orders.quote_success', compact('order', 'categories'));
+    }
+
+    public function quotePdf(string $orderCode)
+    {
+        $quote = Quote::with(['items.product', 'user'])->where('quote_code', $orderCode)->first();
+        if ($quote) {
+            $pdf = Pdf::loadView('orders.quote_pdf', [
+                'order' => $quote,
+            ])->setPaper('a4', 'portrait');
+
+            $filename = 'bao-gia-' . ($quote->quote_code ?: ('quote-' . $quote->id)) . '-' . now()->format('YmdHis') . '.pdf';
+
+            return $pdf->download($filename);
+        }
+
+        $order = Order::with(['items.product', 'user'])->where('order_code', $orderCode)->first();
+        if (!$order) {
+            return redirect()->route('orders.lookup')->with('lookup_error', 'Đơn hàng đã bị xóa hoặc không tồn tại.');
+        }
+
+        $this->authorizeOrderView($order);
+
+        $pdf = Pdf::loadView('orders.quote_pdf', [
+            'order' => $order,
+        ])->setPaper('a4', 'portrait');
+
+        $filename = 'bao-gia-' . ($order->order_code ?: ('order-' . $order->id)) . '-' . now()->format('YmdHis') . '.pdf';
+
+        return $pdf->download($filename);
     }
 }
