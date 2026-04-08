@@ -14,12 +14,14 @@ use App\Support\DocumentCodeGenerator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Validation\Rule;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class SalesOrderAdminController extends Controller
 {
     public function index(Request $request)
     {
-        $query = SalesOrder::query()->with(['items'])->orderByDesc('created_at');
+        $query = SalesOrder::query()->with(['items', 'debt'])->orderByDesc('created_at');
 
         $q = trim((string) $request->query('q', ''));
         if ($q !== '') {
@@ -36,6 +38,11 @@ class SalesOrderAdminController extends Controller
             $query->where('status', $status);
         }
 
+        $paymentStatus = trim((string) $request->query('payment_status', ''));
+        if ($paymentStatus !== '') {
+            $query->where('payment_status', $paymentStatus);
+        }
+
         $salesOrders = $query->paginate(20)->withQueryString();
 
         return view('admin.sales_orders.index', [
@@ -45,7 +52,7 @@ class SalesOrderAdminController extends Controller
 
     public function show(SalesOrder $salesOrder)
     {
-        $salesOrder->load(['items.product', 'quote']);
+        $salesOrder->load(['items.product', 'quote', 'debt']);
 
         $deliveries = Delivery::query()
             ->where('sales_order_id', $salesOrder->id)
@@ -62,13 +69,40 @@ class SalesOrderAdminController extends Controller
             ->whereIn('sales_order_item_id', $salesOrder->items->pluck('id')->all())
             ->sum('quantity');
 
+        $subTotal = (float) $salesOrder->items->sum(function ($item) {
+            return (float) ($item->unit_price ?? 0) * (int) ($item->quantity ?? 0);
+        });
+        $discountPercent = (float) ($salesOrder->discount_percent ?? 0);
+        $vatPercent = (float) ($salesOrder->vat_percent ?? 8);
+        $afterDiscount = max(0, $subTotal * (1 - ($discountPercent / 100)));
+        $vatAmount = $afterDiscount * ($vatPercent / 100);
+        $orderTotal = $afterDiscount + $vatAmount;
+        $paidAmount = (float) ($salesOrder->debt->paid_amount ?? $salesOrder->paid_amount ?? 0);
+        $remainingDebt = max(0, $orderTotal - $paidAmount);
+
         return view('admin.sales_orders.show', [
             'salesOrder' => $salesOrder,
             'deliveries' => $deliveries,
             'invoices' => $invoices,
             'totalOrdered' => $totalOrdered,
             'totalDelivered' => $totalDelivered,
+            'orderTotal' => $orderTotal,
+            'paidAmount' => $paidAmount,
+            'remainingDebt' => $remainingDebt,
         ]);
+    }
+
+    public function exportPdf(SalesOrder $salesOrder)
+    {
+        $salesOrder->load(['items.product', 'quote']);
+
+        $pdf = Pdf::loadView('admin.sales_orders.pdf', [
+            'salesOrder' => $salesOrder,
+        ])->setPaper('a4', 'portrait');
+
+        $filename = 'don-hang-' . ($salesOrder->sales_order_code ?: ('so-' . $salesOrder->id)) . '-' . now()->format('YmdHis') . '.pdf';
+
+        return $pdf->download($filename);
     }
 
     public function createDelivery(SalesOrder $salesOrder)
@@ -203,6 +237,58 @@ class SalesOrderAdminController extends Controller
         return view('admin.sales_orders.create_invoice', [
             'salesOrder' => $salesOrder,
         ]);
+    }
+
+    public function updatePayment(Request $request, SalesOrder $salesOrder)
+    {
+        $validated = $request->validate([
+            'paid_amount' => ['required', 'numeric', 'min:0'],
+            'payment_status' => ['required', Rule::in(['unpaid', 'partial', 'paid', 'overdue'])],
+            'payment_due_date' => ['nullable', 'date'],
+            'paid_at' => ['nullable', 'date'],
+            'payment_note' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $salesOrder->load('items');
+        $subTotal = (float) $salesOrder->items->sum(function ($item) {
+            return (float) ($item->unit_price ?? 0) * (int) ($item->quantity ?? 0);
+        });
+        $discountPercent = (float) ($salesOrder->discount_percent ?? 0);
+        $vatPercent = (float) ($salesOrder->vat_percent ?? 8);
+        $afterDiscount = max(0, $subTotal * (1 - ($discountPercent / 100)));
+        $vatAmount = $afterDiscount * ($vatPercent / 100);
+        $total = $afterDiscount + $vatAmount;
+
+        $paid = min((float) $validated['paid_amount'], $total);
+        $remaining = max(0, $total - $paid);
+        $status = $validated['payment_status'];
+
+        if ($paid <= 0 && $remaining > 0) {
+            $status = 'unpaid';
+        } elseif ($remaining <= 0) {
+            $status = 'paid';
+        } elseif ($paid > 0) {
+            $status = 'partial';
+        }
+
+        $salesOrder->update([
+            'paid_amount' => $paid,
+            'payment_status' => $status,
+            'payment_due_date' => $validated['payment_due_date'] ?? $salesOrder->payment_due_date,
+            'paid_at' => $validated['paid_at'] ?? $salesOrder->paid_at,
+            'payment_note' => $validated['payment_note'] ?? $salesOrder->payment_note,
+        ]);
+
+        $salesOrder->debt()?->update([
+            'paid_amount' => $paid,
+            'remaining_amount' => $remaining,
+            'status' => $status,
+            'due_date' => $validated['payment_due_date'] ?? $salesOrder->payment_due_date,
+            'last_paid_at' => $validated['paid_at'] ?? $salesOrder->paid_at,
+            'note' => $validated['payment_note'] ?? $salesOrder->payment_note,
+        ]);
+
+        return back()->with('success', 'Đã cập nhật công nợ đơn hàng.');
     }
 
     public function storeInvoice(Request $request, SalesOrder $salesOrder)

@@ -68,11 +68,11 @@
                 <a href="{{ route('orders.quote', ['orderCode' => $orderCode]) }}" target="_blank" rel="noopener" class="btn btn-outline-primary">
                     <i class="bi bi-eye me-1"></i>Xem báo giá
                 </a>
-                @if(($order->status ?? '') === 'approved')
-                    <form method="POST" action="{{ route('admin.quotes.convert-to-order', $order) }}" class="d-inline" onsubmit="return confirm('Chốt báo giá này thành đơn hàng?');">
+                @if(($order->status ?? '') === 'approved' && !optional($order->convertedSalesOrder)->id)
+                    <form method="POST" action="{{ route('admin.quotes.convert-to-order', $order) }}" class="d-inline" onsubmit="return confirm('Tạo đơn bán từ báo giá đã duyệt?');">
                         @csrf
                         <button type="submit" class="btn btn-success">
-                            <i class="bi bi-check2-circle me-1"></i>Chốt thành đơn hàng
+                            <i class="bi bi-check2-circle me-1"></i>Tạo đơn bán
                         </button>
                     </form>
                 @endif
@@ -218,7 +218,7 @@
 
             <div class="col-xl-4">
                 <div class="card border-0 shadow-sm sticky-xl-top quote-edit-side" style="top: 16px;">
-                    <div class="card-header bg-white fw-bold">4) Thông số báo giá</div>
+                    <div class="card-header bg-white fw-bold">4) Điều khoản thanh toán & thông số</div>
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-12">
@@ -232,11 +232,16 @@
 
                             <div class="col-md-6 col-xl-12">
                                 <label class="form-label">Staff code</label>
-                                <input type="text" name="staff_code" class="form-control" value="{{ old('staff_code', $order->staff_code) }}">
+                                <input type="text" id="staff-code" name="staff_code" class="form-control" value="{{ old('staff_code', $order->staff_code) }}" placeholder="Tự tạo theo tên sales, có thể sửa tay">
                             </div>
                             <div class="col-md-6 col-xl-12">
                                 <label class="form-label">Sales</label>
-                                <input type="text" name="sales_name" class="form-control" value="{{ old('sales_name', $order->sales_name) }}">
+                                <input type="text" id="sales-name" name="sales_name" class="form-control" list="sales-name-list" value="{{ old('sales_name', $order->sales_name) }}" placeholder="Chọn hoặc nhập tên sales...">
+                                <datalist id="sales-name-list">
+                                    <option value="Bùi Nguyễn Tường Vy"></option>
+                                    <option value="Nguyễn Thị Hồng Vi"></option>
+                                </datalist>
+                                <div class="form-text">Có thể chọn nhanh từ danh sách hoặc nhập tên khác.</div>
                             </div>
 
                             <div class="col-md-6 col-xl-12">
@@ -246,6 +251,41 @@
                             <div class="col-md-6 col-xl-12">
                                 <label class="form-label">VAT (%)</label>
                                 <input type="number" min="0" max="100" step="0.01" name="vat_percent" class="form-control" id="vat-percent" value="{{ old('vat_percent', $order->vat_percent ?? 8) }}">
+                            </div>
+
+                            <div class="col-12">
+                                <div class="border rounded-3 p-3 bg-light-subtle">
+                                    <div class="fw-semibold mb-2">Điều khoản thanh toán</div>
+                                    <div class="d-grid gap-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input js-payment-term" type="radio" name="payment_term" id="pt-full" value="full_advance" @checked(old('payment_term', $order->payment_term ?? 'full_advance') === 'full_advance')>
+                                            <label class="form-check-label" for="pt-full">Thanh toán 100% trước giao hàng</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input js-payment-term" type="radio" name="payment_term" id="pt-debt" value="debt" @checked(old('payment_term', $order->payment_term ?? '') === 'debt')>
+                                            <label class="form-check-label" for="pt-debt">Công nợ theo hạn thanh toán</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input js-payment-term" type="radio" name="payment_term" id="pt-deposit" value="deposit" @checked(old('payment_term', $order->payment_term ?? '') === 'deposit')>
+                                            <label class="form-check-label" for="pt-deposit">Đặt cọc + thanh toán phần còn lại</label>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-3" id="wrap-payment-due-days">
+                                        <label class="form-label mb-1">Số ngày công nợ</label>
+                                        <input type="number" min="0" max="365" step="1" name="payment_due_days" id="payment-due-days" class="form-control" value="{{ old('payment_due_days', $order->payment_due_days) }}" placeholder="VD: 15">
+                                    </div>
+
+                                    <div class="mt-3" id="wrap-deposit-percent">
+                                        <label class="form-label mb-1">Tỷ lệ đặt cọc (%)</label>
+                                        <input type="number" min="0" max="100" step="0.01" name="deposit_percent" id="deposit-percent" class="form-control" value="{{ old('deposit_percent', $order->deposit_percent) }}" placeholder="VD: 30">
+                                    </div>
+
+                                    <div class="mt-3">
+                                        <label class="form-label mb-1">Ghi chú thanh toán</label>
+                                        <input type="text" name="payment_note" class="form-control" value="{{ old('payment_note', $order->payment_note) }}" placeholder="VD: Thanh toán phần còn lại khi nhận đủ hàng">
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="col-md-6 col-xl-12">
@@ -281,7 +321,7 @@
                         </div>
 
                         <div class="d-grid gap-2 mt-3">
-                            <button type="submit" class="btn btn-primary" @if(!(isset($isCreate) && $isCreate) && (($order->status ?? '') === 'won')) disabled @endif>
+                            <button type="submit" class="btn btn-primary" @if(!(isset($isCreate) && $isCreate) && (((($order->status ?? '') === 'won') || optional($order->convertedSalesOrder)->id))) disabled @endif>
                                 <i class="bi bi-check2-circle me-1"></i>{{ isset($isCreate) && $isCreate ? 'Tạo báo giá' : 'Lưu báo giá' }}
                             </button>
                             <a href="{{ route('admin.quotes.index') }}" class="btn btn-light border">Hủy</a>
@@ -369,6 +409,8 @@
 
     const discountInput = document.getElementById('discount-percent');
     const vatInput = document.getElementById('vat-percent');
+    const salesNameInput = document.getElementById('sales-name');
+    const staffCodeInput = document.getElementById('staff-code');
 
     const subTotalEl = document.getElementById('sum-subtotal');
     const afterDiscountEl = document.getElementById('sum-after-discount');
@@ -400,6 +442,29 @@
     function money(v) {
         const n = Number(v || 0);
         return (isFinite(n) ? n : 0).toLocaleString('vi-VN') + 'đ';
+    }
+
+    function generateStaffCodeFromName(fullName) {
+        const source = String(fullName || '').trim();
+        if (!source) return '';
+
+        const normalized = source
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/đ/g, 'd')
+            .replace(/Đ/g, 'D')
+            .toLowerCase();
+
+        const parts = normalized.split(/\s+/).filter(Boolean);
+        if (!parts.length) return '';
+
+        if (parts.length === 1) {
+            return parts[0].slice(0, 4);
+        }
+
+        const last = parts[parts.length - 1];
+        const initials = parts.slice(0, -1).map(function (p) { return p.charAt(0); }).join('');
+        return (initials + last).replace(/[^a-z0-9]/g, '').slice(0, 12);
     }
 
     function safeNumber(v, fallback = 0) {
@@ -540,6 +605,34 @@
             }, 450);
         });
     }
+
+    const paymentTermInputs = Array.from(document.querySelectorAll('.js-payment-term'));
+    const wrapDueDays = document.getElementById('wrap-payment-due-days');
+    const wrapDeposit = document.getElementById('wrap-deposit-percent');
+    const dueDaysInput = document.getElementById('payment-due-days');
+    const depositInput = document.getElementById('deposit-percent');
+
+    function selectedPaymentTerm() {
+        const checked = paymentTermInputs.find(function (x) { return x.checked; });
+        return checked ? checked.value : 'full_advance';
+    }
+
+    function togglePaymentBlocks() {
+        const term = selectedPaymentTerm();
+        const showDueDays = term === 'debt';
+        const showDeposit = term === 'deposit';
+
+        if (wrapDueDays) wrapDueDays.style.display = showDueDays ? '' : 'none';
+        if (wrapDeposit) wrapDeposit.style.display = showDeposit ? '' : 'none';
+
+        if (dueDaysInput) dueDaysInput.required = showDueDays;
+        if (depositInput) depositInput.required = showDeposit;
+    }
+
+    paymentTermInputs.forEach(function (input) {
+        input.addEventListener('change', togglePaymentBlocks);
+    });
+    togglePaymentBlocks();
 
     function recalcSummary() {
         let subtotal = 0;
@@ -707,6 +800,22 @@
     addBtn?.addEventListener('click', addRow);
     discountInput?.addEventListener('input', recalcSummary);
     vatInput?.addEventListener('input', recalcSummary);
+
+    if (salesNameInput && staffCodeInput) {
+        salesNameInput.addEventListener('input', function () {
+            const code = generateStaffCodeFromName(salesNameInput.value);
+            if (code) {
+                staffCodeInput.value = code;
+            }
+        });
+
+        if (!String(staffCodeInput.value || '').trim() && String(salesNameInput.value || '').trim()) {
+            const code = generateStaffCodeFromName(salesNameInput.value);
+            if (code) {
+                staffCodeInput.value = code;
+            }
+        }
+    }
 
     tbody.querySelectorAll('tr[data-row]').forEach(bindRow);
 

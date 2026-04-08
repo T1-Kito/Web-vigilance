@@ -742,15 +742,23 @@ Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::get('quotes/{quote}', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'show'])->name('quotes.show');
     Route::get('quotes/{quote}/edit', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'edit'])->name('quotes.edit');
     Route::patch('quotes/{quote}', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'update'])->name('quotes.update');
+    Route::patch('quotes/{quote}/status', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'updateStatus'])->name('quotes.update-status');
     Route::post('quotes/{quote}/convert-to-order', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'convertToOrder'])->name('quotes.convert-to-order');
 
     // Sales order management (đơn bán ngoài từ báo giá)
     Route::get('sales-orders', [\App\Http\Controllers\Admin\SalesOrderAdminController::class, 'index'])->name('sales-orders.index');
     Route::get('sales-orders/{salesOrder}', [\App\Http\Controllers\Admin\SalesOrderAdminController::class, 'show'])->name('sales-orders.show');
+    Route::get('sales-orders/{salesOrder}/pdf', [\App\Http\Controllers\Admin\SalesOrderAdminController::class, 'exportPdf'])->name('sales-orders.pdf');
     Route::get('sales-orders/{salesOrder}/deliveries/create', [\App\Http\Controllers\Admin\SalesOrderAdminController::class, 'createDelivery'])->name('sales-orders.deliveries.create');
     Route::post('sales-orders/{salesOrder}/deliveries', [\App\Http\Controllers\Admin\SalesOrderAdminController::class, 'storeDelivery'])->name('sales-orders.deliveries.store');
     Route::get('sales-orders/{salesOrder}/invoices/create', [\App\Http\Controllers\Admin\SalesOrderAdminController::class, 'createInvoice'])->name('sales-orders.invoices.create');
     Route::post('sales-orders/{salesOrder}/invoices', [\App\Http\Controllers\Admin\SalesOrderAdminController::class, 'storeInvoice'])->name('sales-orders.invoices.store');
+    Route::patch('sales-orders/{salesOrder}/payment', [\App\Http\Controllers\Admin\SalesOrderAdminController::class, 'updatePayment'])->name('sales-orders.payment.update');
+
+    // Debt management
+    Route::get('debts', [\App\Http\Controllers\Admin\DebtAdminController::class, 'index'])->name('debts.index');
+    Route::get('debts/{debt}', [\App\Http\Controllers\Admin\DebtAdminController::class, 'show'])->name('debts.show');
+    Route::patch('debts/{debt}', [\App\Http\Controllers\Admin\DebtAdminController::class, 'update'])->name('debts.update');
 
     // Delivery management (phiếu xuất kho)
     Route::get('deliveries', [\App\Http\Controllers\Admin\DeliveryAdminController::class, 'index'])->name('deliveries.index');

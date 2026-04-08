@@ -1,13 +1,13 @@
 @extends('layouts.admin')
 
-@section('title', 'Đơn bán ngoài')
+@section('title', 'Đơn hàng')
 
 @section('content')
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
         <div>
-            <h1 class="h4 fw-bold mb-1">Danh sách đơn bán ngoài</h1>
-            <div class="text-muted">Đơn bán được chốt từ báo giá (không bao gồm đơn web).</div>
+            <h1 class="h4 fw-bold mb-1">Danh sách đơn hàng</h1>
+            <div class="text-muted">Đơn hàng được tạo từ báo giá (không bao gồm đơn web).</div>
         </div>
     </div>
 
@@ -15,17 +15,25 @@
         <div class="card-body">
             <form class="row g-2" method="GET" action="{{ route('admin.sales-orders.index') }}">
                 <div class="col-md-5">
-                    <input class="form-control" type="text" name="q" value="{{ request('q') }}" placeholder="Mã đơn / khách / MST / SĐT">
+                    <input class="form-control" type="text" name="q" value="{{ request('q') }}" placeholder="Số đơn hàng / khách / MST / SĐT">
                 </div>
                 <div class="col-md-3">
                     <select class="form-select" name="status">
-                        <option value="">Tất cả trạng thái</option>
+                        <option value="">Tất cả trạng thái đơn</option>
                         @foreach(['pending' => 'Chờ xử lý', 'processing' => 'Đang xử lý', 'completed' => 'Hoàn thành', 'cancelled' => 'Đã hủy'] as $k => $lb)
                             <option value="{{ $k }}" @selected(request('status') === $k)>{{ $lb }}</option>
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-4 d-flex gap-2">
+                <div class="col-md-2">
+                    <select class="form-select" name="payment_status">
+                        <option value="">Tất cả công nợ</option>
+                        @foreach(['unpaid' => 'Chưa thanh toán', 'partial' => 'Thanh toán một phần', 'paid' => 'Đã thanh toán', 'overdue' => 'Quá hạn'] as $k => $lb)
+                            <option value="{{ $k }}" @selected(request('payment_status') === $k)>{{ $lb }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex gap-2">
                     <button class="btn btn-primary" type="submit">Lọc</button>
                     <a class="btn btn-light border" href="{{ route('admin.sales-orders.index') }}">Xóa lọc</a>
                 </div>
@@ -39,16 +47,17 @@
                 <table class="table mb-0 align-middle">
                     <thead>
                         <tr>
-                            <th>Mã đơn bán</th>
+                            <th>Số đơn hàng</th>
                             <th>Khách hàng</th>
                             <th>Ngày tạo</th>
-                            <th>Trạng thái</th>
+                            <th>Trạng thái đơn</th>
+                            <th>Trạng thái công nợ</th>
                             <th class="text-end pe-3">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody>
                     @forelse($salesOrders as $so)
-                        <tr>
+                        <tr class="so-row" data-href="{{ route('admin.sales-orders.show', $so) }}">
                             <td class="fw-semibold">{{ $so->sales_order_code }}</td>
                             <td>{{ $so->invoice_company_name ?: $so->receiver_name }}</td>
                             <td>{{ optional($so->created_at)->format('d/m/Y H:i') }}</td>
@@ -58,12 +67,25 @@
                                 @endphp
                                 <span class="badge bg-{{ $badge }}">{{ $so->status }}</span>
                             </td>
+                            <td>
+                                @php
+                                    $paymentStatus = (string) optional($so->debt)->status ?: (string) ($so->payment_status ?? 'unpaid');
+                                    $pBadge = $paymentStatus === 'paid' ? 'success' : (($paymentStatus === 'partial') ? 'warning' : (($paymentStatus === 'overdue') ? 'danger' : 'secondary'));
+                                    $pLabel = [
+                                        'unpaid' => 'Chưa thanh toán',
+                                        'partial' => 'Thanh toán một phần',
+                                        'paid' => 'Đã thanh toán',
+                                        'overdue' => 'Quá hạn',
+                                    ][$paymentStatus] ?? $paymentStatus;
+                                @endphp
+                                <span class="badge bg-{{ $pBadge }}">{{ $pLabel }}</span>
+                            </td>
                             <td class="text-end pe-3">
-                                <a href="{{ route('admin.sales-orders.show', $so) }}" class="btn btn-sm btn-outline-primary">Chi tiết</a>
+                                <a href="{{ route('admin.sales-orders.show', $so) }}" class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation();">Chi tiết</a>
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" class="text-center py-4 text-muted">Chưa có đơn bán ngoài.</td></tr>
+                        <tr><td colspan="6" class="text-center py-4 text-muted">Chưa có đơn hàng.</td></tr>
                     @endforelse
                     </tbody>
                 </table>
@@ -72,4 +94,24 @@
         <div class="card-footer bg-white">{{ $salesOrders->links('pagination::bootstrap-5') }}</div>
     </div>
 </div>
+
+<style>
+    .so-row { transition: background-color .16s ease; cursor: pointer; }
+    .so-row:hover { background: #eaf3ff; }
+    .so-row:hover td { background: #eaf3ff; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.so-row').forEach(function (row) {
+        row.addEventListener('click', function (e) {
+            const blocked = e.target.closest('a,button,form,input,select,textarea,label,.dropdown-menu,.dropdown-toggle');
+            if (blocked) return;
+
+            const href = row.getAttribute('data-href');
+            if (href) window.location.href = href;
+        });
+    });
+});
+</script>
 @endsection

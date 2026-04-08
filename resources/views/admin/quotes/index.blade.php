@@ -51,7 +51,7 @@
                 </a>
             </div>
             <div class="small text-muted mt-2">
-                Luồng chuẩn: Tạo báo giá -> Duyệt báo giá -> Chốt thành đơn hàng -> Tạo phiếu xuất kho -> Phát hành hóa đơn.
+                Luồng chuẩn: Tạo báo giá -> Duyệt báo giá -> Tạo đơn bán -> Tạo phiếu xuất kho -> Phát hành hóa đơn.
             </div>
         </div>
     </div>
@@ -128,8 +128,9 @@
                             });
 
                             $statusKey = (string) ($order->status ?? '');
-                        $taxCode = (string) ($order->customer_tax_code ?? '');
-                        $companyName = (string) ($order->invoice_company_name ?: ($order->receiver_name ?? ''));
+                            $hasSalesOrder = !empty(optional($order->convertedSalesOrder)->id);
+                            $taxCode = (string) ($order->customer_tax_code ?? '');
+                            $companyName = (string) ($order->invoice_company_name ?: ($order->receiver_name ?? ''));
                         @endphp
 
                         <tr class="ao-row" data-href="{{ route('admin.quotes.show', $order) }}" style="border-bottom: 1px solid #eef2f7;" onmouseover="this.style.backgroundColor='#eaf2ff'" onmouseout="this.style.backgroundColor='white'">
@@ -180,13 +181,26 @@
                                     <span class="badge" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: white; border-radius: 20px; padding: 8px 16px; font-weight: 600; font-size: 0.9em;">
                                         <i class="bi bi-clock me-1"></i>{{ $statusKey === 'processing' ? 'Đang xử lý' : 'Chờ xử lý' }}
                                     </span>
+                                @elseif($statusKey === 'approved')
+                                    <span class="badge" style="background: linear-gradient(135deg, #06b6d4 0%, #2563eb 100%); color: white; border-radius: 20px; padding: 8px 16px; font-weight: 600; font-size: 0.9em;">
+                                        <i class="bi bi-patch-check me-1"></i>Đã duyệt
+                                    </span>
+                                    <div class="small mt-1">
+                                        @if($hasSalesOrder)
+                                            <span class="text-success fw-semibold"><i class="bi bi-check2-circle me-1"></i>Đã tạo đơn bán</span>
+                                        @else
+                                            <span class="text-secondary"><i class="bi bi-hourglass-split me-1"></i>Chưa tạo đơn bán</span>
+                                        @endif
+                                    </div>
                                 @elseif($statusKey === 'cancelled')
                                     <span class="badge" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; border-radius: 20px; padding: 8px 16px; font-weight: 600; font-size: 0.9em;">
                                         <i class="bi bi-x-circle me-1"></i>Đã hủy
                                     </span>
+                                @elseif($statusKey === 'lost')
+                                    <span class="badge bg-secondary" style="border-radius:20px; padding:8px 16px;">Không chốt</span>
                                 @else
                                     <span class="badge" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; border-radius: 20px; padding: 8px 16px; font-weight: 600; font-size: 0.9em;">
-                                        <i class="bi bi-check-circle me-1"></i>Hoàn thành
+                                        <i class="bi bi-check-circle me-1"></i>Đã tạo đơn bán
                                     </span>
                                 @endif
                             </td>

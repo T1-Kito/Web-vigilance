@@ -397,6 +397,12 @@
                     Hóa đơn
                 </a>
             </div>
+            <div class="nav-item">
+                <a href="{{ route('admin.debts.index') }}" class="nav-link {{ request()->routeIs('admin.debts.*') ? 'active' : '' }}">
+                    <div class="nav-icon"><i class="bi bi-cash-coin"></i></div>
+                    Quản lý công nợ
+                </a>
+            </div>
 
             <div class="nav-group-title">Bán hàng web</div>
             <div class="nav-item">

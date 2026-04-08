@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Debt;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -14,6 +15,7 @@ use App\Support\ActivityLogger;
 use App\Support\DocumentCodeGenerator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 
 class QuoteAdminController extends Controller
@@ -26,9 +28,9 @@ class QuoteAdminController extends Controller
             '' => 'Tất cả trạng thái',
             'pending' => 'Chờ xử lý',
             'approved' => 'Đã duyệt',
-            'won' => 'Chốt thành công',
             'lost' => 'Không chốt',
             'cancelled' => 'Đã hủy',
+            'won' => 'Đã tạo đơn bán (cũ)',
         ];
 
         $quotesQuery = Quote::query()
@@ -79,7 +81,6 @@ class QuoteAdminController extends Controller
         $statusOptions = [
             'pending' => 'Chờ xử lý',
             'approved' => 'Đã duyệt',
-            'won' => 'Chốt thành công',
             'lost' => 'Không chốt',
             'cancelled' => 'Đã hủy',
         ];
@@ -116,6 +117,10 @@ class QuoteAdminController extends Controller
             'sales_name' => ['nullable', 'string', 'max:150'],
             'discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'vat_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'payment_term' => ['required', Rule::in(['full_advance', 'debt', 'deposit'])],
+            'payment_due_days' => ['nullable', 'integer', 'min:0', 'max:365'],
+            'deposit_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'payment_note' => ['nullable', 'string', 'max:500'],
             'valid_until' => ['nullable', 'date'],
             'status' => ['required', Rule::in(['pending', 'approved', 'won', 'lost', 'cancelled'])],
             'note' => ['nullable', 'string', 'max:2000'],
@@ -144,6 +149,10 @@ class QuoteAdminController extends Controller
                 'sales_name' => $validated['sales_name'] ?? null,
                 'discount_percent' => $validated['discount_percent'] ?? 0,
                 'vat_percent' => $validated['vat_percent'] ?? 8,
+                'payment_term' => $validated['payment_term'],
+                'payment_due_days' => $validated['payment_term'] === 'debt' ? (int) ($validated['payment_due_days'] ?? 0) : null,
+                'deposit_percent' => $validated['payment_term'] === 'deposit' ? (float) ($validated['deposit_percent'] ?? 0) : null,
+                'payment_note' => $validated['payment_note'] ?? null,
                 'valid_until' => $validated['valid_until'] ?? now()->addDays(15)->toDateString(),
                 'status' => $validated['status'],
                 'note' => $validated['note'] ?? null,
@@ -162,7 +171,7 @@ class QuoteAdminController extends Controller
             return $quote;
         });
 
-        return redirect()->route('admin.quotes.edit', $quote)->with('success', 'Đã tạo báo giá thành công.');
+        return redirect()->route('admin.quotes.show', $quote)->with('success', 'Đã tạo báo giá thành công.');
     }
 
     public function show(Quote $quote)
@@ -177,7 +186,6 @@ class QuoteAdminController extends Controller
         $statusOptions = [
             'pending' => 'Chờ xử lý',
             'approved' => 'Đã duyệt',
-            'won' => 'Chốt thành công',
             'lost' => 'Không chốt',
             'cancelled' => 'Đã hủy',
         ];
@@ -190,8 +198,8 @@ class QuoteAdminController extends Controller
 
     public function update(Request $request, Quote $quote)
     {
-        if ((string) $quote->status === 'won' && Order::query()->where('source_quote_id', $quote->id)->exists()) {
-            return back()->with('error', 'Báo giá đã chốt thành đơn hàng, không được phép sửa để đảm bảo tính pháp lý.');
+        if (SalesOrder::query()->where('source_quote_id', $quote->id)->exists()) {
+            return back()->with('error', 'Báo giá đã được tạo đơn bán, không được phép sửa để đảm bảo tính pháp lý.');
         }
 
         $validated = $request->validate([
@@ -210,6 +218,10 @@ class QuoteAdminController extends Controller
             'sales_name' => ['nullable', 'string', 'max:150'],
             'discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'vat_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'payment_term' => ['required', Rule::in(['full_advance', 'debt', 'deposit'])],
+            'payment_due_days' => ['nullable', 'integer', 'min:0', 'max:365'],
+            'deposit_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'payment_note' => ['nullable', 'string', 'max:500'],
             'valid_until' => ['nullable', 'date'],
             'status' => ['required', Rule::in(['pending', 'approved', 'won', 'lost', 'cancelled'])],
             'note' => ['nullable', 'string', 'max:2000'],
@@ -226,13 +238,16 @@ class QuoteAdminController extends Controller
             'status' => $quote->status,
             'discount_percent' => $quote->discount_percent,
             'vat_percent' => $quote->vat_percent,
+            'payment_term' => $quote->payment_term,
+            'payment_due_days' => $quote->payment_due_days,
+            'deposit_percent' => $quote->deposit_percent,
         ];
 
         $oldStatus = (string) ($quote->status ?? 'pending');
         $newStatus = (string) ($validated['status'] ?? $oldStatus);
         $allowedTransitions = [
             'pending' => ['pending', 'approved', 'lost', 'cancelled'],
-            'approved' => ['approved', 'won', 'lost', 'cancelled'],
+            'approved' => ['approved', 'lost', 'cancelled'],
             'lost' => ['lost'],
             'cancelled' => ['cancelled'],
             'won' => ['won'],
@@ -259,6 +274,10 @@ class QuoteAdminController extends Controller
                 'sales_name' => $validated['sales_name'] ?? null,
                 'discount_percent' => $validated['discount_percent'] ?? 0,
                 'vat_percent' => $validated['vat_percent'] ?? 8,
+                'payment_term' => $validated['payment_term'],
+                'payment_due_days' => $validated['payment_term'] === 'debt' ? (int) ($validated['payment_due_days'] ?? 0) : null,
+                'deposit_percent' => $validated['payment_term'] === 'deposit' ? (float) ($validated['deposit_percent'] ?? 0) : null,
+                'payment_note' => $validated['payment_note'] ?? null,
                 'valid_until' => $validated['valid_until'] ?? now()->addDays(15)->toDateString(),
                 'status' => $validated['status'],
                 'note' => $validated['note'] ?? null,
@@ -310,6 +329,9 @@ class QuoteAdminController extends Controller
                     'status' => $quote->status,
                     'discount_percent' => $quote->discount_percent,
                     'vat_percent' => $quote->vat_percent,
+                    'payment_term' => $quote->payment_term,
+                    'payment_due_days' => $quote->payment_due_days,
+                    'deposit_percent' => $quote->deposit_percent,
                 ],
             ],
             $request
@@ -318,18 +340,60 @@ class QuoteAdminController extends Controller
         return redirect()->route('admin.quotes.edit', $quote)->with('success', 'Đã cập nhật báo giá thành công.');
     }
 
+    public function updateStatus(Request $request, Quote $quote)
+    {
+        $validated = $request->validate([
+            'status' => ['required', Rule::in(['pending', 'approved', 'lost', 'cancelled'])],
+        ]);
+
+        $oldStatus = (string) ($quote->status ?? 'pending');
+        $newStatus = (string) ($validated['status'] ?? $oldStatus);
+
+        $allowedTransitions = [
+            'pending' => ['pending', 'approved', 'lost', 'cancelled'],
+            'approved' => ['approved', 'lost', 'cancelled'],
+            'lost' => ['lost'],
+            'cancelled' => ['cancelled'],
+            'won' => ['won'],
+        ];
+
+        if (!in_array($newStatus, $allowedTransitions[$oldStatus] ?? [$oldStatus], true)) {
+            return back()->with('error', "Không thể chuyển trạng thái từ '{$oldStatus}' sang '{$newStatus}'.");
+        }
+
+        $quote->update(['status' => $newStatus]);
+
+        ActivityLogger::log(
+            'quote.update_status',
+            $quote,
+            'Cập nhật trạng thái báo giá',
+            [
+                'quote_code' => $quote->quote_code,
+                'old_status' => $oldStatus,
+                'new_status' => $newStatus,
+            ],
+            $request
+        );
+
+        return back()->with('success', 'Đã cập nhật trạng thái báo giá.');
+    }
+
     public function convertToOrder(Request $request, Quote $quote)
     {
+        $validated = $request->validate([
+            'delivery_due_date' => ['nullable', 'date'],
+            'payment_due_date' => ['nullable', 'date'],
+        ]);
         $existing = SalesOrder::query()->where('source_quote_id', $quote->id)->first();
         if ($existing) {
             return redirect()->route('admin.sales-orders.show', $existing)->with('success', 'Báo giá đã được chốt trước đó.');
         }
 
         if ((string) $quote->status !== 'approved') {
-            return back()->with('error', 'Chỉ được chốt báo giá ở trạng thái Đã duyệt để đảm bảo quy trình kiểm soát nội bộ.');
+            return back()->with('error', 'Chỉ được tạo đơn bán từ báo giá ở trạng thái Đã duyệt.');
         }
 
-        $salesOrder = DB::transaction(function () use ($quote) {
+        $salesOrder = DB::transaction(function () use ($quote, $validated) {
             $salesOrderCode = DocumentCodeGenerator::next(SalesOrder::query(), 'sales_order_code', 'SO');
 
             $salesOrder = SalesOrder::create([
@@ -349,6 +413,12 @@ class QuoteAdminController extends Controller
                 'sales_name' => $quote->sales_name,
                 'discount_percent' => $quote->discount_percent,
                 'vat_percent' => $quote->vat_percent,
+                'payment_term' => $quote->payment_term ?: 'full_advance',
+                'payment_due_days' => $quote->payment_due_days,
+                'deposit_percent' => $quote->deposit_percent,
+                'payment_note' => $quote->payment_note,
+                'payment_due_date' => $validated['payment_due_date'] ?? (($quote->payment_term === 'debt' && !empty($quote->payment_due_days)) ? now()->addDays((int) $quote->payment_due_days)->toDateString() : null),
+                'delivery_due_date' => $validated['delivery_due_date'] ?? null,
                 'note' => $quote->note,
                 'status' => 'pending',
             ]);
@@ -363,7 +433,30 @@ class QuoteAdminController extends Controller
                 ]);
             }
 
-            $quote->update(['status' => 'won']);
+            $subTotal = (float) $quote->items->sum(function ($i) {
+                return (float) ($i->price ?? 0) * (int) ($i->quantity ?? 0);
+            });
+            $discountPercent = (float) ($quote->discount_percent ?? 0);
+            $vatPercent = (float) ($quote->vat_percent ?? 8);
+            $afterDiscount = max(0, $subTotal * (1 - ($discountPercent / 100)));
+            $vatAmount = $afterDiscount * ($vatPercent / 100);
+            $totalAmount = $afterDiscount + $vatAmount;
+
+            if (Schema::hasTable('debts')) {
+                Debt::create([
+                    'sales_order_id' => $salesOrder->id,
+                    'debt_code' => DocumentCodeGenerator::next(Debt::query(), 'debt_code', 'CN'),
+                    'total_amount' => $totalAmount,
+                    'paid_amount' => 0,
+                    'remaining_amount' => $totalAmount,
+                    'status' => 'unpaid',
+                    'due_date' => ($quote->payment_term === 'debt' && !empty($quote->payment_due_days))
+                        ? now()->addDays((int) $quote->payment_due_days)->toDateString()
+                        : null,
+                    'last_paid_at' => null,
+                    'note' => $quote->payment_note,
+                ]);
+            }
 
             return $salesOrder;
         });
@@ -371,7 +464,7 @@ class QuoteAdminController extends Controller
         ActivityLogger::log(
             'quote.convert_to_sales_order',
             $quote,
-            'Chốt báo giá thành đơn bán hàng',
+            'Tạo đơn bán từ báo giá đã duyệt',
             [
                 'quote_id' => $quote->id,
                 'quote_code' => $quote->quote_code,
@@ -381,7 +474,7 @@ class QuoteAdminController extends Controller
             $request
         );
 
-        return redirect()->route('admin.sales-orders.show', $salesOrder)->with('success', 'Đã chốt báo giá thành đơn bán hàng.');
+        return redirect()->route('admin.sales-orders.show', $salesOrder)->with('success', 'Đã tạo đơn bán từ báo giá đã duyệt.');
     }
 
     private function nextQuoteCode(): string

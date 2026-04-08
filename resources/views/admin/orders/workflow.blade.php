@@ -7,7 +7,6 @@
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>
             <h1 class="h4 fw-bold mb-1">Quy trình chứng từ: {{ $order->order_code }}</h1>
-            <div class="text-muted">Mô hình quản lý theo chuẩn nghiệp vụ: Đơn hàng → Xuất kho → Hóa đơn → Thu tiền.</div>
         </div>
         <div class="d-flex gap-2">
             <a href="{{ route('admin.orders.show', $order) }}" class="btn btn-outline-secondary">Về chi tiết đơn</a>
