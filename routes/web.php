@@ -740,6 +740,7 @@ Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::get('quotes/create', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'create'])->name('quotes.create');
     Route::post('quotes', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'store'])->name('quotes.store');
     Route::get('quotes/{quote}', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'show'])->name('quotes.show');
+    Route::get('quotes/{quote}/print', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'print'])->name('quotes.print');
     Route::get('quotes/{quote}/edit', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'edit'])->name('quotes.edit');
     Route::patch('quotes/{quote}', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'update'])->name('quotes.update');
     Route::patch('quotes/{quote}/status', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'updateStatus'])->name('quotes.update-status');
@@ -754,6 +755,17 @@ Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::get('sales-orders/{salesOrder}/invoices/create', [\App\Http\Controllers\Admin\SalesOrderAdminController::class, 'createInvoice'])->name('sales-orders.invoices.create');
     Route::post('sales-orders/{salesOrder}/invoices', [\App\Http\Controllers\Admin\SalesOrderAdminController::class, 'storeInvoice'])->name('sales-orders.invoices.store');
     Route::patch('sales-orders/{salesOrder}/payment', [\App\Http\Controllers\Admin\SalesOrderAdminController::class, 'updatePayment'])->name('sales-orders.payment.update');
+
+    // Document templates
+    Route::get('document-templates', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'index'])->name('document-templates.index');
+    Route::post('document-templates', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'store'])->name('document-templates.store');
+    Route::patch('document-templates/{documentTemplate}', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'update'])->name('document-templates.update');
+    Route::delete('document-templates/{documentTemplate}', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'destroy'])->name('document-templates.destroy');
+    Route::get('document-templates/fields/download', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'downloadFields'])->name('document-templates.fields.download');
+    Route::get('document-templates/{documentTemplate}/render/quote/{quote}', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'renderQuote'])->name('document-templates.render.quote');
+    Route::get('document-templates/{documentTemplate}/render/sales-order/{salesOrder}', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'renderSalesOrder'])->name('document-templates.render.sales-order');
+    Route::get('document-templates/render-default/quote/{quote}', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'renderDefaultQuote'])->name('document-templates.render-default.quote');
+    Route::get('document-templates/render-default/sales-order/{salesOrder}', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'renderDefaultSalesOrder'])->name('document-templates.render-default.sales-order');
 
     // Debt management
     Route::get('debts', [\App\Http\Controllers\Admin\DebtAdminController::class, 'index'])->name('debts.index');

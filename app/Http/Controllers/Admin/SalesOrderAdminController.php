@@ -80,6 +80,13 @@ class SalesOrderAdminController extends Controller
         $paidAmount = (float) ($salesOrder->debt->paid_amount ?? $salesOrder->paid_amount ?? 0);
         $remainingDebt = max(0, $orderTotal - $paidAmount);
 
+        $salesOrderTemplates = \App\Models\DocumentTemplate::query()
+            ->whereIn('type', ['sales_order', 'quote', 'shared'])
+            ->where('is_active', true)
+            ->orderByDesc('is_default')
+            ->orderByDesc('created_at')
+            ->get();
+
         return view('admin.sales_orders.show', [
             'salesOrder' => $salesOrder,
             'deliveries' => $deliveries,
@@ -89,6 +96,7 @@ class SalesOrderAdminController extends Controller
             'orderTotal' => $orderTotal,
             'paidAmount' => $paidAmount,
             'remainingDebt' => $remainingDebt,
+            'salesOrderTemplates' => $salesOrderTemplates,
         ]);
     }
 
@@ -348,7 +356,7 @@ class SalesOrderAdminController extends Controller
             ActivityLogger::log(
                 'sales_order.invoice.create',
                 $invoice,
-                'Phát hành hóa đơn từ đơn bán ngoài',
+                'Phát hành hóa đơn từ đơn hàng',
                 [
                     'invoice_code' => $invoice->invoice_code,
                     'sales_order_id' => $salesOrder->id,

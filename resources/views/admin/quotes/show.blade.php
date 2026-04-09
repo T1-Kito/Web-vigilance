@@ -48,6 +48,13 @@
 @endphp
 
 <div class="container-fluid py-4">
+    @if(session('error'))
+        <div class="alert alert-danger">{{ session('error') }}</div>
+    @endif
+    @if(session('success'))
+        <div class="alert alert-success">{{ session('success') }}</div>
+    @endif
+
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>
             <h1 class="h4 fw-bold mb-1">Chi tiết báo giá: {{ $orderCode }}</h1>
@@ -57,6 +64,22 @@
             <a href="{{ route('orders.quote', ['orderCode' => $orderCode]) }}" target="_blank" rel="noopener" class="btn btn-outline-primary">
                 <i class="bi bi-eye me-1"></i>Xem báo giá
             </a>
+            @if(($quoteTemplates ?? collect())->count() > 0)
+                <div class="dropdown">
+                    <button class="btn btn-outline-success dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-file-earmark-word me-1"></i>Chọn mẫu để in
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        @foreach(($quoteTemplates ?? collect()) as $tpl)
+                            <li>
+                                <a class="dropdown-item" href="{{ route('admin.document-templates.render.quote', ['documentTemplate' => $tpl, 'quote' => $quote]) }}">
+                                    {{ $tpl->name }} @if($tpl->is_default)<span class="text-primary">(mặc định)</span>@endif
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
             <a href="{{ route('admin.quotes.edit', $quote) }}" class="btn btn-primary">Chỉnh sửa</a>
 
             @if((string) $quote->status === 'approved' && !$salesOrder)

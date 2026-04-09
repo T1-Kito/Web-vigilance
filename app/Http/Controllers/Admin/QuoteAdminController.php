@@ -176,9 +176,26 @@ class QuoteAdminController extends Controller
 
     public function show(Quote $quote)
     {
+        $quote->load(['items.product', 'user', 'convertedSalesOrder']);
+
+        $quoteTemplates = \App\Models\DocumentTemplate::query()
+            ->where('type', 'quote')
+            ->where('is_active', true)
+            ->orderByDesc('is_default')
+            ->orderByDesc('created_at')
+            ->get();
+
         return view('admin.quotes.show', [
-            'quote' => $quote->load(['items.product', 'user', 'convertedSalesOrder']),
+            'quote' => $quote,
+            'quoteTemplates' => $quoteTemplates,
         ]);
+    }
+
+    public function print(Quote $quote)
+    {
+        $orderCode = $quote->quote_code ?? ('BG' . str_pad((string) $quote->id, 6, '0', STR_PAD_LEFT));
+
+        return redirect()->route('orders.quote', ['orderCode' => $orderCode, 'print' => 1]);
     }
 
     public function edit(Quote $quote)

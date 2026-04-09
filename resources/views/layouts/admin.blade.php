@@ -398,6 +398,12 @@
                 </a>
             </div>
             <div class="nav-item">
+                <a href="{{ route('admin.document-templates.index') }}" class="nav-link {{ request()->routeIs('admin.document-templates.*') ? 'active' : '' }}">
+                    <div class="nav-icon"><i class="bi bi-file-earmark-richtext"></i></div>
+                    Mẫu in chứng từ
+                </a>
+            </div>
+            <div class="nav-item">
                 <a href="{{ route('admin.debts.index') }}" class="nav-link {{ request()->routeIs('admin.debts.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-cash-coin"></i></div>
                     Quản lý công nợ
