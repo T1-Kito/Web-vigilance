@@ -78,6 +78,8 @@
                         <option value="">Tất cả</option>
                         <option value="company" @selected(request('customer_type') === 'company')>Doanh nghiệp</option>
                         <option value="individual" @selected(request('customer_type') === 'individual')>Cá nhân</option>
+                        <option value="Khách hàng đại lý cấp 1" @selected(request('customer_type') === 'Khách hàng đại lý cấp 1')>Đại lý cấp 1</option>
+                        <option value="Khách hàng đại lý cấp 2" @selected(request('customer_type') === 'Khách hàng đại lý cấp 2')>Đại lý cấp 2</option>
                     </select>
                 </div>
                 <div class="col-lg-2">
@@ -104,82 +106,56 @@
                 </div>
             </form>
 
-            <div class="table-responsive">
-                <table class="table align-middle" style="min-width: 1100px;">
-                    <thead class="table-light">
+            <div class="table-responsive customer-grid-wrap">
+                <table class="table customer-grid mb-0" style="min-width: 1000px;">
+                    <thead>
                         <tr>
-                            <th style="width:4%;">#</th>
-                            <th style="width:28%;">Khách hàng</th>
-                            <th style="width:12%;">MST/CCCD</th>
-                            <th style="width:13%;">Người phụ trách</th>
-                            <th style="width:14%;">Liên hệ</th>
-                            <th style="width:14%;">Trạng thái</th>
-                            <th style="width:9%;">Ngày tạo</th>
-                            <th style="width:72px;" class="text-center">...</th>
+                            <th style="width:34px;"><input type="checkbox" class="form-check-input" disabled></th>
+                            <th style="width:190px;">Mã KH</th>
+                            <th style="width:170px;">Loại khách hàng</th>
+                            <th>Tên khách hàng</th>
+                            <th style="width:150px;">MST/CCCD</th>
+                            <th style="width:90px;" class="text-center">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($customers as $i => $c)
                             @php
-                                $isActive = blank($c->company_status) || Str::contains(Str::lower((string)$c->company_status), 'hoạt động');
-                                $isCompany = !blank($c->tax_id);
+                                $customerType = trim((string) ($c->customer_type ?? ''));
+                                $fallbackType = !blank($c->tax_id) ? 'Khách hàng doanh nghiệp' : 'Khách hàng cá nhân';
+                                $typeLabel = $customerType !== '' ? $customerType : $fallbackType;
+                                $customerCode = 'KH' . str_pad((string) $c->id, 8, '0', STR_PAD_LEFT);
+                                $typeClass = match ($typeLabel) {
+                                    'Khách hàng đại lý cấp 1' => 'type-chip type-agent-1',
+                                    'Khách hàng đại lý cấp 2' => 'type-chip type-agent-2',
+                                    'Khách hàng cá nhân' => 'type-chip type-personal',
+                                    default => 'type-chip type-company',
+                                };
                             @endphp
-                            <tr>
-                                <td>{{ $customers->firstItem() + $i }}</td>
+                            <tr class="customer-row-link" data-href="{{ route('admin.customers.show', $c) }}">
+                                <td><input type="checkbox" class="form-check-input" disabled></td>
+                                <td class="fw-semibold text-primary">{{ $customerCode }}</td>
+                                <td><span class="{{ $typeClass }}">{{ $typeLabel }}</span></td>
                                 <td>
-                                    <div class="fw-semibold text-dark" title="{{ $c->name }}">{{ Str::limit($c->name, 55) }}</div>
-                                    <div class="small text-muted d-flex gap-2 flex-wrap">
-                                        <span class="badge {{ $isCompany ? 'bg-primary-subtle text-primary' : 'bg-secondary-subtle text-secondary' }}">{{ $isCompany ? 'Doanh nghiệp' : 'Cá nhân' }}</span>
-                                        @if(!empty($c->invoice_recipient))
-                                            <span title="{{ $c->invoice_recipient }}"><i class="bi bi-person-vcard me-1"></i>{{ Str::limit($c->invoice_recipient, 26) }}</span>
-                                        @endif
-                                    </div>
+                                    <a href="{{ route('admin.customers.show', $c) }}" class="customer-name-link" title="{{ $c->name }}">
+                                        {{ Str::upper(Str::limit($c->name, 58)) }}
+                                    </a>
                                 </td>
-                                <td>{{ $c->tax_id ?: '---' }}</td>
-                                <td>{{ $c->representative ?: '---' }}</td>
-                                <td>
-                                    <div>{{ $c->phone ?: '---' }}</div>
-                                    <div class="small text-muted" title="{{ $c->email }}">{{ $c->email ? Str::limit($c->email, 26) : '---' }}</div>
-                                </td>
-                                <td>
-                                    <span class="badge {{ $isActive ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning' }}">
-                                        {{ $c->company_status ?: 'Đang hoạt động' }}
-                                    </span>
-                                </td>
-                                <td>{{ optional($c->created_at)->format('d/m/Y') }}</td>
-                                <td class="text-center py-2">
-                                    <div class="dropdown">
-                                        <button class="btn btn-link text-secondary p-1 rounded-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Thao tác">
-                                            <i class="bi bi-three-dots-vertical fs-5 lh-1"></i>
-                                        </button>
-                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 small">
-                                            <li>
-                                                <a class="dropdown-item" href="{{ route('admin.customers.show', $c) }}">
-                                                    <i class="bi bi-person-lines-fill me-2 text-info"></i>Hồ sơ 360
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item" href="{{ route('admin.customers.edit', $c) }}">
-                                                    <i class="bi bi-pencil-square me-2 text-primary"></i>Sửa khách hàng
-                                                </a>
-                                            </li>
-                                            <li><hr class="dropdown-divider my-1"></li>
-                                            <li>
-                                                <form action="{{ route('admin.customers.destroy', $c) }}" method="POST" onsubmit="return confirm('Xóa khách hàng này?');">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="dropdown-item text-danger">
-                                                        <i class="bi bi-trash me-2"></i>Xóa
-                                                    </button>
-                                                </form>
-                                            </li>
-                                        </ul>
+                                <td>{{ $c->tax_id ?: '-' }}</td>
+                                <td class="text-center">
+                                    <div class="d-inline-flex align-items-center gap-2">
+                                        <a href="{{ route('admin.customers.edit', $c) }}" class="icon-btn" title="Sửa"><i class="bi bi-pencil"></i></a>
+                                        <form action="{{ route('admin.customers.destroy', $c) }}" method="POST" onsubmit="return confirm('Xóa khách hàng này?');" class="d-inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="icon-btn text-danger" title="Xóa"><i class="bi bi-trash"></i></button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="text-center text-muted py-4">
+                                <td colspan="6" class="text-center text-muted py-4">
                                     <div class="fw-semibold mb-1">Chưa có khách hàng</div>
                                     <a href="{{ route('admin.customers.create') }}" class="btn btn-sm btn-primary mt-2">Thêm khách hàng</a>
                                 </td>
@@ -189,8 +165,121 @@
                 </table>
             </div>
 
-            {{ $customers->links() }}
+            <div class="mt-3">{{ $customers->links() }}</div>
         </div>
     </div>
 </div>
+
+<style>
+.customer-grid-wrap {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.customer-grid thead th {
+    background: #f6f7fb;
+    color: #5b6477;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .2px;
+    border-bottom: 1px solid #dfe3ec;
+    padding: 10px 12px;
+    white-space: nowrap;
+}
+
+.customer-grid tbody td {
+    border-bottom: 1px solid #eceff5;
+    padding: 9px 12px;
+    font-size: 14px;
+    color: #2f3747;
+    vertical-align: middle;
+}
+
+.customer-grid tbody tr {
+    transition: background-color .15s ease;
+}
+
+.customer-grid tbody tr:hover > * {
+    background: #e8f3ff !important;
+}
+
+.customer-row-link {
+    cursor: pointer;
+}
+
+.customer-name-link {
+    color: #1f4ba5;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.customer-name-link:hover {
+    text-decoration: underline;
+}
+
+.type-chip {
+    display: inline-block;
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.35;
+    padding: 0;
+    border-radius: 0;
+    background: transparent !important;
+}
+
+.type-company {
+    color: #1d4ed8;
+}
+
+.type-agent-1 {
+    color: #b45309;
+}
+
+.type-agent-2 {
+    color: #0f766e;
+}
+
+.type-personal {
+    color: #4b5563;
+}
+
+.icon-btn {
+    border: none;
+    background: #f1f3f8;
+    color: #6b7280;
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
+.icon-btn:hover {
+    background: #e5e9f2;
+    color: #374151;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.customer-row-link').forEach(function (row) {
+        row.addEventListener('click', function (event) {
+            const target = event.target;
+            if (target.closest('a') || target.closest('button') || target.closest('form') || target.closest('input') || target.closest('select') || target.closest('textarea') || target.closest('label')) {
+                return;
+            }
+            const href = row.getAttribute('data-href');
+            if (href) {
+                window.location.href = href;
+            }
+        });
+    });
+});
+</script>
 @endsection

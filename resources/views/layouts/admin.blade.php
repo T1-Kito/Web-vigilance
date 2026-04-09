@@ -165,26 +165,34 @@
             color: var(--sidebar-text);
             text-decoration: none;
             border-radius: 10px;
-            transition: none;
+            transition: none !important;
             font-weight: 600;
             font-size: 1.05em;
+            box-shadow: none !important;
+            transform: none !important;
+            filter: none !important;
         }
         
         .nav-link:hover {
             background: var(--sidebar-hover);
             color: #2563eb;
+            box-shadow: none !important;
+            transform: none !important;
+            filter: none !important;
         }
         
         .nav-link.active {
-            background: var(--sidebar-active);
-            color: var(--sidebar-active-text);
+            background: transparent;
+            color: var(--sidebar-text);
             font-weight: 700;
-            box-shadow: none;
+            box-shadow: none !important;
+            transform: none !important;
+            filter: none !important;
         }
         
         .nav-link.active:hover {
-            background: var(--sidebar-active);
-            color: var(--sidebar-active-text);
+            background: var(--sidebar-hover);
+            color: #2563eb;
         }
         
         .nav-icon {

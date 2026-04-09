@@ -14,6 +14,7 @@ class Customer extends Model
         'invoice_recipient',
         'email',
         'phone',
+        'customer_type',
         'company_status',
         'representative',
         'managed_by',

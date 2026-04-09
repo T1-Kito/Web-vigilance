@@ -27,6 +27,7 @@ class CustomerController extends Controller
             'invoice_recipient',
             'email',
             'phone',
+            'customer_type',
             'company_status',
             'representative',
             'managed_by',
@@ -2544,12 +2545,29 @@ class CustomerController extends Controller
             $query->where('business_type', 'like', "%{$bizType}%");
         }
 
-        if ($customerType === 'company') {
-            $query->whereNotNull('tax_id')->where('tax_id', '!=', '');
-        } elseif ($customerType === 'individual') {
-            $query->where(function ($sub) {
-                $sub->whereNull('tax_id')->orWhere('tax_id', '');
-            });
+        if ($customerType !== '') {
+            if ($customerType === 'company') {
+                $query->where(function ($sub) {
+                    $sub->where('customer_type', 'Khách hàng doanh nghiệp')
+                        ->orWhere(function ($q2) {
+                            $q2->whereNull('customer_type')
+                               ->whereNotNull('tax_id')
+                               ->where('tax_id', '!=', '');
+                        });
+                });
+            } elseif ($customerType === 'individual') {
+                $query->where(function ($sub) {
+                    $sub->where('customer_type', 'Khách hàng cá nhân')
+                        ->orWhere(function ($q2) {
+                            $q2->whereNull('customer_type')
+                               ->where(function ($q3) {
+                                   $q3->whereNull('tax_id')->orWhere('tax_id', '');
+                               });
+                        });
+                });
+            } else {
+                $query->where('customer_type', $customerType);
+            }
         }
 
         $customers = $query->orderByDesc('created_at')->paginate(20)->withQueryString();
@@ -2697,6 +2715,7 @@ class CustomerController extends Controller
             'invoice_recipient' => 'nullable|string|max:255',
             'email' => 'nullable|string|email|max:255',
             'phone' => 'nullable|string|max:30',
+            'customer_type' => 'nullable|string|max:255',
             'company_status' => 'nullable|string|max:255',
             'representative' => 'nullable|string|max:255',
             'managed_by' => 'nullable|string|max:255',
@@ -2736,6 +2755,7 @@ class CustomerController extends Controller
             'invoice_recipient' => 'nullable|string|max:255',
             'email' => 'nullable|string|email|max:255',
             'phone' => 'nullable|string|max:30',
+            'customer_type' => 'nullable|string|max:255',
             'company_status' => 'nullable|string|max:255',
             'representative' => 'nullable|string|max:255',
             'managed_by' => 'nullable|string|max:255',
@@ -2746,11 +2766,11 @@ class CustomerController extends Controller
 
         $validated = $this->filterExistingCustomerColumns($validated);
 
-        $before = $customer->only(['name', 'tax_id', 'tax_address', 'address', 'invoice_recipient', 'email', 'phone', 'company_status', 'representative', 'managed_by', 'active_date', 'business_type', 'main_business']);
+        $before = $customer->only(['name', 'tax_id', 'tax_address', 'address', 'invoice_recipient', 'email', 'phone', 'customer_type', 'company_status', 'representative', 'managed_by', 'active_date', 'business_type', 'main_business']);
 
         $customer->update($validated);
 
-        $after = $customer->fresh()->only(['name', 'tax_id', 'tax_address', 'address', 'invoice_recipient', 'email', 'phone', 'company_status', 'representative', 'managed_by', 'active_date', 'business_type', 'main_business']);
+        $after = $customer->fresh()->only(['name', 'tax_id', 'tax_address', 'address', 'invoice_recipient', 'email', 'phone', 'customer_type', 'company_status', 'representative', 'managed_by', 'active_date', 'business_type', 'main_business']);
 
         ActivityLogger::log('customer.update', $customer, 'Cập nhật khách hàng: ' . ($customer->name ?? ''), [
             'before' => $before,

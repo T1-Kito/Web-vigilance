@@ -111,7 +111,7 @@
                     </thead>
                     <tbody>
                         @foreach($products as $product)
-                <tr id="product-{{ $product->id }}" style="border-bottom: 1px solid #e5e7eb; transition: all 0.3s ease;" onmouseover="this.style.backgroundColor='#f8fafc'" onmouseout="this.style.backgroundColor='white'">
+                <tr id="product-{{ $product->id }}" class="product-row" data-href="{{ route('admin.products.show', $product->id) }}" style="border-bottom: 1px solid #e5e7eb; transition: all 0.3s ease; cursor: pointer;">
                     <td style="padding: 15px; text-align: center; font-weight: 600; color: #6b7280;">{{ $loop->iteration }}</td>
                     <td style="padding: 15px; text-align: center; font-weight: 700; color: #1f2937; font-size: 0.95em; white-space: nowrap;">
                         {{ $product->serial_number ?: ('SP-' . str_pad($product->id, 4, '0', STR_PAD_LEFT)) }}
@@ -131,7 +131,7 @@
                             <button
                                 type="button"
                                 class="btn btn-link p-0 product-activity-hist product-activity-hist--price"
-                                style="font-weight: 700; color: #059669; font-size: inherit; text-decoration: underline; text-underline-offset: 2px;"
+                                style="font-weight: 700; color: #059669; font-size: inherit; text-decoration: none;"
                                 data-url="{{ route('admin.products.activity-history', $product) }}"
                                 title="Xem lịch sử thay đổi (tên, hãng, giá…)"
                             >{{ number_format($product->price, 0, ',', '.') }}đ</button>
@@ -181,8 +181,13 @@
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 small">
                                 <li>
+                                    <a class="dropdown-item" href="{{ route('admin.products.show', $product->id) }}">
+                                        <i class="bi bi-eye me-2 text-primary"></i>Chi tiết
+                                    </a>
+                                </li>
+                                <li>
                                     <a class="dropdown-item" href="{{ route('admin.products.edit', $product->id) . '?return_url=' . urlencode(request()->fullUrl()) }}">
-                                        <i class="bi bi-pencil-square me-2 text-primary"></i>Sửa
+                                        <i class="bi bi-pencil-square me-2 text-secondary"></i>Sửa
                                     </a>
                                 </li>
                                 <li><hr class="dropdown-divider my-1"></li>
@@ -253,6 +258,14 @@ button.product-activity-hist--date:hover {
 }
 button.product-activity-hist--price:hover {
     color: #047857 !important;
+    text-decoration: none !important;
+}
+
+.product-row:hover {
+    background: #eaf2ff !important;
+}
+.product-row:hover td {
+    background: #eaf2ff !important;
 }
 </style>
 
@@ -284,6 +297,15 @@ document.addEventListener('DOMContentLoaded', function () {
         d.textContent = String(s);
         return d.innerHTML;
     }
+
+    document.querySelectorAll('.product-row').forEach(function (row) {
+        row.addEventListener('click', function (e) {
+            var blocked = e.target.closest('a,button,form,input,select,textarea,label,.dropdown-menu,.dropdown-toggle');
+            if (blocked) return;
+            var href = row.getAttribute('data-href');
+            if (href) window.location.href = href;
+        });
+    });
 
     document.querySelectorAll('.product-activity-hist').forEach(function (btn) {
         btn.addEventListener('click', function (e) {

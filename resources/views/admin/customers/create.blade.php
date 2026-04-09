@@ -41,8 +41,14 @@
                         <input type="text" name="name" class="form-control" value="{{ old('name') }}" maxlength="255" required>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">Tình trạng</label>
-                        <input type="text" name="company_status" class="form-control" value="{{ old('company_status') }}" maxlength="255">
+                        <label class="form-label fw-bold">Loại khách hàng</label>
+                        <select name="customer_type" class="form-select">
+                            <option value="">-- Chọn loại khách hàng --</option>
+                            <option value="Khách hàng doanh nghiệp" @selected(old('customer_type') === 'Khách hàng doanh nghiệp')>Khách hàng doanh nghiệp</option>
+                            <option value="Khách hàng đại lý cấp 1" @selected(old('customer_type') === 'Khách hàng đại lý cấp 1')>Khách hàng đại lý cấp 1</option>
+                            <option value="Khách hàng đại lý cấp 2" @selected(old('customer_type') === 'Khách hàng đại lý cấp 2')>Khách hàng đại lý cấp 2</option>
+                            <option value="Khách hàng cá nhân" @selected(old('customer_type') === 'Khách hàng cá nhân')>Khách hàng cá nhân</option>
+                        </select>
                     </div>
 
                     <div class="col-12 mt-3">
