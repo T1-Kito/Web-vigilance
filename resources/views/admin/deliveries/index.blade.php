@@ -37,7 +37,7 @@
 
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
-            <div class="table-responsive">
+            <div class="table-responsive table-actions-visible">
                 <table class="table mb-0 align-middle">
                     <thead>
                         <tr>
@@ -60,7 +60,35 @@
                                 </span>
                             </td>
                             <td class="text-end pe-3">
-                                <a href="{{ route('admin.deliveries.show', $delivery) }}" class="btn btn-sm btn-outline-primary">Chi tiết</a>
+                                <div class="dropdown d-inline-block">
+                                    <button
+                                        class="btn btn-link text-secondary p-1 rounded-2"
+                                        type="button"
+                                        data-bs-toggle="dropdown"
+                                        aria-expanded="false"
+                                        title="Thao tác"
+                                        style="background: rgba(15,23,42,0.05); border-radius: 999px; width: 36px; height: 36px; display:inline-flex; align-items:center; justify-content:center;"
+                                    >
+                                        <i class="bi bi-three-dots-vertical fs-5 lh-1"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-right shadow-sm border-0 small">
+                                        <li>
+                                            <a class="dropdown-item" href="{{ route('admin.deliveries.show', $delivery) }}">
+                                                <i class="bi bi-eye me-2 text-primary"></i>Chi tiết
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <form method="POST" action="{{ route('admin.deliveries.destroy', $delivery) }}" onsubmit="return confirm('Xóa phiếu xuất kho này?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="dropdown-item text-danger">
+                                                    <i class="bi bi-trash me-2"></i>Xóa
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </div>
                             </td>
                         </tr>
                     @empty
@@ -75,4 +103,16 @@
         <div class="card-footer bg-white">{{ $deliveries->links('pagination::bootstrap-5') }}</div>
     </div>
 </div>
+<style>
+.table-actions-visible {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+}
+.table-actions-visible .dropdown {
+    position: static;
+}
+.table-actions-visible .dropdown-menu {
+    z-index: 2000 !important;
+}
+</style>
 @endsection

@@ -132,4 +132,48 @@ class InvoiceAdminController extends Controller
 
         return view('admin.invoices.show', compact('invoice'));
     }
+
+    public function destroy(Request $request, Invoice $invoice)
+    {
+        DB::transaction(function () use ($invoice) {
+            $salesOrder = $invoice->salesOrder;
+
+            $invoice->items()->delete();
+            $invoice->delete();
+
+            if ($salesOrder) {
+                $subTotal = (float) $salesOrder->items()->sum(function ($item) {
+                    return (float) ($item->unit_price ?? 0) * (int) ($item->quantity ?? 0);
+                });
+                $discountPercent = (float) ($salesOrder->discount_percent ?? 0);
+                $vatPercent = (float) ($salesOrder->vat_percent ?? 8);
+                $afterDiscount = max(0, $subTotal * (1 - ($discountPercent / 100)));
+                $vatAmount = $afterDiscount * ($vatPercent / 100);
+                $total = $afterDiscount + $vatAmount;
+                $paid = (float) ($salesOrder->paid_amount ?? 0);
+                $remaining = max(0, $total - $paid);
+
+                $status = $remaining <= 0 ? 'paid' : ($paid > 0 ? 'partial' : 'unpaid');
+
+                $salesOrder->update(['payment_status' => $status]);
+                $salesOrder->debt()?->update([
+                    'status' => $status,
+                    'remaining_amount' => $remaining,
+                ]);
+            }
+        });
+
+        ActivityLogger::log(
+            'invoice.delete',
+            $invoice,
+            'Xóa hóa đơn',
+            [
+                'invoice_id' => $invoice->id,
+                'invoice_code' => $invoice->invoice_code,
+            ],
+            $request
+        );
+
+        return redirect()->route('admin.invoices.index')->with('success', 'Đã xóa hóa đơn.');
+    }
 }

@@ -743,6 +743,7 @@ Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::get('quotes/{quote}/print', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'print'])->name('quotes.print');
     Route::get('quotes/{quote}/edit', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'edit'])->name('quotes.edit');
     Route::patch('quotes/{quote}', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'update'])->name('quotes.update');
+    Route::delete('quotes/{quote}', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'destroy'])->name('quotes.destroy');
     Route::patch('quotes/{quote}/status', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'updateStatus'])->name('quotes.update-status');
     Route::post('quotes/{quote}/convert-to-order', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'convertToOrder'])->name('quotes.convert-to-order');
 
@@ -755,6 +756,7 @@ Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::get('sales-orders/{salesOrder}/invoices/create', [\App\Http\Controllers\Admin\SalesOrderAdminController::class, 'createInvoice'])->name('sales-orders.invoices.create');
     Route::post('sales-orders/{salesOrder}/invoices', [\App\Http\Controllers\Admin\SalesOrderAdminController::class, 'storeInvoice'])->name('sales-orders.invoices.store');
     Route::patch('sales-orders/{salesOrder}/payment', [\App\Http\Controllers\Admin\SalesOrderAdminController::class, 'updatePayment'])->name('sales-orders.payment.update');
+    Route::delete('sales-orders/{salesOrder}', [\App\Http\Controllers\Admin\SalesOrderAdminController::class, 'destroy'])->name('sales-orders.destroy');
 
     // Document templates
     Route::get('document-templates', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'index'])->name('document-templates.index');
@@ -778,12 +780,14 @@ Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::post('orders/{order}/deliveries', [\App\Http\Controllers\Admin\DeliveryAdminController::class, 'store'])->name('deliveries.store');
     Route::get('deliveries/{delivery}', [\App\Http\Controllers\Admin\DeliveryAdminController::class, 'show'])->name('deliveries.show');
     Route::get('deliveries/{delivery}/print', [\App\Http\Controllers\Admin\DeliveryAdminController::class, 'print'])->name('deliveries.print');
+    Route::delete('deliveries/{delivery}', [\App\Http\Controllers\Admin\DeliveryAdminController::class, 'destroy'])->name('deliveries.destroy');
 
     // Invoice management (hóa đơn)
     Route::get('invoices', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'index'])->name('invoices.index');
     Route::get('orders/{order}/invoices/create', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'createFromOrder'])->name('invoices.create-from-order');
     Route::post('orders/{order}/invoices', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'store'])->name('invoices.store');
     Route::get('invoices/{invoice}', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'show'])->name('invoices.show');
+    Route::delete('invoices/{invoice}', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'destroy'])->name('invoices.destroy');
 
     // Purchase management
     Route::get('purchase-orders/{purchaseOrder}/export-pdf', [\App\Http\Controllers\Admin\PurchaseOrderController::class, 'exportPdf'])

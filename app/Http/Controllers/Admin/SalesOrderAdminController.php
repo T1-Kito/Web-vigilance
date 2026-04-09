@@ -299,6 +299,52 @@ class SalesOrderAdminController extends Controller
         return back()->with('success', 'Đã cập nhật công nợ đơn hàng.');
     }
 
+    public function destroy(Request $request, SalesOrder $salesOrder)
+    {
+        $forceDelete = (bool) $request->boolean('force_delete');
+
+        if (!$forceDelete && Delivery::query()->where('sales_order_id', $salesOrder->id)->exists()) {
+            return back()->with('error', 'Đơn bán đã có phiếu xuất kho. Bật xóa cưỡng bức để xóa cả chuỗi chứng từ.');
+        }
+
+        if (!$forceDelete && Invoice::query()->where('sales_order_id', $salesOrder->id)->exists()) {
+            return back()->with('error', 'Đơn bán đã có hóa đơn. Bật xóa cưỡng bức để xóa cả chuỗi chứng từ.');
+        }
+
+        DB::transaction(function () use ($salesOrder, $forceDelete) {
+            if ($forceDelete) {
+                $deliveryIds = Delivery::query()->where('sales_order_id', $salesOrder->id)->pluck('id');
+                if ($deliveryIds->isNotEmpty()) {
+                    DeliveryItem::query()->whereIn('delivery_id', $deliveryIds)->delete();
+                    Delivery::query()->whereIn('id', $deliveryIds)->delete();
+                }
+
+                $invoiceIds = Invoice::query()->where('sales_order_id', $salesOrder->id)->pluck('id');
+                if ($invoiceIds->isNotEmpty()) {
+                    InvoiceItem::query()->whereIn('invoice_id', $invoiceIds)->delete();
+                    Invoice::query()->whereIn('id', $invoiceIds)->delete();
+                }
+            }
+
+            $salesOrder->items()->delete();
+            $salesOrder->debt()?->delete();
+            $salesOrder->delete();
+        });
+
+        ActivityLogger::log(
+            'sales_order.delete',
+            $salesOrder,
+            'Xóa đơn bán ngoài',
+            [
+                'sales_order_id' => $salesOrder->id,
+                'sales_order_code' => $salesOrder->sales_order_code,
+            ],
+            $request
+        );
+
+        return redirect()->route('admin.sales-orders.index')->with('success', 'Đã xóa đơn bán ngoài.');
+    }
+
     public function storeInvoice(Request $request, SalesOrder $salesOrder)
     {
         $validated = $request->validate([

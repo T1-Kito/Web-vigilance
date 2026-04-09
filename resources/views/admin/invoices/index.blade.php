@@ -62,7 +62,35 @@
                             </td>
                             <td class="fw-bold text-danger">{{ number_format((float) $invoice->total_amount, 0, ',', '.') }}đ</td>
                             <td class="text-end pe-3">
-                                <a href="{{ route('admin.invoices.show', $invoice) }}" class="btn btn-sm btn-outline-primary">Chi tiết</a>
+                                <div class="dropdown d-inline-block">
+                                    <button
+                                        class="btn btn-link text-secondary p-1 rounded-2"
+                                        type="button"
+                                        data-bs-toggle="dropdown"
+                                        aria-expanded="false"
+                                        title="Thao tác"
+                                        style="background: rgba(15,23,42,0.05); border-radius: 999px; width: 36px; height: 36px; display:inline-flex; align-items:center; justify-content:center;"
+                                    >
+                                        <i class="bi bi-three-dots-vertical fs-5 lh-1"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 small">
+                                        <li>
+                                            <a class="dropdown-item" href="{{ route('admin.invoices.show', $invoice) }}">
+                                                <i class="bi bi-eye me-2 text-primary"></i>Chi tiết
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <form method="POST" action="{{ route('admin.invoices.destroy', $invoice) }}" onsubmit="return confirm('Xóa hóa đơn này?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="dropdown-item text-danger">
+                                                    <i class="bi bi-trash me-2"></i>Xóa
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </div>
                             </td>
                         </tr>
                     @empty

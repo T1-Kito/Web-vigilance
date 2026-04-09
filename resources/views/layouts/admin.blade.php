@@ -382,7 +382,7 @@
             <div class="nav-item">
                 <a href="{{ route('admin.sales-orders.index') }}" class="nav-link {{ request()->routeIs('admin.sales-orders.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-receipt"></i></div>
-                    Đơn bán ngoài
+                    Đơn hàng
                 </a>
             </div>
             <div class="nav-item">
