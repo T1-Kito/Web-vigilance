@@ -107,6 +107,8 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
+        $this->normalizeMoneyFields($request);
+
         if (!$request->filled('price')) {
             $request->merge(['price' => 0]);
         }
@@ -115,8 +117,21 @@ class ProductController extends Controller
             'name' => 'required',
             'serial_number' => 'nullable|string|max:255',
             'brand' => 'nullable|string|max:255',
+            'unit_name' => 'nullable|string|max:100',
+            'origin' => 'nullable|string|max:150',
+            'default_warehouse' => 'nullable|string|max:150',
             'category_id' => 'required|exists:categories,id',
             'price' => 'required|numeric',
+            'factory_price' => 'nullable|numeric|min:0',
+            'agency_suggested_price' => 'nullable|numeric|min:0',
+            'agency_price' => 'nullable|numeric|min:0',
+            'retail_price' => 'nullable|numeric|min:0',
+            'shipping_price' => 'nullable|numeric|min:0',
+            'labor_price' => 'nullable|numeric|min:0',
+            'vat_percent' => 'nullable|numeric|min:0|max:100',
+            'price_includes_tax' => 'nullable|boolean',
+            'default_revenue_mode' => 'nullable|string|max:100',
+            'cost_price' => 'nullable|numeric|min:0',
             'discount_percent' => 'nullable|integer|min:0|max:100',
             'sort_order' => 'nullable|integer|min:1',
             'image' => 'nullable|image',
@@ -125,6 +140,13 @@ class ProductController extends Controller
             'information' => 'nullable',
             'specifications' => 'nullable',
             'instruction' => 'nullable',
+            'warranty_months' => 'nullable|integer|min:0|max:240',
+            'warranty_content' => 'nullable|string|max:5000',
+            'height' => 'nullable|numeric|min:0',
+            'length' => 'nullable|numeric|min:0',
+            'width' => 'nullable|numeric|min:0',
+            'radius' => 'nullable|numeric|min:0',
+            'weight' => 'nullable|numeric|min:0',
             'is_featured' => 'nullable|boolean',
             'status' => 'nullable|boolean',
         ], [
@@ -150,6 +172,7 @@ class ProductController extends Controller
             $file->move(public_path('images/products'), $filename);
             $data['image'] = $filename;
         }
+        $data['price_includes_tax'] = $request->has('price_includes_tax') ? 1 : 0;
         $data['is_featured'] = $request->has('is_featured') ? 1 : 0;
         $data['status'] = $request->has('status') ? 1 : 0;
         try {
@@ -229,6 +252,8 @@ class ProductController extends Controller
 
     public function update(Request $request, Product $product)
     {
+        $this->normalizeMoneyFields($request);
+
         $before = $product->only(['name', 'price', 'discount_percent', 'sort_order', 'status', 'is_featured', 'category_id', 'brand', 'serial_number']);
         if (!$request->filled('price')) {
             $request->merge(['price' => 0]);
@@ -238,8 +263,21 @@ class ProductController extends Controller
             'name' => 'required',
             'serial_number' => 'nullable|string|max:255',
             'brand' => 'nullable|string|max:255',
+            'unit_name' => 'nullable|string|max:100',
+            'origin' => 'nullable|string|max:150',
+            'default_warehouse' => 'nullable|string|max:150',
             'category_id' => 'required|exists:categories,id',
             'price' => 'required|numeric',
+            'factory_price' => 'nullable|numeric|min:0',
+            'agency_suggested_price' => 'nullable|numeric|min:0',
+            'agency_price' => 'nullable|numeric|min:0',
+            'retail_price' => 'nullable|numeric|min:0',
+            'shipping_price' => 'nullable|numeric|min:0',
+            'labor_price' => 'nullable|numeric|min:0',
+            'vat_percent' => 'nullable|numeric|min:0|max:100',
+            'price_includes_tax' => 'nullable|boolean',
+            'default_revenue_mode' => 'nullable|string|max:100',
+            'cost_price' => 'nullable|numeric|min:0',
             'discount_percent' => 'nullable|integer|min:0|max:100',
             'sort_order' => 'nullable|integer|min:1',
             'image' => 'nullable|image',
@@ -248,6 +286,13 @@ class ProductController extends Controller
             'information' => 'nullable',
             'specifications' => 'nullable',
             'instruction' => 'nullable',
+            'warranty_months' => 'nullable|integer|min:0|max:240',
+            'warranty_content' => 'nullable|string|max:5000',
+            'height' => 'nullable|numeric|min:0',
+            'length' => 'nullable|numeric|min:0',
+            'width' => 'nullable|numeric|min:0',
+            'radius' => 'nullable|numeric|min:0',
+            'weight' => 'nullable|numeric|min:0',
             'is_featured' => 'nullable|boolean',
             'status' => 'nullable|boolean',
         ], [
@@ -273,6 +318,7 @@ class ProductController extends Controller
             $file->move(public_path('images/products'), $filename);
             $data['image'] = $filename;
         }
+        $data['price_includes_tax'] = $request->has('price_includes_tax') ? 1 : 0;
         $data['is_featured'] = $request->has('is_featured') ? 1 : 0;
         $data['status'] = $request->has('status') ? 1 : 0;
         $product->update($data);
@@ -440,7 +486,41 @@ class ProductController extends Controller
     public function show(Product $product)
     {
         $product->load('images');
-        return view('admin.products.show', compact('product'));
+
+        $quoteItems = \App\Models\QuoteItem::query()
+            ->with(['quote'])
+            ->where('product_id', $product->id)
+            ->whereHas('quote')
+            ->latest('id')
+            ->get();
+
+        $salesOrderItems = \App\Models\SalesOrderItem::query()
+            ->with(['salesOrder'])
+            ->where('product_id', $product->id)
+            ->whereHas('salesOrder')
+            ->latest('id')
+            ->get();
+
+        $invoiceItems = \App\Models\InvoiceItem::query()
+            ->with(['invoice'])
+            ->where('product_id', $product->id)
+            ->whereHas('invoice')
+            ->latest('id')
+            ->get();
+
+        $quoteCount = $quoteItems->pluck('quote_id')->filter()->unique()->count();
+        $salesOrderCount = $salesOrderItems->pluck('sales_order_id')->filter()->unique()->count();
+        $invoiceCount = $invoiceItems->pluck('invoice_id')->filter()->unique()->count();
+
+        return view('admin.products.show', compact(
+            'product',
+            'quoteItems',
+            'salesOrderItems',
+            'invoiceItems',
+            'quoteCount',
+            'salesOrderCount',
+            'invoiceCount'
+        ));
     }
 
 
@@ -615,6 +695,38 @@ class ProductController extends Controller
     /**
      * JSON: lịch sử thay đổi sản phẩm (từ activity_logs — before/after khi cập nhật).
      */
+    private function normalizeMoneyFields(Request $request): void
+    {
+        $moneyFields = [
+            'price',
+            'factory_price',
+            'agency_suggested_price',
+            'agency_price',
+            'retail_price',
+            'shipping_price',
+            'labor_price',
+            'cost_price',
+        ];
+
+        $normalized = [];
+        foreach ($moneyFields as $field) {
+            $value = $request->input($field);
+            if ($value === null || $value === '') {
+                continue;
+            }
+
+            if (is_string($value)) {
+                $value = str_replace(['.', ',', ' '], '', $value);
+            }
+
+            $normalized[$field] = is_numeric($value) ? $value : preg_replace('/[^0-9]/', '', (string) $value);
+        }
+
+        if ($normalized !== []) {
+            $request->merge($normalized);
+        }
+    }
+
     public function activityHistory(Product $product)
     {
         $categoryNames = Category::query()->pluck('name', 'id')->all();

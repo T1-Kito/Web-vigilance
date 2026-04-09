@@ -60,62 +60,108 @@
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <label class="form-label fw-bold">Hãng</label>
-                        <input type="text" id="brand" name="brand" class="form-control" value="{{ old('brand', $product->brand) }}" list="brandOptions" placeholder="Chọn hoặc nhập hãng">
-                        <datalist id="brandOptions">
-                            <option value="ZKTeco"></option>
-                            <option value="Dahua"></option>
-                            <option value="Hikvision"></option>
-                            <option value="KBVision"></option>
-                            <option value="Imou"></option>
-                            <option value="Ezviz"></option>
-                            <option value="Jieshun"></option>
-                            <option value="Vigilance"></option>
-                            <option value="Hytera"></option>
-                            <option value="Commax"></option>
-                            <option value="RISCO"></option>
-                            <option value="TYSSO"></option>
-                        </datalist>
-
-                        <div class="mt-2" style="display:flex; flex-wrap:wrap; gap:8px;">
-                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setBrand('ZKTeco')">ZKTeco</button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setBrand('Dahua')">Dahua</button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setBrand('Hikvision')">Hikvision</button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setBrand('KBVision')">KBVision</button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setBrand('Imou')">Imou</button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setBrand('Ezviz')">Ezviz</button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setBrand('Jieshun')">Jieshun</button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setBrand('Vigilance')">Vigilance</button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setBrand('Hytera')">Hytera</button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setBrand('Commax')">Commax</button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setBrand('RISCO')">RISCO</button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setBrand('TYSSO')">TYSSO</button>
-                        </div>
+                        @php
+                            $brandOptions = ['ZKTeco','Dahua','Hikvision','KBVision','Imou','Ezviz','Jieshun','Vigilance','Hytera','Commax','RISCO','TYSSO'];
+                            $oldBrand = (string) old('brand', $product->brand);
+                            $isCustomBrand = $oldBrand !== '' && !in_array($oldBrand, $brandOptions, true);
+                        @endphp
+                        <select id="brand_select" class="form-select">
+                            <option value="">-- Chọn hãng --</option>
+                            @foreach($brandOptions as $b)
+                                <option value="{{ $b }}" @selected($oldBrand === $b)>{{ $b }}</option>
+                            @endforeach
+                            <option value="__custom__" @selected($isCustomBrand)>Khác...</option>
+                        </select>
+                        <input type="hidden" id="brand" name="brand" value="{{ $oldBrand }}">
+                        <input type="text" id="brand_custom" class="form-control mt-2" placeholder="Nhập hãng khác..." value="{{ $isCustomBrand ? $oldBrand : '' }}" style="display: {{ $isCustomBrand ? 'block' : 'none' }};">
                     </div>
                 </div>
                 <script>
-                    function setBrand(brand) {
-                        var input = document.getElementById('brand');
-                        if (input) input.value = brand;
-                    }
+                    document.addEventListener('DOMContentLoaded', function () {
+                        const selectEl = document.getElementById('brand_select');
+                        const hiddenEl = document.getElementById('brand');
+                        const customEl = document.getElementById('brand_custom');
+                        if (!selectEl || !hiddenEl || !customEl) return;
+
+                        function syncBrand() {
+                            if (selectEl.value === '__custom__') {
+                                customEl.style.display = 'block';
+                                hiddenEl.value = customEl.value || '';
+                            } else {
+                                customEl.style.display = 'none';
+                                hiddenEl.value = selectEl.value || '';
+                            }
+                        }
+
+                        selectEl.addEventListener('change', syncBrand);
+                        customEl.addEventListener('input', function () {
+                            if (selectEl.value === '__custom__') hiddenEl.value = customEl.value || '';
+                        });
+                        syncBrand();
+                    });
                 </script>
                 <div class="row mb-3">
                     <div class="col-md-3">
                         <label class="form-label fw-bold">Giá bán <span class="text-danger">*</span></label>
-                        <input type="number" name="price" class="form-control @error('price') is-invalid @enderror" value="{{ old('price', $product->price ?? 0) }}">
+                        <input type="text" inputmode="numeric" name="price" class="form-control money-input @error('price') is-invalid @enderror" value="{{ old('price', $product->price ?? 0) }}">
                         @error('price')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
                     <div class="col-md-3">
+                        <label class="form-label fw-bold">Giá vốn</label>
+                        <input type="text" inputmode="numeric" name="cost_price" class="form-control money-input" value="{{ old('cost_price', $product->cost_price) }}">
+                    </div>
+                    <div class="col-md-3">
                         <label class="form-label fw-bold">Giảm giá (%)</label>
                         <input type="number" name="discount_percent" class="form-control" value="{{ old('discount_percent', $product->discount_percent) }}" min="0" max="100">
                     </div>
-                    <div class="col-md-2">
-                        <label class="form-label fw-bold">Thứ tự hiển thị <i class="bi bi-info-circle" data-bs-toggle="tooltip" title="Số càng nhỏ càng ưu tiên (1 = lên đầu tiên)"></i></label>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Thuế GTGT (%)</label>
+                        <input type="number" step="0.01" name="vat_percent" class="form-control" value="{{ old('vat_percent', $product->vat_percent ?? 0) }}" min="0" max="100">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Thứ tự hiển thị</label>
                         <input type="number" name="sort_order" class="form-control" value="{{ old('sort_order', $product->sort_order ?? 999) }}" min="1">
                         <small class="text-muted">Số nhỏ = ưu tiên</small>
                     </div>
-                    <div class="col-md-4 d-flex align-items-center gap-3 mt-4">
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-3"><label class="form-label fw-bold">Đơn vị tính chính</label><input type="text" name="unit_name" class="form-control" value="{{ old('unit_name', $product->unit_name ?? 'Cái') }}"></div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="price_includes_tax" id="price_includes_tax" value="1" @checked(old('price_includes_tax', $product->price_includes_tax))>
+                            <label class="form-check-label" for="price_includes_tax">Giá bán gồm thuế</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-3"><label class="form-label fw-bold">Đơn giá nhà máy</label><input type="text" inputmode="numeric" name="factory_price" class="form-control money-input" value="{{ old('factory_price', $product->factory_price) }}"></div>
+                    <div class="col-md-3"><label class="form-label fw-bold">Giá đề nghị bán đại lý</label><input type="text" inputmode="numeric" name="agency_suggested_price" class="form-control money-input" value="{{ old('agency_suggested_price', $product->agency_suggested_price) }}"></div>
+                    <div class="col-md-3"><label class="form-label fw-bold">Giá bán cho Đại lý</label><input type="text" inputmode="numeric" name="agency_price" class="form-control money-input" value="{{ old('agency_price', $product->agency_price) }}"></div>
+                    <div class="col-md-3"><label class="form-label fw-bold">Giá bán cho Khách lẻ</label><input type="text" inputmode="numeric" name="retail_price" class="form-control money-input" value="{{ old('retail_price', $product->retail_price) }}"></div>
+                </div>
+
+                <div class="row mb-3">
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-3"><label class="form-label fw-bold">Thời hạn bảo hành (tháng)</label><input type="number" name="warranty_months" class="form-control" value="{{ old('warranty_months', $product->warranty_months ?? 12) }}" min="0"></div>
+                    <div class="col-md-9"><label class="form-label fw-bold">Nội dung bảo hành</label><input type="text" name="warranty_content" class="form-control" value="{{ old('warranty_content', $product->warranty_content) }}"></div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-2"><label class="form-label fw-bold">Chiều cao</label><input type="number" step="0.01" name="height" class="form-control" value="{{ old('height', $product->height ?? 0) }}"></div>
+                    <div class="col-md-2"><label class="form-label fw-bold">Chiều dài</label><input type="number" step="0.01" name="length" class="form-control" value="{{ old('length', $product->length ?? 0) }}"></div>
+                    <div class="col-md-2"><label class="form-label fw-bold">Chiều rộng</label><input type="number" step="0.01" name="width" class="form-control" value="{{ old('width', $product->width ?? 0) }}"></div>
+                    <div class="col-md-2"><label class="form-label fw-bold">Bán kính</label><input type="number" step="0.01" name="radius" class="form-control" value="{{ old('radius', $product->radius ?? 0) }}"></div>
+                    <div class="col-md-2"><label class="form-label fw-bold">Trọng lượng</label><input type="number" step="0.01" name="weight" class="form-control" value="{{ old('weight', $product->weight ?? 0) }}"></div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-4 d-flex align-items-center gap-3 mt-1">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="is_featured" id="is_featured" value="1" @if(old('is_featured', $product->is_featured)) checked @endif>
                             <label class="form-check-label" for="is_featured">Nổi bật</label>
@@ -190,7 +236,7 @@
                                 <tr>
                                     <td><input type="text" name="colors[{{ $color->id }}][color_name]" class="form-control" value="{{ $color->color_name }}" required></td>
                                     <td><input type="color" name="colors[{{ $color->id }}][color_code]" class="form-control form-control-color" value="{{ $color->color_code ?? '#000000' }}"></td>
-                                    <td><input type="number" name="colors[{{ $color->id }}][price]" class="form-control" min="0" value="{{ $color->price }}"></td>
+                                    <td><input type="text" inputmode="numeric" name="colors[{{ $color->id }}][price]" class="form-control money-input" min="0" value="{{ $color->price }}"></td>
                                     <td><input type="number" name="colors[{{ $color->id }}][quantity]" class="form-control" min="0" value="{{ $color->quantity }}"></td>
                                     <td><button type="button" class="btn btn-danger btn-sm remove-color-row"><i class="bi bi-x"></i></button></td>
                                 </tr>
@@ -207,7 +253,7 @@
                         row.innerHTML = `
                             <td><input type="text" name="colors[new][color_name][]" class="form-control" required></td>
                             <td><input type="color" name="colors[new][color_code][]" class="form-control form-control-color" value="#000000"></td>
-                            <td><input type="number" name="colors[new][price][]" class="form-control" min="0"></td>
+                            <td><input type="text" inputmode="numeric" name="colors[new][price][]" class="form-control money-input" min="0"></td>
                             <td><input type="number" name="colors[new][quantity][]" class="form-control" min="0" value="0"></td>
                             <td><button type="button" class="btn btn-danger btn-sm remove-color-row"><i class="bi bi-x"></i></button></td>
                         `;
@@ -335,6 +381,44 @@
                     <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i> Cập nhật</button>
                 </div>
             </form>
+
+            <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                function digitsOnly(value) {
+                    return (value || '').toString().replace(/\D+/g, '');
+                }
+
+                function formatThousands(value) {
+                    const digits = digitsOnly(value);
+                    if (!digits) return '';
+                    return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                }
+
+                function bindMoneyInput(el) {
+                    if (!el) return;
+                    el.addEventListener('input', function () {
+                        const oldPos = el.selectionStart || el.value.length;
+                        const oldLen = el.value.length;
+                        el.value = formatThousands(el.value);
+                        const diff = el.value.length - oldLen;
+                        const newPos = Math.max(0, oldPos + diff);
+                        try { el.setSelectionRange(newPos, newPos); } catch (e) {}
+                    });
+                    el.value = formatThousands(el.value);
+                }
+
+                document.querySelectorAll('.money-input').forEach(bindMoneyInput);
+
+                const form = document.querySelector('form[action="{{ route('admin.products.update', $product->id) }}"]');
+                if (form) {
+                    form.addEventListener('submit', function () {
+                        form.querySelectorAll('.money-input').forEach(function (el) {
+                            el.value = digitsOnly(el.value);
+                        });
+                    });
+                }
+            });
+            </script>
         </div>
     </div>
 </div>
