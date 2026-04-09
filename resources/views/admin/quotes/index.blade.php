@@ -104,11 +104,11 @@
                 </div>
             </form>
 
-            <div class="table-responsive">
+            <div class="table-responsive quote-table-wrap">
                 <table class="table mb-0" style="border: none;">
                     <thead>
                         <tr style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
-                            <th style="border: none; padding: 16px 12px; font-weight: 700; color: #495057;">Mã báo giá</th>
+                            <th style="border: none; padding: 16px 12px; font-weight: 700; color: #495057;">Số báo giá</th>
                             <th style="border: none; padding: 16px 12px; font-weight: 700; color: #495057;">Mã số thuế</th>
                             <th style="border: none; padding: 16px 12px; font-weight: 700; color: #495057;">Tên công ty</th>
                             <th style="border: none; padding: 16px 12px; font-weight: 700; color: #495057;">Ngày báo giá</th>
@@ -140,7 +140,7 @@
                                         <i class="bi bi-receipt"></i>
                                     </div>
                                     <div>
-                                        <strong style="color: #2c3e50; font-size: 1.1em;">{{ $orderCode }}</strong>
+                                        <strong style="color: #2c3e50; font-size: 1.1em; white-space: nowrap;">{{ $orderCode }}</strong>
                                     </div>
                                 </div>
                             </td>
@@ -154,14 +154,7 @@
                             </td>
 
                             <td style="border: none; padding: 16px 12px;">
-                                <div class="d-flex align-items-center">
-                                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; font-weight: 600; font-size: 0.9em;">
-                                        {{ strtoupper(substr($companyName ?? '', 0, 1)) }}
-                                    </div>
-                                    <div>
-                                        <strong style="color: #2c3e50; font-size: 1.0em;">{{ $companyName !== '' ? $companyName : '...' }}</strong>
-                                    </div>
-                                </div>
+                                <strong style="color: #2c3e50; font-size: 1.0em;">{{ $companyName !== '' ? $companyName : '...' }}</strong>
                             </td>
 
                             <td style="border: none; padding: 16px 12px;">
@@ -187,9 +180,9 @@
                                     </span>
                                     <div class="small mt-1">
                                         @if($hasSalesOrder)
-                                            <span class="text-success fw-semibold"><i class="bi bi-check2-circle me-1"></i>Đã tạo đơn bán</span>
+                                            <span class="text-success fw-semibold"><i class="bi bi-check2-circle me-1"></i>Đã tạo đơn </span>
                                         @else
-                                            <span class="text-secondary"><i class="bi bi-hourglass-split me-1"></i>Chưa tạo đơn bán</span>
+                                            <span class="text-secondary"><i class="bi bi-hourglass-split me-1"></i>Chưa tạo đơn </span>
                                         @endif
                                     </div>
                                 @elseif($statusKey === 'cancelled')
@@ -238,6 +231,26 @@
                                                 <i class="bi bi-pencil me-2 text-secondary"></i>Chỉnh sửa
                                             </a>
                                         </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <form method="POST" action="{{ route('admin.quotes.destroy', $order) }}" onsubmit="return confirm('Xóa báo giá này?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="dropdown-item text-danger">
+                                                    <i class="bi bi-trash me-2"></i>Xóa
+                                                </button>
+                                            </form>
+                                        </li>
+                                        <li>
+                                            <form method="POST" action="{{ route('admin.quotes.destroy', $order) }}" onsubmit="return confirm('XÓA CƯỠNG BỨC: sẽ xóa cả đơn bán + phiếu xuất kho + hóa đơn liên quan. Tiếp tục?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <input type="hidden" name="force_delete" value="1">
+                                                <button type="submit" class="dropdown-item text-danger fw-semibold">
+                                                    <i class="bi bi-exclamation-triangle me-2"></i>Xóa cưỡng bức
+                                                </button>
+                                            </form>
+                                        </li>
                                     </ul>
                                 </div>
                             </td>
@@ -268,6 +281,20 @@
     .ao-row { transition: background-color .15s ease; cursor: pointer; }
     .ao-row:hover { background: #eaf2ff; }
     .ao-row:hover td { background: #eaf2ff; }
+
+    .quote-table-wrap td,
+    .quote-table-wrap th {
+        overflow: visible;
+        vertical-align: middle;
+    }
+
+    .quote-table-wrap .dropdown {
+        position: static;
+    }
+
+    .quote-table-wrap .dropdown-menu {
+        z-index: 2000 !important;
+    }
 </style>
 
 <script>

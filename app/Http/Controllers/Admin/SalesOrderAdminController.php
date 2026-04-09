@@ -80,6 +80,13 @@ class SalesOrderAdminController extends Controller
         $paidAmount = (float) ($salesOrder->debt->paid_amount ?? $salesOrder->paid_amount ?? 0);
         $remainingDebt = max(0, $orderTotal - $paidAmount);
 
+        $salesOrderTemplates = \App\Models\DocumentTemplate::query()
+            ->whereIn('type', ['sales_order', 'quote', 'shared'])
+            ->where('is_active', true)
+            ->orderByDesc('is_default')
+            ->orderByDesc('created_at')
+            ->get();
+
         return view('admin.sales_orders.show', [
             'salesOrder' => $salesOrder,
             'deliveries' => $deliveries,
@@ -89,6 +96,7 @@ class SalesOrderAdminController extends Controller
             'orderTotal' => $orderTotal,
             'paidAmount' => $paidAmount,
             'remainingDebt' => $remainingDebt,
+            'salesOrderTemplates' => $salesOrderTemplates,
         ]);
     }
 
@@ -291,6 +299,52 @@ class SalesOrderAdminController extends Controller
         return back()->with('success', 'Đã cập nhật công nợ đơn hàng.');
     }
 
+    public function destroy(Request $request, SalesOrder $salesOrder)
+    {
+        $forceDelete = (bool) $request->boolean('force_delete');
+
+        if (!$forceDelete && Delivery::query()->where('sales_order_id', $salesOrder->id)->exists()) {
+            return back()->with('error', 'Đơn bán đã có phiếu xuất kho. Bật xóa cưỡng bức để xóa cả chuỗi chứng từ.');
+        }
+
+        if (!$forceDelete && Invoice::query()->where('sales_order_id', $salesOrder->id)->exists()) {
+            return back()->with('error', 'Đơn bán đã có hóa đơn. Bật xóa cưỡng bức để xóa cả chuỗi chứng từ.');
+        }
+
+        DB::transaction(function () use ($salesOrder, $forceDelete) {
+            if ($forceDelete) {
+                $deliveryIds = Delivery::query()->where('sales_order_id', $salesOrder->id)->pluck('id');
+                if ($deliveryIds->isNotEmpty()) {
+                    DeliveryItem::query()->whereIn('delivery_id', $deliveryIds)->delete();
+                    Delivery::query()->whereIn('id', $deliveryIds)->delete();
+                }
+
+                $invoiceIds = Invoice::query()->where('sales_order_id', $salesOrder->id)->pluck('id');
+                if ($invoiceIds->isNotEmpty()) {
+                    InvoiceItem::query()->whereIn('invoice_id', $invoiceIds)->delete();
+                    Invoice::query()->whereIn('id', $invoiceIds)->delete();
+                }
+            }
+
+            $salesOrder->items()->delete();
+            $salesOrder->debt()?->delete();
+            $salesOrder->delete();
+        });
+
+        ActivityLogger::log(
+            'sales_order.delete',
+            $salesOrder,
+            'Xóa đơn bán ngoài',
+            [
+                'sales_order_id' => $salesOrder->id,
+                'sales_order_code' => $salesOrder->sales_order_code,
+            ],
+            $request
+        );
+
+        return redirect()->route('admin.sales-orders.index')->with('success', 'Đã xóa đơn bán ngoài.');
+    }
+
     public function storeInvoice(Request $request, SalesOrder $salesOrder)
     {
         $validated = $request->validate([
@@ -348,7 +402,7 @@ class SalesOrderAdminController extends Controller
             ActivityLogger::log(
                 'sales_order.invoice.create',
                 $invoice,
-                'Phát hành hóa đơn từ đơn bán ngoài',
+                'Phát hành hóa đơn từ đơn hàng',
                 [
                     'invoice_code' => $invoice->invoice_code,
                     'sales_order_id' => $salesOrder->id,

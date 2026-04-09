@@ -382,7 +382,7 @@
             <div class="nav-item">
                 <a href="{{ route('admin.sales-orders.index') }}" class="nav-link {{ request()->routeIs('admin.sales-orders.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-receipt"></i></div>
-                    Đơn bán ngoài
+                    Đơn hàng
                 </a>
             </div>
             <div class="nav-item">
@@ -395,6 +395,12 @@
                 <a href="{{ route('admin.invoices.index') }}" class="nav-link {{ request()->routeIs('admin.invoices.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-receipt-cutoff"></i></div>
                     Hóa đơn
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ route('admin.document-templates.index') }}" class="nav-link {{ request()->routeIs('admin.document-templates.*') ? 'active' : '' }}">
+                    <div class="nav-icon"><i class="bi bi-file-earmark-richtext"></i></div>
+                    Mẫu in chứng từ
                 </a>
             </div>
             <div class="nav-item">

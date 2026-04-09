@@ -9,6 +9,13 @@
 @endphp
 
 <div class="container-fluid py-4">
+    @if(session('error'))
+        <div class="alert alert-danger">{{ session('error') }}</div>
+    @endif
+    @if(session('success'))
+        <div class="alert alert-success">{{ session('success') }}</div>
+    @endif
+
     <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
         <div>
             <h1 class="h4 fw-bold mb-1">Số Đơn hàng: {{ $salesOrder->sales_order_code }}</h1>
@@ -18,6 +25,31 @@
             <a href="{{ route('admin.sales-orders.pdf', $salesOrder) }}" class="btn btn-outline-primary">
                 <i class="bi bi-file-earmark-pdf me-1"></i>PDF đơn hàng
             </a>
+            <a href="{{ route('admin.document-templates.render-default.sales-order', $salesOrder) }}" class="btn btn-success">
+                <i class="bi bi-printer me-1"></i>In nhanh (mẫu mặc định)
+            </a>
+            <div class="dropdown">
+                <button class="btn btn-outline-success dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-file-earmark-word me-1"></i>Chọn mẫu để in
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    @forelse(($salesOrderTemplates ?? collect()) as $tpl)
+                        <li>
+                            <a class="dropdown-item" href="{{ route('admin.document-templates.render.sales-order', ['documentTemplate' => $tpl, 'salesOrder' => $salesOrder]) }}">
+                                {{ $tpl->name }} @if($tpl->is_default)<span class="text-primary">(mặc định)</span>@endif
+                            </a>
+                        </li>
+                    @empty
+                        <li><span class="dropdown-item-text text-muted">Chưa có mẫu đơn hàng</span></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="{{ route('admin.document-templates.index', ['type' => 'sales_order']) }}">
+                                Vào quản lý mẫu in (màn chung)
+                            </a>
+                        </li>
+                    @endforelse
+                </ul>
+            </div>
             <a href="{{ route('admin.sales-orders.index') }}" class="btn btn-outline-secondary">Quay lại danh sách</a>
         </div>
     </div>

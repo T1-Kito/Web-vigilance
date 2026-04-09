@@ -176,9 +176,26 @@ class QuoteAdminController extends Controller
 
     public function show(Quote $quote)
     {
+        $quote->load(['items.product', 'user', 'convertedSalesOrder']);
+
+        $quoteTemplates = \App\Models\DocumentTemplate::query()
+            ->where('type', 'quote')
+            ->where('is_active', true)
+            ->orderByDesc('is_default')
+            ->orderByDesc('created_at')
+            ->get();
+
         return view('admin.quotes.show', [
-            'quote' => $quote->load(['items.product', 'user', 'convertedSalesOrder']),
+            'quote' => $quote,
+            'quoteTemplates' => $quoteTemplates,
         ]);
+    }
+
+    public function print(Quote $quote)
+    {
+        $orderCode = $quote->quote_code ?? ('BG' . str_pad((string) $quote->id, 6, '0', STR_PAD_LEFT));
+
+        return redirect()->route('orders.quote', ['orderCode' => $orderCode, 'print' => 1]);
     }
 
     public function edit(Quote $quote)
@@ -475,6 +492,60 @@ class QuoteAdminController extends Controller
         );
 
         return redirect()->route('admin.sales-orders.show', $salesOrder)->with('success', 'Đã tạo đơn bán từ báo giá đã duyệt.');
+    }
+
+    public function destroy(Request $request, Quote $quote)
+    {
+        $forceDelete = (bool) $request->boolean('force_delete');
+
+        if (!$forceDelete && SalesOrder::query()->where('source_quote_id', $quote->id)->exists()) {
+            return back()->with('error', 'Báo giá đã có đơn bán liên kết. Bật xóa cưỡng bức để xóa cả chuỗi chứng từ.');
+        }
+
+        DB::transaction(function () use ($quote, $forceDelete) {
+            if ($forceDelete) {
+                $salesOrders = SalesOrder::query()->where('source_quote_id', $quote->id)->get();
+                foreach ($salesOrders as $salesOrder) {
+                    $deliveryIds = \App\Models\Delivery::query()
+                        ->where('sales_order_id', $salesOrder->id)
+                        ->pluck('id');
+
+                    if ($deliveryIds->isNotEmpty()) {
+                        \App\Models\DeliveryItem::query()->whereIn('delivery_id', $deliveryIds)->delete();
+                        \App\Models\Delivery::query()->whereIn('id', $deliveryIds)->delete();
+                    }
+
+                    $invoiceIds = \App\Models\Invoice::query()
+                        ->where('sales_order_id', $salesOrder->id)
+                        ->pluck('id');
+
+                    if ($invoiceIds->isNotEmpty()) {
+                        \App\Models\InvoiceItem::query()->whereIn('invoice_id', $invoiceIds)->delete();
+                        \App\Models\Invoice::query()->whereIn('id', $invoiceIds)->delete();
+                    }
+
+                    $salesOrder->items()->delete();
+                    $salesOrder->debt()?->delete();
+                    $salesOrder->delete();
+                }
+            }
+
+            $quote->items()->delete();
+            $quote->delete();
+        });
+
+        ActivityLogger::log(
+            'quote.delete',
+            $quote,
+            'Xóa báo giá',
+            [
+                'quote_id' => $quote->id,
+                'quote_code' => $quote->quote_code,
+            ],
+            $request
+        );
+
+        return redirect()->route('admin.quotes.index')->with('success', 'Đã xóa báo giá.');
     }
 
     private function nextQuoteCode(): string

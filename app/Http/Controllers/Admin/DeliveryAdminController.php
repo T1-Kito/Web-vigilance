@@ -185,6 +185,62 @@ class DeliveryAdminController extends Controller
         return view('admin.deliveries.print', compact('delivery'));
     }
 
+    public function destroy(Request $request, Delivery $delivery)
+    {
+        DB::transaction(function () use ($delivery) {
+            $salesOrder = $delivery->salesOrder;
+            $order = $delivery->order;
+
+            $delivery->items()->delete();
+            $delivery->delete();
+
+            if ($salesOrder) {
+                $totalOrdered = (int) $salesOrder->items()->sum('quantity');
+                $totalDelivered = (int) DeliveryItem::query()
+                    ->whereIn('sales_order_item_id', $salesOrder->items()->pluck('id')->all())
+                    ->sum('quantity');
+
+                if ($totalDelivered <= 0) {
+                    $salesOrder->status = 'pending';
+                } elseif ($totalDelivered < $totalOrdered) {
+                    $salesOrder->status = 'processing';
+                } else {
+                    $salesOrder->status = 'completed';
+                }
+                $salesOrder->save();
+            }
+
+            if ($order) {
+                $totalOrdered = (int) $order->items()->sum('quantity');
+                $totalDelivered = (int) DeliveryItem::query()
+                    ->whereIn('order_item_id', $order->items()->pluck('id')->all())
+                    ->sum('quantity');
+
+                if ($totalDelivered <= 0) {
+                    $order->status = 'pending';
+                } elseif ($totalDelivered < $totalOrdered) {
+                    $order->status = 'processing';
+                } else {
+                    $order->status = 'completed';
+                }
+                $order->save();
+            }
+        });
+
+        ActivityLogger::log(
+            'delivery.delete',
+            $delivery,
+            'Xóa phiếu xuất kho',
+            [
+                'delivery_id' => $delivery->id,
+                'delivery_code' => $delivery->delivery_code,
+            ],
+            $request
+        );
+
+        return redirect()->route('admin.deliveries.index')->with('success', 'Đã xóa phiếu xuất kho.');
+    }
+
     private function nextDeliveryCode(): string
     {
         return DocumentCodeGenerator::next(Delivery::query(), 'delivery_code', 'PX');
