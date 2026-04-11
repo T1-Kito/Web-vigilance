@@ -165,34 +165,26 @@
             color: var(--sidebar-text);
             text-decoration: none;
             border-radius: 10px;
-            transition: none !important;
+            transition: none;
             font-weight: 600;
             font-size: 1.05em;
-            box-shadow: none !important;
-            transform: none !important;
-            filter: none !important;
         }
         
         .nav-link:hover {
             background: var(--sidebar-hover);
             color: #2563eb;
-            box-shadow: none !important;
-            transform: none !important;
-            filter: none !important;
         }
         
         .nav-link.active {
-            background: transparent;
-            color: var(--sidebar-text);
+            background: var(--sidebar-active);
+            color: var(--sidebar-active-text);
             font-weight: 700;
-            box-shadow: none !important;
-            transform: none !important;
-            filter: none !important;
+            box-shadow: none;
         }
         
         .nav-link.active:hover {
-            background: var(--sidebar-hover);
-            color: #2563eb;
+            background: var(--sidebar-active);
+            color: var(--sidebar-active-text);
         }
         
         .nav-icon {
@@ -470,6 +462,12 @@
                 <a href="{{ route('admin.products.index') }}" class="nav-link {{ request()->routeIs('admin.products.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-tags"></i></div>
                     Quản lý sản phẩm
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ route('admin.pricing-formula.edit') }}" class="nav-link {{ request()->routeIs('admin.pricing-formula.*') ? 'active' : '' }}">
+                    <div class="nav-icon"><i class="bi bi-sliders"></i></div>
+                    Công thức giá
                 </a>
             </div>
             <div class="nav-item">

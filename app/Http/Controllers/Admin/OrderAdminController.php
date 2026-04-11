@@ -86,12 +86,22 @@ class OrderAdminController extends Controller
     /**
      * JSON cho dòng đơn: giá tham chiếu (admin có thể sửa đơn giá trên form).
      */
-    public function lineOptions(Product $product)
+    public function lineOptions(Request $request, Product $product)
     {
+        $qty = max(1, (int) $request->query('quantity', 1));
+        $customerType = $request->query('customer_type');
+        $priceDetail = $product->resolveUnitPriceDetailByQuantity($qty, $customerType);
+
         return response()->json([
             'product_id' => $product->id,
             'name' => $product->name,
-            'final_price' => (float) ($product->final_price ?? $product->price ?? 0),
+            'quantity' => $qty,
+            'customer_type' => $customerType,
+            'base_price' => (float) ($priceDetail['base_price'] ?? 0),
+            'final_price' => (float) ($priceDetail['final_price'] ?? 0),
+            'tier_applied' => (bool) ($priceDetail['tier_applied'] ?? false),
+            'price_source' => (string) ($priceDetail['price_source'] ?? 'base_price'),
+            'tier' => $priceDetail['tier'] ?? null,
         ]);
     }
 
@@ -171,6 +181,7 @@ class OrderAdminController extends Controller
                 'name' => (string) ($first->receiver_name ?? ''),
                 'phone' => (string) ($first->receiver_phone ?? ''),
                 'tax_code' => (string) ($first->customer_tax_code ?? ''),
+                'customer_type' => (string) ($first->customer_type ?? ''),
                 'email' => (string) ($first->customer_email ?? ''),
                 'invoice_company_name' => (string) ($first->invoice_company_name ?? ''),
                 'invoice_address' => (string) ($first->invoice_address ?? ''),
@@ -193,6 +204,7 @@ class OrderAdminController extends Controller
             'customer_phone' => 'nullable|string|max:50',
             'customer_email' => 'nullable|email|max:255',
             'customer_contact_person' => 'nullable|string|max:100',
+            'customer_type' => 'nullable|in:retail,agent,factory,enterprise',
             'note' => 'nullable|string|max:2000',
             'payment_method' => 'nullable|in:zalo,cod,bank,momo',
             'status' => 'required|in:pending,processing,completed,cancelled',
@@ -234,6 +246,7 @@ class OrderAdminController extends Controller
                 'customer_phone' => $validated['customer_phone'] ?? null,
                 'customer_email' => $validated['customer_email'] ?? null,
                 'customer_contact_person' => $validated['customer_contact_person'] ?? null,
+                'customer_type' => $validated['customer_type'] ?? null,
                 'note' => $validated['note'] ?? null,
                 'payment_method' => $validated['payment_method'] ?? 'cod',
                 'status' => $validated['status'],

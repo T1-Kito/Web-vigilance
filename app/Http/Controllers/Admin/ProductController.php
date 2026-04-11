@@ -12,6 +12,8 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Models\ProductColor;
 use App\Models\ProductAddon;
 use App\Models\ProductImage;
+use App\Models\ProductPriceTier;
+use App\Models\PricingFormulaSetting;
 use App\Support\ActivityLogger;
 
 class ProductController extends Controller
@@ -102,7 +104,8 @@ class ProductController extends Controller
     public function create()
     {
         $categories = Category::all();
-        return view('admin.products.create', compact('categories'));
+        $pricingSetting = PricingFormulaSetting::current();
+        return view('admin.products.create', compact('categories', 'pricingSetting'));
     }
 
     public function store(Request $request)
@@ -149,6 +152,14 @@ class ProductController extends Controller
             'weight' => 'nullable|numeric|min:0',
             'is_featured' => 'nullable|boolean',
             'status' => 'nullable|boolean',
+            'price_tiers' => 'nullable|array',
+            'price_tiers.*.from_qty' => 'nullable|integer|min:1',
+            'price_tiers.*.to_qty' => 'nullable|integer|min:1',
+            'price_tiers.*.customer_type' => 'nullable|in:all,retail,agent,factory,enterprise',
+            'price_tiers.*.pricing_type' => 'nullable|in:fixed,percent_discount',
+            'price_tiers.*.price_value' => 'nullable|numeric|min:0',
+            'price_tiers.*.percent_value' => 'nullable|numeric|min:0|max:100',
+            'price_tiers.*.is_active' => 'nullable|boolean',
         ], [
             'name.required' => 'Bạn chưa nhập tên sản phẩm. Vui lòng nhập tên sản phẩm!',
             'category_id.required' => 'Bạn chưa chọn danh mục. Vui lòng chọn danh mục sản phẩm!',
@@ -175,6 +186,7 @@ class ProductController extends Controller
         $data['price_includes_tax'] = $request->has('price_includes_tax') ? 1 : 0;
         $data['is_featured'] = $request->has('is_featured') ? 1 : 0;
         $data['status'] = $request->has('status') ? 1 : 0;
+        $data = $this->applyBossPricingFormula($data);
         try {
             $product = Product::create($data);
 
@@ -234,6 +246,12 @@ class ProductController extends Controller
                     }
                 }
             }
+
+            $autoTiers = $this->buildBossDefaultPriceTiers($data);
+            if (!empty($autoTiers)) {
+                $this->syncPriceTiers($product, $autoTiers);
+            }
+
         return redirect()->route('admin.products.index')->with('success', 'Thêm sản phẩm thành công!');
         } catch (\Illuminate\Database\QueryException $e) {
             if ($e->getCode() == 23000) { // Lỗi unique
@@ -246,8 +264,9 @@ class ProductController extends Controller
     public function edit(Product $product)
     {
         $categories = Category::all();
-        $product->load('images');
-        return view('admin.products.edit', compact('product', 'categories'));
+        $pricingSetting = PricingFormulaSetting::current();
+        $product->load(['images', 'priceTiers']);
+        return view('admin.products.edit', compact('product', 'categories', 'pricingSetting'));
     }
 
     public function update(Request $request, Product $product)
@@ -295,6 +314,15 @@ class ProductController extends Controller
             'weight' => 'nullable|numeric|min:0',
             'is_featured' => 'nullable|boolean',
             'status' => 'nullable|boolean',
+            'price_tiers' => 'nullable|array',
+            'price_tiers.*.id' => 'nullable|integer',
+            'price_tiers.*.from_qty' => 'nullable|integer|min:1',
+            'price_tiers.*.to_qty' => 'nullable|integer|min:1',
+            'price_tiers.*.customer_type' => 'nullable|in:all,retail,agent,factory,enterprise',
+            'price_tiers.*.pricing_type' => 'nullable|in:fixed,percent_discount',
+            'price_tiers.*.price_value' => 'nullable|numeric|min:0',
+            'price_tiers.*.percent_value' => 'nullable|numeric|min:0|max:100',
+            'price_tiers.*.is_active' => 'nullable|boolean',
         ], [
             'name.required' => 'Bạn chưa nhập tên sản phẩm. Vui lòng nhập tên sản phẩm!',
             'category_id.required' => 'Bạn chưa chọn danh mục. Vui lòng chọn danh mục sản phẩm!',
@@ -321,6 +349,7 @@ class ProductController extends Controller
         $data['price_includes_tax'] = $request->has('price_includes_tax') ? 1 : 0;
         $data['is_featured'] = $request->has('is_featured') ? 1 : 0;
         $data['status'] = $request->has('status') ? 1 : 0;
+        $data = $this->applyBossPricingFormula($data);
         $product->update($data);
 
         $after = $product->fresh()->only(['name', 'price', 'discount_percent', 'sort_order', 'status', 'is_featured', 'category_id', 'brand', 'serial_number']);
@@ -413,6 +442,11 @@ class ProductController extends Controller
         }
         // Xóa addon không còn trong form
         $product->addons()->whereNotIn('id', $addonIds)->delete();
+
+        $autoTiers = $this->buildBossDefaultPriceTiers($data);
+        if (!empty($autoTiers)) {
+            $this->syncPriceTiers($product, $autoTiers);
+        }
 
         $returnUrl = $request->input('return_url');
         if (is_string($returnUrl) && $returnUrl !== '') {
@@ -695,6 +729,190 @@ class ProductController extends Controller
     /**
      * JSON: lịch sử thay đổi sản phẩm (từ activity_logs — before/after khi cập nhật).
      */
+    private function syncPriceTiers(Product $product, array $rows): void
+    {
+        $normalized = [];
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $from = isset($row['from_qty']) ? (int) $row['from_qty'] : 0;
+            $to = array_key_exists('to_qty', $row) && $row['to_qty'] !== null && $row['to_qty'] !== '' ? (int) $row['to_qty'] : null;
+            $customerType = (string) ($row['customer_type'] ?? 'all');
+            if ($customerType === '') {
+                $customerType = 'all';
+            }
+
+            $type = (string) ($row['pricing_type'] ?? '');
+            $priceValue = isset($row['price_value']) && $row['price_value'] !== '' ? (float) $row['price_value'] : null;
+            $percentValue = isset($row['percent_value']) && $row['percent_value'] !== '' ? (float) $row['percent_value'] : null;
+
+            if ($from <= 0 || $type === '') {
+                continue;
+            }
+
+            if ($to !== null && $to < $from) {
+                continue;
+            }
+
+            if ($type === 'fixed' && $priceValue === null) {
+                continue;
+            }
+
+            if ($type === 'percent_discount' && $percentValue === null) {
+                continue;
+            }
+
+            $normalized[] = [
+                'id' => isset($row['id']) ? (int) $row['id'] : null,
+                'from_qty' => $from,
+                'to_qty' => $to,
+                'customer_type' => $customerType,
+                'pricing_type' => $type,
+                'price_value' => $type === 'fixed' ? $priceValue : null,
+                'percent_value' => $type === 'percent_discount' ? $percentValue : null,
+                'is_active' => !empty($row['is_active']),
+            ];
+        }
+
+        usort($normalized, function (array $a, array $b) {
+            if ($a['customer_type'] !== $b['customer_type']) {
+                return strcmp((string) $a['customer_type'], (string) $b['customer_type']);
+            }
+            if ($a['from_qty'] === $b['from_qty']) {
+                return (($a['to_qty'] ?? PHP_INT_MAX) <=> ($b['to_qty'] ?? PHP_INT_MAX));
+            }
+            return $a['from_qty'] <=> $b['from_qty'];
+        });
+
+        $groups = [];
+        foreach ($normalized as $row) {
+            $groups[$row['customer_type']][] = $row;
+        }
+
+        foreach ($groups as $groupRows) {
+            for ($i = 1; $i < count($groupRows); $i++) {
+                $prev = $groupRows[$i - 1];
+                $curr = $groupRows[$i];
+                $prevTo = $prev['to_qty'] ?? PHP_INT_MAX;
+                if ($curr['from_qty'] <= $prevTo) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'price_tiers' => 'Các mức giá theo số lượng bị chồng lấn trong cùng loại khách hàng. Vui lòng kiểm tra lại.',
+                    ]);
+                }
+            }
+        }
+
+        $existingIds = $product->priceTiers()->pluck('id')->all();
+        $keptIds = [];
+
+        foreach ($normalized as $index => $tier) {
+            $payload = [
+                'from_qty' => $tier['from_qty'],
+                'to_qty' => $tier['to_qty'],
+                'customer_type' => $tier['customer_type'],
+                'pricing_type' => $tier['pricing_type'],
+                'price_value' => $tier['price_value'],
+                'percent_value' => $tier['percent_value'],
+                'priority' => $index,
+                'is_active' => $tier['is_active'],
+            ];
+
+            $tierId = $tier['id'];
+            if ($tierId && in_array($tierId, $existingIds, true)) {
+                ProductPriceTier::where('id', $tierId)->where('product_id', $product->id)->update($payload);
+                $keptIds[] = $tierId;
+            } else {
+                $newTier = $product->priceTiers()->create($payload);
+                $keptIds[] = $newTier->id;
+            }
+        }
+
+        if (!empty($existingIds)) {
+            $product->priceTiers()->whereNotIn('id', $keptIds)->delete();
+        }
+    }
+
+    private function applyBossPricingFormula(array $data): array
+    {
+        $s = PricingFormulaSetting::current();
+
+        $cost = isset($data['cost_price']) ? (float) $data['cost_price'] : 0.0;
+        $listInput = isset($data['price']) ? (float) $data['price'] : 0.0;
+        $listMultiplier = max(0.01, (float) $s->list_multiplier);
+
+        if ($cost <= 0 && $listInput > 0) {
+            $cost = round($listInput / $listMultiplier, 2);
+            $data['cost_price'] = $cost;
+        }
+
+        if ($cost <= 0) {
+            return $data;
+        }
+
+        $factory = round($cost, 2);
+        $listPrice = round($cost * $listMultiplier, 2);
+        $retail = round($listPrice * (1 - ((float) $s->retail_discount_percent / 100)), 2);
+        $agency = round($cost * (1 + ((float) $s->agent_markup_1_5_percent / 100)), 2);
+
+        $data['factory_price'] = $factory;
+        $data['price'] = $listPrice;
+        $data['retail_price'] = $retail;
+        $data['agency_price'] = $agency;
+
+        return $data;
+    }
+
+    private function buildBossDefaultPriceTiers(array $data): array
+    {
+        $cost = isset($data['cost_price']) ? (float) $data['cost_price'] : 0.0;
+        if ($cost <= 0) {
+            return [];
+        }
+
+        $s = PricingFormulaSetting::current();
+
+        return [
+            [
+                'from_qty' => 1,
+                'to_qty' => 5,
+                'customer_type' => 'agent',
+                'pricing_type' => 'fixed',
+                'price_value' => round($cost * (1 + ((float) $s->agent_markup_1_5_percent / 100)), 2),
+                'percent_value' => null,
+                'is_active' => true,
+            ],
+            [
+                'from_qty' => 6,
+                'to_qty' => 10,
+                'customer_type' => 'agent',
+                'pricing_type' => 'fixed',
+                'price_value' => round($cost * (1 + ((float) $s->agent_markup_6_10_percent / 100)), 2),
+                'percent_value' => null,
+                'is_active' => true,
+            ],
+            [
+                'from_qty' => 11,
+                'to_qty' => null,
+                'customer_type' => 'agent',
+                'pricing_type' => 'fixed',
+                'price_value' => round($cost * (1 + ((float) $s->agent_markup_over_10_percent / 100)), 2),
+                'percent_value' => null,
+                'is_active' => true,
+            ],
+            [
+                'from_qty' => 1,
+                'to_qty' => null,
+                'customer_type' => 'retail',
+                'pricing_type' => 'fixed',
+                'price_value' => round(((float) ($data['retail_price'] ?? 0)), 2),
+                'percent_value' => null,
+                'is_active' => true,
+            ],
+        ];
+    }
+
     private function normalizeMoneyFields(Request $request): void
     {
         $moneyFields = [

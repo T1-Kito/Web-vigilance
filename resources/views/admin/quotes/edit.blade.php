@@ -131,7 +131,7 @@
                                 <label class="form-label">Tên công ty (HĐ)</label>
                                 <input type="text" id="qe-invoice-company" name="invoice_company_name" class="form-control" value="{{ old('invoice_company_name', $order->invoice_company_name) }}">
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-3">
                                 <label class="form-label">Người liên hệ (Att)</label>
                                 <input type="text" id="qe-contact-person" name="customer_contact_person" class="form-control" value="{{ old('customer_contact_person', $order->customer_contact_person) }}">
                             </div>
@@ -165,13 +165,13 @@
                 </div>
 
                 <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
+                    <div class="card-header bg-white fw-bold d-flex flex-wrap justify-content-between align-items-center gap-2">
                         <span>3) Dòng sản phẩm báo giá</span>
                         <button type="button" class="btn btn-sm btn-outline-primary" id="btn-add-item">
                             <i class="bi bi-plus-lg me-1"></i>Thêm sản phẩm
                         </button>
                     </div>
-                    <div class="card-body p-0">
+                <div class="card-body p-0">
                         <div class="table-responsive">
                             <table class="table mb-0 align-middle quote-items-table">
                                 <thead>
@@ -200,7 +200,13 @@
                                                 <input type="number" min="1" max="99999" name="items[{{ $idx }}][quantity]" class="form-control item-qty" value="{{ (int) ($item['quantity'] ?? 1) }}" required>
                                             </td>
                                             <td>
-                                                <input type="number" min="0" step="1" name="items[{{ $idx }}][unit_price]" class="form-control item-unit-price" value="{{ (float) ($item['unit_price'] ?? 0) }}" required>
+                                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                                    <small class="text-muted item-price-hint mb-0"></small>
+                                                    <button type="button" class="btn btn-xs btn-outline-secondary item-price-lock" data-locked="1" title="Mở khóa để sửa tay đơn giá">
+                                                        <i class="bi bi-lock"></i>
+                                                    </button>
+                                                </div>
+                                                <input type="number" min="0" step="1" name="items[{{ $idx }}][unit_price]" class="form-control item-unit-price" value="{{ (float) ($item['unit_price'] ?? 0) }}" required readonly>
                                             </td>
                                             <td class="text-center">
                                                 <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item" title="Xóa dòng">
@@ -242,6 +248,18 @@
                                     <option value="Nguyễn Thị Hồng Vi"></option>
                                 </datalist>
                                 <div class="form-text">Có thể chọn nhanh từ danh sách hoặc nhập tên khác.</div>
+                            </div>
+
+                            <div class="col-md-6 col-xl-12">
+                                <label for="qe-customer-type" class="form-label">Áp dụng CK cho khách hàng</label>
+                                <select id="qe-customer-type" name="customer_type" class="form-select">
+                                    <option value="">-- Chọn loại --</option>
+                                    <option value="retail" @selected(old('customer_type', $order->customer_type) === 'retail')>Khách lẻ</option>
+                                    <option value="agent" @selected(old('customer_type', $order->customer_type) === 'agent')>Đại lý</option>
+                                    <option value="factory" @selected(old('customer_type', $order->customer_type) === 'factory')>Nhà máy</option>
+                                    <option value="enterprise" @selected(old('customer_type', $order->customer_type) === 'enterprise')>Doanh nghiệp</option>
+                                </select>
+                                <div class="form-text">Đơn giá sẽ tự áp theo bảng giá số lượng + loại khách hàng.</div>
                             </div>
 
                             <div class="col-md-6 col-xl-12">
@@ -349,7 +367,13 @@
             <input type="number" min="1" max="99999" name="items[__I__][quantity]" class="form-control item-qty" value="1" required>
         </td>
         <td>
-            <input type="number" min="0" step="1" name="items[__I__][unit_price]" class="form-control item-unit-price" value="0" required>
+            <div class="d-flex align-items-center justify-content-between mb-1">
+                <small class="text-muted item-price-hint mb-0">Giá tự động theo loại khách hàng + số lượng</small>
+                <button type="button" class="btn btn-xs btn-outline-secondary item-price-lock" data-locked="1" title="Mở khóa để sửa tay đơn giá">
+                    <i class="bi bi-lock"></i>
+                </button>
+            </div>
+            <input type="number" min="0" step="1" name="items[__I__][unit_price]" class="form-control item-unit-price" value="0" required readonly>
         </td>
         <td class="text-center">
             <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item" title="Xóa dòng">
@@ -371,7 +395,7 @@
     }
     .quote-items-table tbody td {
         border-color: #edf2f7;
-        vertical-align: middle;
+        vertical-align: bottom;
     }
     .quote-product-suggest {
         display: none;
@@ -397,6 +421,12 @@
     }
     .quote-product-suggest button:hover {
         background: #f1f5f9;
+    }
+    .btn.btn-xs {
+        --bs-btn-padding-y: .1rem;
+        --bs-btn-padding-x: .35rem;
+        --bs-btn-font-size: .72rem;
+        line-height: 1.2;
     }
 </style>
 
@@ -677,6 +707,106 @@
         box.style.width = width + 'px';
     }
 
+    function getQuoteCustomerType() {
+        const el = document.getElementById('qe-customer-type');
+        return el ? String(el.value || '').trim() : '';
+    }
+
+    function isRowPriceLocked(row) {
+        return row?.querySelector('.item-price-lock')?.dataset.locked !== '0';
+    }
+
+    function syncLockButtonUI(btn, locked) {
+        if (!btn) return;
+        btn.dataset.locked = locked ? '1' : '0';
+        btn.classList.toggle('btn-outline-secondary', locked);
+        btn.classList.toggle('btn-outline-warning', !locked);
+        btn.title = locked ? 'Mở khóa để sửa tay đơn giá' : 'Khóa lại để hệ thống tự áp đơn giá';
+        const icon = btn.querySelector('i');
+        if (icon) icon.className = locked ? 'bi bi-lock' : 'bi bi-unlock';
+    }
+
+    function loadAutoUnitPriceForRow(row) {
+        const productId = row.querySelector('.item-product-id')?.value;
+        const qty = Math.max(1, Number(row.querySelector('.item-qty')?.value || 1));
+        const customerType = getQuoteCustomerType();
+        const priceInput = row.querySelector('.item-unit-price');
+        const hintEl = row.querySelector('.item-price-hint');
+        if (!productId || !priceInput) return;
+
+        if (!isRowPriceLocked(row)) {
+            if (hintEl) {
+                hintEl.textContent = 'Đang sửa tay đơn giá (đã mở khóa).';
+                hintEl.className = 'text-warning item-price-hint mb-0';
+            }
+            recalcSummary();
+            return;
+        }
+
+        const url = `${LINE_OPT_BASE}/${productId}?quantity=${encodeURIComponent(qty)}${customerType ? `&customer_type=${encodeURIComponent(customerType)}` : ''}`;
+        fetch(url, {
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json' },
+        })
+            .then(function (res) { return res.ok ? res.json() : null; })
+            .then(function (json) {
+                if (!json) return;
+                priceInput.value = Math.round(Number(json.final_price || json.base_price || 0));
+
+                if (hintEl) {
+                    const customerMap = {
+                        retail: 'Khách lẻ',
+                        agent: 'Đại lý',
+                        factory: 'Nhà máy',
+                        enterprise: 'Doanh nghiệp',
+                        all: 'Tất cả',
+                    };
+
+                    if (!customerType) {
+                        hintEl.textContent = 'giá mặc định.';
+                        hintEl.className = 'text-muted item-price-hint mb-0';
+                    } else if (!json.tier) {
+                        const source = String(json.price_source || 'base_price');
+                        if (source === 'factory_price') {
+                            hintEl.textContent = 'Đang áp đơn giá Nhà máy từ sản phẩm.';
+                            hintEl.className = 'text-success item-price-hint mb-0';
+                        } else if (source === 'agency_price') {
+                            hintEl.textContent = 'Đang áp đơn giá Đại lý từ sản phẩm.';
+                            hintEl.className = 'text-success item-price-hint mb-0';
+                        } else if (source === 'retail_price') {
+                            hintEl.textContent = 'Đang áp đơn giá Khách lẻ từ sản phẩm.';
+                            hintEl.className = 'd-block mt-1 text-success item-price-hint';
+                        } else {
+                            hintEl.textContent = `Chưa có bảng giá ${customerMap[customerType] || customerType} cho sản phẩm này.`;
+                            hintEl.className = 'text-warning item-price-hint mb-0';
+                        }
+                    } else {
+                        const tierType = String(json.tier.customer_type || 'all');
+                        if (tierType === customerType) {
+                            hintEl.textContent = `Đang áp giá ${customerMap[tierType] || tierType} theo số lượng.`;
+                            hintEl.className = 'd-block mt-1 text-success item-price-hint';
+                        } else if (tierType === 'all') {
+                            hintEl.textContent = `Không có giá ${customerMap[customerType] || customerType}, đang dùng mức Tất cả.`;
+                            hintEl.className = 'text-warning item-price-hint mb-0';
+                        } else {
+                            hintEl.textContent = `Đang áp mức ${customerMap[tierType] || tierType}.`;
+                            hintEl.className = 'text-muted item-price-hint mb-0';
+                        }
+                    }
+                }
+
+                recalcSummary();
+            })
+            .catch(function () {});
+    }
+
+    function applyAutoPriceForAllRows() {
+        tbody.querySelectorAll('tr[data-row]').forEach(function (row) {
+            loadAutoUnitPriceForRow(row);
+        });
+    }
+
+
     function setSelectedProduct(row, product) {
         const idInput = row.querySelector('.item-product-id');
         const nameHidden = row.querySelector('.item-product-name-input');
@@ -688,20 +818,7 @@
         serialHidden.value = product.serial_number || '';
         searchInput.value = product.name || '';
 
-        fetch(`${LINE_OPT_BASE}/${product.id}`, {
-            credentials: 'same-origin',
-            headers: { 'Accept': 'application/json' },
-        })
-            .then(function (res) { return res.ok ? res.json() : null; })
-            .then(function (json) {
-                if (!json) return;
-                const priceInput = row.querySelector('.item-unit-price');
-                if (priceInput && (!priceInput.value || Number(priceInput.value) <= 0)) {
-                    priceInput.value = Math.round(Number(json.final_price || 0));
-                    recalcSummary();
-                }
-            })
-            .catch(function () {});
+        loadAutoUnitPriceForRow(row);
     }
 
     function renderSuggest(input, rows) {
@@ -742,6 +859,29 @@
     }
 
     function bindRow(row) {
+        const lockBtn = row.querySelector('.item-price-lock');
+        const priceInput = row.querySelector('.item-unit-price');
+        if (lockBtn && priceInput) {
+            syncLockButtonUI(lockBtn, lockBtn.dataset.locked !== '0');
+            lockBtn.addEventListener('click', function () {
+                const willLock = lockBtn.dataset.locked === '0';
+                syncLockButtonUI(lockBtn, willLock);
+                priceInput.readOnly = willLock;
+
+                if (willLock) {
+                    loadAutoUnitPriceForRow(row);
+                } else {
+                    const hintEl = row.querySelector('.item-price-hint');
+                    if (hintEl) {
+                        hintEl.textContent = 'Đang sửa tay đơn giá (đã mở khóa).';
+                        hintEl.className = 'text-warning item-price-hint mb-0';
+                    }
+                    priceInput.focus();
+                    priceInput.select();
+                }
+            });
+        }
+
         row.querySelector('.btn-remove-item')?.addEventListener('click', function () {
             const rows = tbody.querySelectorAll('tr[data-row]');
             if (rows.length <= 1) {
@@ -752,7 +892,14 @@
             recalcSummary();
         });
 
-        row.querySelector('.item-qty')?.addEventListener('input', recalcSummary);
+        row.querySelector('.item-qty')?.addEventListener('input', function () {
+            if (isRowPriceLocked(row)) {
+                loadAutoUnitPriceForRow(row);
+            } else {
+                recalcSummary();
+            }
+        });
+
         row.querySelector('.item-unit-price')?.addEventListener('input', recalcSummary);
 
         const searchInput = row.querySelector('.item-product-search');
@@ -801,6 +948,11 @@
     discountInput?.addEventListener('input', recalcSummary);
     vatInput?.addEventListener('input', recalcSummary);
 
+    const quoteCustomerTypeEl = document.getElementById('qe-customer-type');
+    quoteCustomerTypeEl?.addEventListener('change', function () {
+        applyAutoPriceForAllRows();
+    });
+
     if (salesNameInput && staffCodeInput) {
         salesNameInput.addEventListener('input', function () {
             const code = generateStaffCodeFromName(salesNameInput.value);
@@ -818,6 +970,7 @@
     }
 
     tbody.querySelectorAll('tr[data-row]').forEach(bindRow);
+
 
     document.addEventListener('click', function (e) {
         if (!suggestEl) return;
@@ -857,7 +1010,20 @@
         }
     });
 
-    recalcSummary();
+    // Giữ nguyên đơn giá đã lưu khi mở lại màn hình sửa báo giá.
+    // Chỉ tự áp giá khi user thao tác (đổi loại KH / đổi SL / chọn sản phẩm mới).
+    tbody.querySelectorAll('tr[data-row]').forEach(function (row) {
+        const hintEl = row.querySelector('.item-price-hint');
+        if (!hintEl) return;
+
+        if (isRowPriceLocked(row)) {
+            hintEl.textContent = 'Đang khóa đơn giá (giữ giá đã lưu).';
+            hintEl.className = 'text-muted item-price-hint mb-0';
+        } else {
+            hintEl.textContent = 'Đang sửa tay đơn giá (đã mở khóa).';
+            hintEl.className = 'text-warning item-price-hint mb-0';
+        }
+    });
 })();
 </script>
 @endsection

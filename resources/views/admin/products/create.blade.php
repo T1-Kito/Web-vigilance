@@ -3,9 +3,81 @@
 @section('title', 'Thêm sản phẩm mới')
 
 @section('content')
-<div class="container-fluid py-4">
-    <div class="d-flex align-items-center justify-content-between mb-3">
-        <h2 class="mb-0">Thêm sản phẩm mới</h2>
+<div class="container-fluid py-4 product-form-misa">
+    <style>
+        .product-form-misa .misa-head {
+            background: linear-gradient(180deg,#f8fafc 0%,#f1f5f9 100%);
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 14px 16px;
+        }
+        .product-form-misa .misa-head .step-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            border-radius: 999px;
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-size: .78rem;
+            font-weight: 600;
+            padding: .2rem .55rem;
+        }
+        .product-form-misa .card {
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .product-form-misa .card-header {
+            background: #f8fafc !important;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .product-form-misa .section-note {
+            color: #64748b;
+            font-size: .82rem;
+            margin-top: .2rem;
+        }
+        .product-form-misa .misa-form-grid > .col-12 {
+            flex: 0 0 100%;
+            max-width: 100%;
+            display: block;
+        }
+        .product-form-misa .misa-form-grid > [class*='col-md-'] {
+            flex: 0 0 50%;
+            max-width: 50%;
+            display: grid;
+            grid-template-columns: 160px 1fr;
+            gap: .55rem;
+            align-items: center;
+        }
+        .product-form-misa .misa-form-grid > [class*='col-md-'] .form-label {
+            margin-bottom: 0;
+            font-size: .87rem;
+            color: #334155;
+        }
+        .product-form-misa .misa-form-grid > [class*='col-md-'] .form-check {
+            grid-column: 2;
+        }
+        @media (max-width: 992px) {
+            .product-form-misa .misa-form-grid > [class*='col-md-'] {
+                flex: 0 0 100%;
+                max-width: 100%;
+                grid-template-columns: 1fr;
+            }
+            .product-form-misa .misa-form-grid > [class*='col-md-'] .form-check {
+                grid-column: auto;
+            }
+            .product-form-misa .misa-form-grid > [class*='col-md-'] .form-label {
+                margin-bottom: .25rem;
+            }
+        }
+    </style>
+
+    <div class="misa-head d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <div class="step-chip mb-1"><i class="bi bi-grid"></i> Quy trình nhập sản phẩm</div>
+            <h2 class="mb-0">Thêm sản phẩm mới</h2>
+        </div>
         <a href="{{ route('admin.products.index') }}" class="btn btn-light border">Quay lại</a>
     </div>
 
@@ -28,9 +100,12 @@
         @csrf
 
         <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-white fw-bold">Thông tin chung</div>
+            <div class="card-header bg-white fw-bold">
+                1) Thông tin chung
+                <div class="section-note">Nhập mã/seri, tên sản phẩm, danh mục và hãng trước.</div>
+            </div>
             <div class="card-body">
-                <div class="row g-3">
+                <div class="row g-3 misa-form-grid">
                     <div class="col-md-4">
                         <label class="form-label">Số seri (SN)</label>
                         <input type="text" name="serial_number" class="form-control" value="{{ old('serial_number') }}">
@@ -82,16 +157,19 @@
         </div>
 
         <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-white fw-bold">Thông tin giá</div>
+            <div class="card-header bg-white fw-bold">
+                2) Thiết lập giá bán
+                <div class="section-note">Chỉ cần nhập Giá vốn hoặc Giá niêm yết, hệ thống tự tính phần còn lại.</div>
+            </div>
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-3">
-                        <label class="form-label">Giá bán <span class="text-danger">*</span></label>
-                        <input type="text" inputmode="numeric" name="price" class="form-control money-input @error('price') is-invalid @enderror" value="{{ old('price', 0) }}">
+                        <label class="form-label">Giá bán niêm yết <span class="text-danger">*</span></label>
+                        <input type="text" inputmode="numeric" id="price" name="price" class="form-control money-input @error('price') is-invalid @enderror" value="{{ old('price', 0) }}" placeholder="Nhập giá bán hoặc giá vốn">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Giá vốn</label>
-                        <input type="text" inputmode="numeric" name="cost_price" class="form-control money-input" value="{{ old('cost_price') }}">
+                        <input type="text" inputmode="numeric" id="cost_price" name="cost_price" class="form-control money-input" value="{{ old('cost_price') }}" placeholder="Nhập giá vốn để tự tính">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Giảm giá (%)</label>
@@ -102,12 +180,46 @@
                         <input type="number" step="0.01" name="vat_percent" class="form-control" value="{{ old('vat_percent', 0) }}" min="0" max="100">
                     </div>
 
-                    <div class="col-md-3"><label class="form-label">Đơn giá nhà máy</label><input type="text" inputmode="numeric" name="factory_price" class="form-control money-input" value="{{ old('factory_price') }}"></div>
-                    <div class="col-md-3"><label class="form-label">Giá đề nghị bán đại lý</label><input type="text" inputmode="numeric" name="agency_suggested_price" class="form-control money-input" value="{{ old('agency_suggested_price') }}"></div>
-                    <div class="col-md-3"><label class="form-label">Giá bán cho Đại lý</label><input type="text" inputmode="numeric" name="agency_price" class="form-control money-input" value="{{ old('agency_price') }}"></div>
-                    <div class="col-md-3"><label class="form-label">Giá bán cho Khách lẻ</label><input type="text" inputmode="numeric" name="retail_price" class="form-control money-input" value="{{ old('retail_price') }}"></div>
+                    <div class="col-md-4"><label class="form-label">Đơn giá nhà máy (auto)</label><input type="text" inputmode="numeric" id="factory_price" name="factory_price" class="form-control money-input" value="{{ old('factory_price') }}" readonly></div>
+                    <div class="col-md-4"><label class="form-label">Giá bán cho Đại lý 1-5 (auto)</label><input type="text" inputmode="numeric" id="agency_price" name="agency_price" class="form-control money-input" value="{{ old('agency_price') }}" readonly></div>
+                    <div class="col-md-4"><label class="form-label">Giá bán cho Khách lẻ (auto)</label><input type="text" inputmode="numeric" id="retail_price" name="retail_price" class="form-control money-input" value="{{ old('retail_price') }}" readonly></div>
+                    <div class="col-12">
+                        <div class="alert alert-info py-2 mb-0 small">
+                            Công thức hiện tại: Giá niêm yết = Giá vốn x{{ number_format((float) ($pricingSetting->list_multiplier ?? 2), 2, '.', '') }}, Khách lẻ = Giá niêm yết -{{ number_format((float) ($pricingSetting->retail_discount_percent ?? 15), 2, '.', '') }}%, Đại lý: 1-5 (+{{ number_format((float) ($pricingSetting->agent_markup_1_5_percent ?? 30), 2, '.', '') }}%), 6-10 (+{{ number_format((float) ($pricingSetting->agent_markup_6_10_percent ?? 25), 2, '.', '') }}%), >10 (+{{ number_format((float) ($pricingSetting->agent_markup_over_10_percent ?? 15), 2, '.', '') }}%).
+                            <a href="{{ route('admin.pricing-formula.edit') }}" class="ms-1">Sửa công thức</a>
+                        </div>
+                    </div>
 
                 </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white fw-bold">
+                3) Quy tắc áp giá tự động
+                <div class="section-note">Admin chỉ cần kiểm tra quy tắc, hệ thống tự tạo bảng giá khi lưu.</div>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="border rounded-3 p-3 h-100 bg-light-subtle">
+                            <div class="fw-semibold mb-2">Khách lẻ</div>
+                            <div class="small text-muted">Áp dụng cho mọi số lượng</div>
+                            <div class="mt-2"><span class="badge text-bg-primary">Giá niêm yết - 15%</span></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="border rounded-3 p-3 h-100 bg-light-subtle">
+                            <div class="fw-semibold mb-2">Đại lý (theo số lượng)</div>
+                            <ul class="small mb-0 ps-3">
+                                <li>1-5 cái: Giá vốn + {{ number_format((float) ($pricingSetting->agent_markup_1_5_percent ?? 30), 2, '.', '') }}%</li>
+                                <li>6-10 cái: Giá vốn + {{ number_format((float) ($pricingSetting->agent_markup_6_10_percent ?? 25), 2, '.', '') }}%</li>
+                                <li>&gt;10 cái: Giá vốn + {{ number_format((float) ($pricingSetting->agent_markup_over_10_percent ?? 15), 2, '.', '') }}%</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-text mt-2">Khi lưu sản phẩm, hệ thống sẽ tự sinh và đồng bộ bảng giá theo công thức này.</div>
             </div>
         </div>
 
@@ -121,7 +233,10 @@
         </div>
 
         <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-white fw-bold">Ảnh & Nội dung</div>
+            <div class="card-header bg-white fw-bold">
+                4) Ảnh & nội dung hiển thị
+                <div class="section-note">Nhập mô tả ngắn gọn, rõ thông số để sale dễ tư vấn.</div>
+            </div>
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-6">
@@ -154,7 +269,10 @@
         </div>
 
         <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-white fw-bold">Thuộc tính hiển thị</div>
+            <div class="card-header bg-white fw-bold">
+                5) Trạng thái hiển thị
+                <div class="section-note">Bật/tắt hiển thị sản phẩm và gắn nhãn nổi bật nếu cần.</div>
+            </div>
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6 d-flex align-items-center gap-4">
@@ -219,14 +337,27 @@ document.addEventListener('DOMContentLoaded', function () {
         syncBrand();
     }
 
+    function toMoneyInteger(value) {
+        const raw = (value || '').toString().trim();
+        if (!raw) return 0;
+
+        if (/^\d+(\.\d+)?$/.test(raw)) {
+            const n = Number(raw);
+            return Number.isFinite(n) ? Math.round(n) : 0;
+        }
+
+        const digits = raw.replace(/\D+/g, '');
+        return digits ? Number(digits) : 0;
+    }
+
     function digitsOnly(value) {
-        return (value || '').toString().replace(/\D+/g, '');
+        return String(toMoneyInteger(value));
     }
 
     function formatThousands(value) {
-        const digits = digitsOnly(value);
-        if (!digits) return '';
-        return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        const n = toMoneyInteger(value);
+        if (!n) return '';
+        return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     }
 
     function bindMoneyInput(el) {
@@ -257,6 +388,69 @@ document.addEventListener('DOMContentLoaded', function () {
         row.querySelector('.remove-color-row').onclick = function() { row.remove(); };
         bindMoneyInput(row.querySelector('.money-input'));
     };
+
+    const costInput = document.getElementById('cost_price');
+    const listInput = document.getElementById('price');
+    const factoryInput = document.getElementById('factory_price');
+    const agencyInput = document.getElementById('agency_price');
+    const retailInput = document.getElementById('retail_price');
+
+    function parseMoneyInput(v) {
+        const n = Number((v || '').toString().replace(/\D+/g, ''));
+        return Number.isFinite(n) ? n : 0;
+    }
+
+    function setMoney(el, value) {
+        if (!el) return;
+        el.value = formatThousands(String(Math.max(0, Math.round(value || 0))));
+    }
+
+    const formula = {
+        listMultiplier: {{ (float) ($pricingSetting->list_multiplier ?? 2) }},
+        retailDiscountPercent: {{ (float) ($pricingSetting->retail_discount_percent ?? 15) }},
+        agentMarkup1To5Percent: {{ (float) ($pricingSetting->agent_markup_1_5_percent ?? 30) }},
+    };
+
+    function applyFromCost() {
+        const cost = parseMoneyInput(costInput?.value || '');
+        if (cost <= 0) return;
+        const list = cost * formula.listMultiplier;
+        const retail = list * (1 - formula.retailDiscountPercent / 100);
+        const agency = cost * (1 + formula.agentMarkup1To5Percent / 100);
+
+        setMoney(factoryInput, cost);
+        setMoney(listInput, list);
+        setMoney(retailInput, retail);
+        setMoney(agencyInput, agency);
+    }
+
+    function applyFromList() {
+        const list = parseMoneyInput(listInput?.value || '');
+        if (list <= 0) return;
+        const cost = list / Math.max(0.01, formula.listMultiplier);
+        const retail = list * (1 - formula.retailDiscountPercent / 100);
+        const agency = cost * (1 + formula.agentMarkup1To5Percent / 100);
+
+        setMoney(costInput, cost);
+        setMoney(factoryInput, cost);
+        setMoney(retailInput, retail);
+        setMoney(agencyInput, agency);
+        setMoney(listInput, list);
+    }
+
+    if (costInput) {
+        costInput.addEventListener('input', applyFromCost);
+    }
+    if (listInput) {
+        listInput.addEventListener('input', applyFromList);
+    }
+
+    if (parseMoneyInput(costInput?.value || '') > 0) {
+        applyFromCost();
+    } else {
+        applyFromList();
+    }
+
 
     const form = document.querySelector('form[action="{{ route('admin.products.store') }}"]');
     if (form) {

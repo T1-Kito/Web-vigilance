@@ -163,7 +163,7 @@ class RepairFormController extends Controller
         }
 
         if (empty($data['received_by'])) {
-            $data['received_by'] = 'Vi Khang';
+            $data['received_by'] = 'Nguyễn Thị Hồng Vi';
         }
 
         if (!array_key_exists('service_representative', $data) || $data['service_representative'] === null) {
@@ -368,6 +368,75 @@ class RepairFormController extends Controller
             ->view('admin.repair_forms.print_return', compact('repairForm'))
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
             ->header('Pragma', 'no-cache');
+    }
+
+    public function savePrintReturnInfo(Request $request, RepairForm $repairForm)
+    {
+        $data = $request->validate([
+            'handed_over_by' => 'nullable|string|max:255',
+            'handed_over_by_phone' => 'nullable|string|max:20',
+            'handover_repair_info' => 'nullable|string',
+            'handover_check_info' => 'nullable|string|max:100',
+            'actual_return_date' => 'nullable|date',
+            'service_representative' => 'nullable|string|max:255',
+            'notes' => 'nullable|string',
+        ]);
+
+        if (empty($data['actual_return_date'])) {
+            $data['actual_return_date'] = $repairForm->actual_return_date
+                ? $repairForm->actual_return_date->toDateString()
+                : now()->toDateString();
+        }
+
+        $receivedDate = $repairForm->received_date;
+        $returnDate = !empty($data['actual_return_date']) ? \Carbon\Carbon::parse($data['actual_return_date']) : null;
+        if ($receivedDate && $returnDate) {
+            $days = (int) $receivedDate->diffInDays($returnDate, false);
+            if ($days < 0) {
+                $data['handover_check_info'] = '0 ngày';
+            } elseif ($days === 0) {
+                $data['handover_check_info'] = 'Trong ngày';
+            } else {
+                $data['handover_check_info'] = $days . ' ngày';
+            }
+        }
+
+        if (($repairForm->status ?? null) !== 'returned') {
+            $data['status'] = 'returned';
+        }
+
+        $before = $repairForm->only([
+            'handed_over_by',
+            'handed_over_by_phone',
+            'handover_repair_info',
+            'handover_check_info',
+            'actual_return_date',
+            'service_representative',
+            'notes',
+            'status',
+        ]);
+
+        $repairForm->update($data);
+
+        $after = $repairForm->fresh()->only([
+            'handed_over_by',
+            'handed_over_by_phone',
+            'handover_repair_info',
+            'handover_check_info',
+            'actual_return_date',
+            'service_representative',
+            'notes',
+            'status',
+        ]);
+
+        ActivityLogger::log('repair_form.print_return_update', $repairForm, 'Cập nhật thông tin phiếu trả khi in', [
+            'before' => $before,
+            'after' => $after,
+        ], $request);
+
+        return redirect()
+            ->route('admin.repair-forms.printReturn', $repairForm)
+            ->with('success', 'Đã lưu thông tin phiếu trả. Bạn có thể in ngay.');
     }
 
     public function printBack(RepairForm $repairForm)

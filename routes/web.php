@@ -702,6 +702,8 @@ Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::post('products/{product}/delete-image', [App\Http\Controllers\Admin\ProductController::class, 'deleteAdditionalImage'])->name('products.deleteImage');
     Route::get('products/{product}/activity-history', [App\Http\Controllers\Admin\ProductController::class, 'activityHistory'])->name('products.activity-history');
     Route::resource('products', App\Http\Controllers\Admin\ProductController::class);
+    Route::get('pricing-formula', [\App\Http\Controllers\Admin\PricingFormulaController::class, 'edit'])->name('pricing-formula.edit');
+    Route::patch('pricing-formula', [\App\Http\Controllers\Admin\PricingFormulaController::class, 'update'])->name('pricing-formula.update');
     
     // Category management
     Route::resource('categories', App\Http\Controllers\Admin\CategoryController::class);
@@ -720,6 +722,7 @@ Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::get('repair-forms/{repairForm}/export-word', [App\Http\Controllers\Admin\RepairFormController::class, 'exportWord'])->name('repair-forms.exportWord');
     Route::get('repair-forms/{repairForm}/print-modern', [App\Http\Controllers\Admin\RepairFormController::class, 'printModern'])->name('repair-forms.printModern');
     Route::get('repair-forms/{repairForm}/print-return', [App\Http\Controllers\Admin\RepairFormController::class, 'printReturn'])->name('repair-forms.printReturn');
+    Route::post('repair-forms/{repairForm}/print-return/save', [App\Http\Controllers\Admin\RepairFormController::class, 'savePrintReturnInfo'])->name('repair-forms.savePrintReturnInfo');
     Route::get('warranties/{warranty}/create-repair-form', [App\Http\Controllers\Admin\RepairFormController::class, 'createFromWarranty'])->name('repair-forms.createFromWarranty');
     Route::get('warranty-claims/{warrantyClaim}/create-repair-form', [App\Http\Controllers\Admin\RepairFormController::class, 'createFromClaim'])->name('repair-forms.createFromClaim');
 

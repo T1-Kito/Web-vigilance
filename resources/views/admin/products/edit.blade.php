@@ -3,10 +3,90 @@
 @section('title', 'Sửa sản phẩm')
 
 @section('content')
-<div class="container-fluid py-4">
-    <div class="mb-4">
-        <h2 class="mb-0">Sửa sản phẩm</h2>
+<div class="container-fluid py-4 product-form-misa">
+    <style>
+        .product-form-misa .misa-head {
+            background: linear-gradient(180deg,#f8fafc 0%,#f1f5f9 100%);
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 14px 16px;
+        }
+        .product-form-misa .misa-head .step-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            border-radius: 999px;
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-size: .78rem;
+            font-weight: 600;
+            padding: .2rem .55rem;
+        }
+        .product-form-misa .card {
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .product-form-misa .card-header {
+            background: #f8fafc !important;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .product-form-misa .section-title {
+            font-size: .96rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: .2rem;
+        }
+        .product-form-misa .section-note {
+            color: #64748b;
+            font-size: .82rem;
+            margin-bottom: .8rem;
+        }
+        .product-form-misa .misa-form-grid > .col-12 {
+            flex: 0 0 100%;
+            max-width: 100%;
+            display: block;
+        }
+        .product-form-misa .misa-form-grid > [class*='col-md-'] {
+            flex: 0 0 50%;
+            max-width: 50%;
+            display: grid;
+            grid-template-columns: 170px 1fr;
+            gap: .55rem;
+            align-items: center;
+        }
+        .product-form-misa .misa-form-grid > [class*='col-md-'] .form-label {
+            margin-bottom: 0;
+            font-size: .87rem;
+            color: #334155;
+        }
+        .product-form-misa .misa-form-grid > [class*='col-md-'] .form-check {
+            grid-column: 2;
+        }
+        @media (max-width: 992px) {
+            .product-form-misa .misa-form-grid > [class*='col-md-'] {
+                flex: 0 0 100%;
+                max-width: 100%;
+                grid-template-columns: 1fr;
+            }
+            .product-form-misa .misa-form-grid > [class*='col-md-'] .form-check {
+                grid-column: auto;
+            }
+            .product-form-misa .misa-form-grid > [class*='col-md-'] .form-label {
+                margin-bottom: .25rem;
+            }
+        }
+    </style>
+
+    <div class="misa-head d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <div class="step-chip mb-1"><i class="bi bi-grid"></i> Quy trình chỉnh sửa sản phẩm</div>
+            <h2 class="mb-0">Sửa sản phẩm</h2>
+        </div>
+        <a href="{{ route('admin.products.index') }}" class="btn btn-light border">Quay lại</a>
     </div>
+
     <div class="card shadow-sm">
         <div class="card-body">
             @if($errors->any())
@@ -32,7 +112,9 @@
                 @csrf
                 @method('PUT')
                 <input type="hidden" name="return_url" value="{{ request('return_url') }}">
-                <div class="row mb-3">
+                <div class="section-title">1) Thông tin chung</div>
+                <div class="section-note">Nhập mã/seri, tên sản phẩm, danh mục và hãng.</div>
+                <div class="row g-3 misa-form-grid mb-3">
                     <div class="col-md-6">
                                                   <label class="form-label fw-bold">Số seri (SN)</label>
                         <input type="text" name="serial_number" class="form-control" value="{{ old('serial_number', $product->serial_number) }}">
@@ -57,7 +139,7 @@
                         @enderror
                     </div>
                 </div>
-                <div class="row mb-3">
+                <div class="row g-3 misa-form-grid mb-3">
                     <div class="col-md-6">
                         <label class="form-label fw-bold">Hãng</label>
                         @php
@@ -100,17 +182,23 @@
                         syncBrand();
                     });
                 </script>
-                <div class="row mb-3">
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-header bg-white fw-bold">
+                        2) Thiết lập giá bán
+                        <div class="section-note">Nhập Giá vốn hoặc Giá niêm yết, hệ thống tự tính các giá liên quan.</div>
+                    </div>
+                    <div class="card-body">
+                <div class="row g-3 misa-form-grid mb-3">
                     <div class="col-md-3">
-                        <label class="form-label fw-bold">Giá bán <span class="text-danger">*</span></label>
-                        <input type="text" inputmode="numeric" name="price" class="form-control money-input @error('price') is-invalid @enderror" value="{{ old('price', $product->price ?? 0) }}">
+                        <label class="form-label fw-bold">Giá bán niêm yết <span class="text-danger">*</span></label>
+                        <input type="text" inputmode="numeric" id="price" name="price" class="form-control money-input @error('price') is-invalid @enderror" value="{{ old('price', $product->price ?? 0) }}" placeholder="Nhập giá bán hoặc giá vốn">
                         @error('price')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-bold">Giá vốn</label>
-                        <input type="text" inputmode="numeric" name="cost_price" class="form-control money-input" value="{{ old('cost_price', $product->cost_price) }}">
+                        <input type="text" inputmode="numeric" id="cost_price" name="cost_price" class="form-control money-input" value="{{ old('cost_price', $product->cost_price) }}" placeholder="Nhập giá vốn để tự tính">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-bold">Giảm giá (%)</label>
@@ -138,15 +226,59 @@
                 </div>
 
                 <div class="row mb-3">
-                    <div class="col-md-3"><label class="form-label fw-bold">Đơn giá nhà máy</label><input type="text" inputmode="numeric" name="factory_price" class="form-control money-input" value="{{ old('factory_price', $product->factory_price) }}"></div>
-                    <div class="col-md-3"><label class="form-label fw-bold">Giá đề nghị bán đại lý</label><input type="text" inputmode="numeric" name="agency_suggested_price" class="form-control money-input" value="{{ old('agency_suggested_price', $product->agency_suggested_price) }}"></div>
-                    <div class="col-md-3"><label class="form-label fw-bold">Giá bán cho Đại lý</label><input type="text" inputmode="numeric" name="agency_price" class="form-control money-input" value="{{ old('agency_price', $product->agency_price) }}"></div>
-                    <div class="col-md-3"><label class="form-label fw-bold">Giá bán cho Khách lẻ</label><input type="text" inputmode="numeric" name="retail_price" class="form-control money-input" value="{{ old('retail_price', $product->retail_price) }}"></div>
+                    <div class="col-md-4"><label class="form-label fw-bold">Đơn giá nhà máy (auto)</label><input type="text" inputmode="numeric" id="factory_price" name="factory_price" class="form-control money-input" value="{{ old('factory_price', $product->factory_price) }}" readonly></div>
+                    <div class="col-md-4"><label class="form-label fw-bold">Giá bán cho Đại lý 1-5 (auto)</label><input type="text" inputmode="numeric" id="agency_price" name="agency_price" class="form-control money-input" value="{{ old('agency_price', $product->agency_price) }}" readonly></div>
+                    <div class="col-md-4"><label class="form-label fw-bold">Giá bán cho Khách lẻ (auto)</label><input type="text" inputmode="numeric" id="retail_price" name="retail_price" class="form-control money-input" value="{{ old('retail_price', $product->retail_price) }}" readonly></div>
+                    <div class="col-12 mt-2">
+                        <div class="alert alert-info py-2 mb-0 small">
+                            Công thức hiện tại: Giá niêm yết = Giá vốn x{{ number_format((float) ($pricingSetting->list_multiplier ?? 2), 2, '.', '') }}, Khách lẻ = Giá niêm yết -{{ number_format((float) ($pricingSetting->retail_discount_percent ?? 15), 2, '.', '') }}%, Đại lý: 1-5 (+{{ number_format((float) ($pricingSetting->agent_markup_1_5_percent ?? 30), 2, '.', '') }}%), 6-10 (+{{ number_format((float) ($pricingSetting->agent_markup_6_10_percent ?? 25), 2, '.', '') }}%), >10 (+{{ number_format((float) ($pricingSetting->agent_markup_over_10_percent ?? 15), 2, '.', '') }}%).
+                            <a href="{{ route('admin.pricing-formula.edit') }}" class="ms-1">Sửa công thức</a>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="row mb-3">
+                </div>
+                    </div>
                 </div>
 
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-header bg-white fw-bold">
+                        3) Quy tắc áp giá tự động
+                        <div class="section-note">Bảng giá này được sinh tự động khi cập nhật sản phẩm.</div>
+                    </div>
+                    <div class="card-body">
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Bảng giá tự động theo công thức</label>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="border rounded-3 p-3 h-100 bg-light-subtle">
+                                <div class="fw-semibold mb-2">Khách lẻ</div>
+                                <div class="small text-muted">Áp dụng cho mọi số lượng</div>
+                                <div class="mt-2"><span class="badge text-bg-primary">Giá niêm yết - 15%</span></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="border rounded-3 p-3 h-100 bg-light-subtle">
+                                <div class="fw-semibold mb-2">Đại lý (theo số lượng)</div>
+                                <ul class="small mb-0 ps-3">
+                                    <li>1-5 cái: Giá vốn + {{ number_format((float) ($pricingSetting->agent_markup_1_5_percent ?? 30), 2, '.', '') }}%</li>
+                                    <li>6-10 cái: Giá vốn + {{ number_format((float) ($pricingSetting->agent_markup_6_10_percent ?? 25), 2, '.', '') }}%</li>
+                                    <li>&gt;10 cái: Giá vốn + {{ number_format((float) ($pricingSetting->agent_markup_over_10_percent ?? 15), 2, '.', '') }}%</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-text mt-2">Khi cập nhật sản phẩm, hệ thống sẽ tự sinh và đồng bộ bảng giá theo công thức này.</div>
+                </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-header bg-white fw-bold">
+                        4) Bảo hành & thuộc tính hiển thị
+                        <div class="section-note">Nhập thông tin bảo hành, kích thước và trạng thái hiển thị.</div>
+                    </div>
+                    <div class="card-body">
                 <div class="row mb-3">
                     <div class="col-md-3"><label class="form-label fw-bold">Thời hạn bảo hành (tháng)</label><input type="number" name="warranty_months" class="form-control" value="{{ old('warranty_months', $product->warranty_months ?? 12) }}" min="0"></div>
                     <div class="col-md-9"><label class="form-label fw-bold">Nội dung bảo hành</label><input type="text" name="warranty_content" class="form-control" value="{{ old('warranty_content', $product->warranty_content) }}"></div>
@@ -172,6 +304,15 @@
                         </div>
                     </div>
                 </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-header bg-white fw-bold">
+                        5) Ảnh & nội dung sản phẩm
+                        <div class="section-note">Quản lý mô tả, ảnh hiện tại và gallery bổ sung.</div>
+                    </div>
+                    <div class="card-body">
                 <div class="mb-3">
                     <label class="form-label fw-bold">Mô tả ngắn</label>
                     <textarea name="description" class="form-control" rows="2">{{ old('description', $product->description) }}</textarea>
@@ -384,14 +525,27 @@
 
             <script>
             document.addEventListener('DOMContentLoaded', function () {
+                function toMoneyInteger(value) {
+                    const raw = (value || '').toString().trim();
+                    if (!raw) return 0;
+
+                    if (/^\d+(\.\d+)?$/.test(raw)) {
+                        const n = Number(raw);
+                        return Number.isFinite(n) ? Math.round(n) : 0;
+                    }
+
+                    const digits = raw.replace(/\D+/g, '');
+                    return digits ? Number(digits) : 0;
+                }
+
                 function digitsOnly(value) {
-                    return (value || '').toString().replace(/\D+/g, '');
+                    return String(toMoneyInteger(value));
                 }
 
                 function formatThousands(value) {
-                    const digits = digitsOnly(value);
-                    if (!digits) return '';
-                    return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                    const n = toMoneyInteger(value);
+                    if (!n) return '';
+                    return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
                 }
 
                 function bindMoneyInput(el) {
@@ -408,6 +562,69 @@
                 }
 
                 document.querySelectorAll('.money-input').forEach(bindMoneyInput);
+
+                const costInput = document.getElementById('cost_price');
+                const listInput = document.getElementById('price');
+                const factoryInput = document.getElementById('factory_price');
+                const agencyInput = document.getElementById('agency_price');
+                const retailInput = document.getElementById('retail_price');
+
+                function parseMoneyInput(v) {
+                    const n = Number((v || '').toString().replace(/\D+/g, ''));
+                    return Number.isFinite(n) ? n : 0;
+                }
+
+                function setMoney(el, value) {
+                    if (!el) return;
+                    el.value = formatThousands(String(Math.max(0, Math.round(value || 0))));
+                }
+
+                const formula = {
+                    listMultiplier: {{ (float) ($pricingSetting->list_multiplier ?? 2) }},
+                    retailDiscountPercent: {{ (float) ($pricingSetting->retail_discount_percent ?? 15) }},
+                    agentMarkup1To5Percent: {{ (float) ($pricingSetting->agent_markup_1_5_percent ?? 30) }},
+                };
+
+                function applyFromCost() {
+                    const cost = parseMoneyInput(costInput?.value || '');
+                    if (cost <= 0) return;
+                    const list = cost * formula.listMultiplier;
+                    const retail = list * (1 - formula.retailDiscountPercent / 100);
+                    const agency = cost * (1 + formula.agentMarkup1To5Percent / 100);
+
+                    setMoney(factoryInput, cost);
+                    setMoney(listInput, list);
+                    setMoney(retailInput, retail);
+                    setMoney(agencyInput, agency);
+                }
+
+                function applyFromList() {
+                    const list = parseMoneyInput(listInput?.value || '');
+                    if (list <= 0) return;
+                    const cost = list / Math.max(0.01, formula.listMultiplier);
+                    const retail = list * (1 - formula.retailDiscountPercent / 100);
+                    const agency = cost * (1 + formula.agentMarkup1To5Percent / 100);
+
+                    setMoney(costInput, cost);
+                    setMoney(factoryInput, cost);
+                    setMoney(retailInput, retail);
+                    setMoney(agencyInput, agency);
+                    setMoney(listInput, list);
+                }
+
+                if (costInput) {
+                    costInput.addEventListener('input', applyFromCost);
+                }
+                if (listInput) {
+                    listInput.addEventListener('input', applyFromList);
+                }
+
+                if (parseMoneyInput(costInput?.value || '') > 0) {
+                    applyFromCost();
+                } else {
+                    applyFromList();
+                }
+
 
                 const form = document.querySelector('form[action="{{ route('admin.products.update', $product->id) }}"]');
                 if (form) {
