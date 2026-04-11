@@ -112,6 +112,7 @@ class QuoteAdminController extends Controller
             'customer_phone' => ['nullable', 'string', 'max:50'],
             'customer_email' => ['nullable', 'email', 'max:255'],
             'customer_contact_person' => ['nullable', 'string', 'max:100'],
+            'customer_type' => ['nullable', Rule::in(['retail', 'agent', 'factory', 'enterprise'])],
 
             'staff_code' => ['nullable', 'string', 'max:100'],
             'sales_name' => ['nullable', 'string', 'max:150'],
@@ -145,6 +146,9 @@ class QuoteAdminController extends Controller
                 'customer_phone' => $validated['customer_phone'] ?? null,
                 'customer_email' => $validated['customer_email'] ?? null,
                 'customer_contact_person' => $validated['customer_contact_person'] ?? null,
+                ...(Schema::hasColumn('quotes', 'customer_type')
+                    ? ['customer_type' => $validated['customer_type'] ?? null]
+                    : []),
                 'staff_code' => $validated['staff_code'] ?? null,
                 'sales_name' => $validated['sales_name'] ?? null,
                 'discount_percent' => $validated['discount_percent'] ?? 0,
@@ -230,6 +234,7 @@ class QuoteAdminController extends Controller
             'customer_phone' => ['nullable', 'string', 'max:50'],
             'customer_email' => ['nullable', 'email', 'max:255'],
             'customer_contact_person' => ['nullable', 'string', 'max:100'],
+            'customer_type' => ['nullable', Rule::in(['retail', 'agent', 'factory', 'enterprise'])],
 
             'staff_code' => ['nullable', 'string', 'max:100'],
             'sales_name' => ['nullable', 'string', 'max:150'],
@@ -287,6 +292,9 @@ class QuoteAdminController extends Controller
                 'customer_phone' => $validated['customer_phone'] ?? null,
                 'customer_email' => $validated['customer_email'] ?? null,
                 'customer_contact_person' => $validated['customer_contact_person'] ?? null,
+                ...(Schema::hasColumn('quotes', 'customer_type')
+                    ? ['customer_type' => $validated['customer_type'] ?? null]
+                    : []),
                 'staff_code' => $validated['staff_code'] ?? null,
                 'sales_name' => $validated['sales_name'] ?? null,
                 'discount_percent' => $validated['discount_percent'] ?? 0,

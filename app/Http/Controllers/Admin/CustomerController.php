@@ -2469,6 +2469,7 @@ class CustomerController extends Controller
                 'business_type',
                 'managed_by',
                 'main_business',
+                'customer_type',
             ]);
 
         if ($taxLike && $digits !== '') {
@@ -2507,6 +2508,7 @@ class CustomerController extends Controller
                 'business_type' => (string) ($c->business_type ?? ''),
                 'managed_by' => (string) ($c->managed_by ?? ''),
                 'main_business' => (string) ($c->main_business ?? ''),
+                'customer_type' => (string) ($c->customer_type ?? ''),
             ];
         });
 

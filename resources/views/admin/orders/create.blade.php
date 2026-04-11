@@ -92,6 +92,16 @@
                             <textarea name="receiver_address" id="ao-receiver-address" class="form-control ao-input" rows="4" required maxlength="2000" placeholder="Địa chỉ nhận hàng chi tiết">{{ old('receiver_address') }}</textarea>
                         </div>
                         <div class="mt-3">
+                            <label class="ao-label">Áp dụng CK cho khách hàng</label>
+                            <select name="customer_type" id="ao-customer-type" class="form-select ao-input">
+                                <option value="">-- Tự chọn theo MST (nếu có) --</option>
+                                <option value="retail" @selected(old('customer_type') === 'retail')>Khách lẻ</option>
+                                <option value="agent" @selected(old('customer_type') === 'agent')>Đại lý</option>
+                                <option value="factory" @selected(old('customer_type') === 'factory')>Nhà máy</option>
+                                <option value="enterprise" @selected(old('customer_type') === 'enterprise')>Doanh nghiệp</option>
+                            </select>
+                        </div>
+                        <div class="mt-3">
                             <label class="ao-label">Trạng thái <span class="text-danger">*</span></label>
                             <select name="status" class="form-select ao-input" required>
                                 @foreach($statusOptions as $val => $label)
@@ -347,6 +357,7 @@
         receiverName: document.getElementById('ao-receiver-name'),
         receiverPhone: document.getElementById('ao-receiver-phone'),
         receiverAddr: document.getElementById('ao-receiver-address'),
+        customerType: document.getElementById('ao-customer-type'),
     };
 
     let suggestEl = null;
@@ -406,6 +417,16 @@
     function applyTaxPayload(d) {
         if (!d) return;
         const v = function (x) { return (x != null && String(x).trim() !== '') ? String(x).trim() : ''; };
+        const normalizeCustomerType = function (raw) {
+            const v = String(raw || '').trim().toLowerCase();
+            if (!v) return '';
+            if (v.includes('đại lý') || v.includes('dai ly') || v.includes('agent')) return 'agent';
+            if (v.includes('nhà máy') || v.includes('nha may') || v.includes('factory')) return 'factory';
+            if (v.includes('doanh nghiệp') || v.includes('doanh nghiep') || v.includes('enterprise')) return 'enterprise';
+            if (v.includes('cá nhân') || v.includes('ca nhan') || v.includes('khách lẻ') || v.includes('khach le') || v.includes('retail')) return 'retail';
+            return '';
+        };
+
         const setIf = function (node, val) {
             if (!node || val === '') return;
             node.value = val;
@@ -438,6 +459,14 @@
                 el.receiverAddr.dataset.autofill = '1';
             }
         }
+
+        if (el.customerType && (!el.customerType.value || el.customerType.dataset.autofill === '1')) {
+            const mapped = normalizeCustomerType(d.customer_type || '');
+            if (mapped) {
+                el.customerType.value = mapped;
+                el.customerType.dataset.autofill = '1';
+            }
+        }
     }
 
     ['receiverName', 'receiverPhone', 'receiverAddr'].forEach(function (key) {
@@ -445,6 +474,11 @@
         if (!node) return;
         node.addEventListener('input', function () { node.dataset.autofill = '0'; });
     });
+    if (el.customerType) {
+        el.customerType.addEventListener('change', function () {
+            el.customerType.dataset.autofill = '0';
+        });
+    }
 
     if (taxInp) {
         taxInp.addEventListener('input', function () {
@@ -541,21 +575,29 @@
     async function loadLinePrice(tr, productId) {
         const priceInp = tr.querySelector('.line-unit-price');
         const hint = tr.querySelector('.line-catalog-hint');
+        const qtyInp = tr.querySelector('.line-qty');
+        const qty = Math.max(1, Number(qtyInp?.value || 1));
+        const typeEl = document.getElementById('ao-customer-type');
+        const customerType = typeEl ? typeEl.value : '';
         if (hint) {
             hint.classList.add('d-none');
             hint.textContent = '';
         }
         if (!productId || !priceInp) return;
         try {
-            const url = LINE_OPT_BASE + '/' + productId;
+            const url = LINE_OPT_BASE + '/' + productId
+                + '?quantity=' + encodeURIComponent(qty)
+                + (customerType ? '&customer_type=' + encodeURIComponent(customerType) : '');
             const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
             if (!res.ok) throw new Error('HTTP');
             const data = await res.json();
             const fp = data.final_price != null ? Number(data.final_price) : null;
             if (fp != null && isFinite(fp)) {
-                priceInp.value = String(Math.round(fp));
+                if (priceInp.readOnly) {
+                    priceInp.value = String(Math.round(fp));
+                }
                 if (hint) {
-                    hint.textContent = 'Giá catalogue: ' + formatMoney(fp) + ' — có thể sửa';
+                    hint.textContent = (data.tier_applied ? 'Giá theo bậc SL/loại KH: ' : 'Giá niêm yết: ') + formatMoney(fp) + (priceInp.readOnly ? ' — tự động' : ' — đang sửa tay');
                     hint.classList.remove('d-none');
                 }
             }
@@ -595,6 +637,8 @@
     function bindLine(tr) {
         const search = tr.querySelector('.line-product-search');
         const rm = tr.querySelector('.line-remove');
+        const qtyInp = tr.querySelector('.line-qty');
+
         if (rm) {
             rm.addEventListener('click', function () {
                 tr.remove();
@@ -615,6 +659,12 @@
             });
             search.addEventListener('blur', function () { setTimeout(hideSuggest, 150); });
         }
+        if (qtyInp) {
+            qtyInp.addEventListener('change', function () {
+                const pid = tr.querySelector('.line-product-id')?.value;
+                if (pid) loadLinePrice(tr, pid);
+            });
+        }
     }
     document.addEventListener('click', function (ev) {
         const p = document.getElementById('aoProductSuggest');
@@ -624,6 +674,17 @@
         hideSuggest();
     });
     btnAdd.addEventListener('click', function () { addLine(); });
+
+    const customerTypeEl = document.getElementById('ao-customer-type');
+    if (customerTypeEl) {
+        customerTypeEl.addEventListener('change', function () {
+            tbody.querySelectorAll('tr[data-order-line]').forEach(function (tr) {
+                const pid = tr.querySelector('.line-product-id')?.value;
+                if (pid) loadLinePrice(tr, pid);
+            });
+        });
+    }
+
     addLine();
 
     // Modal hiển thị lịch sử mua hàng trước khi lưu đơn

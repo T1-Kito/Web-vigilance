@@ -19,6 +19,7 @@ class Order extends Model
         'customer_phone',
         'customer_email',
         'customer_contact_person',
+        'customer_type',
         'staff_code',
         'sales_name',
         'discount_percent',

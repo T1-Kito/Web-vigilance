@@ -21,6 +21,9 @@
         .sheet {
             max-width: 190mm;
             margin: 0 auto;
+            min-height: 277mm;
+            display: flex;
+            flex-direction: column;
         }
         .header {
             display: flex;
@@ -189,6 +192,19 @@
         .policy li {
             margin: 0 0 1.5mm 0;
         }
+        .footer-brand {
+            margin-top: auto;
+            border-top: 1px solid #f3a6a6;
+            padding-top: 3mm;
+            font-size: 11px;
+            color: #4b5563;
+            line-height: 1.25;
+        }
+        .footer-brand .company {
+            color: #dc2626;
+            font-weight: 700;
+            margin-bottom: 1mm;
+        }
     </style>
 </head>
 <body>
@@ -335,6 +351,12 @@
             <p>Đối với các sản phẩm đã hết thời hạn bảo hành, Vigilance vẫn hỗ trợ kiểm tra và sửa chữa theo yêu cầu của khách hàng. Phí kiểm tra tiêu chuẩn là <strong>162.000 VNĐ/máy (đã bao gồm VAT)</strong>, chưa bao gồm chi phí linh kiện thay thế (nếu có).</p>
 
             <p>Mọi linh kiện được thay thế trong quá trình sửa chữa ngoài bảo hành sẽ được bảo hành <strong>03 tháng</strong> kể từ ngày bàn giao thiết bị sau sửa chữa, với điều kiện sử dụng đúng kỹ thuật và không phát sinh các nguyên nhân loại trừ bảo hành nêu trên.</p>
+        </div>
+
+        <div class="footer-brand">
+            <div class="company">CÔNG TY CỔ PHẦN VIGILANCE VIỆT NAM</div>
+            <div>Địa chỉ: Phòng B15.09 Tầng 15, Tháp B Tòa nhà Rivergate, 151-155 Bến Vân Đồn, Phường Khánh Hội, TP.HCM</div>
+            <div>MST: 0318231312 | Hotline: 02887617015 | Email: vigilancevn@gmail.com | Website: https://vigilance.com.vn</div>
         </div>
 
         <div class="actions no-print">

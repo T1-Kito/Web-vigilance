@@ -4,8 +4,60 @@
 
 @section('content')
 <div class="container-fluid">
+    <style>
+        .misa-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px 24px;
+        }
+        .misa-field {
+            display: grid;
+            grid-template-columns: 170px 1fr;
+            gap: 10px;
+            align-items: center;
+        }
+        .misa-field label {
+            margin: 0;
+            font-weight: 600;
+        }
+        .misa-field.misa-textarea {
+            align-items: start;
+        }
+        .misa-field .form-control,
+        .misa-field .form-select,
+        .misa-field textarea {
+            width: 100%;
+        }
+        .misa-field .misa-help {
+            grid-column: 2;
+            font-size: 12px;
+            color: #6c757d;
+        }
+        .misa-section-title {
+            grid-column: 1 / -1;
+            margin: 4px 0 0;
+            padding-top: 8px;
+            border-top: 1px solid #e9ecef;
+            color: #0d6efd;
+            font-weight: 700;
+            font-size: 14px;
+        }
+        @media (max-width: 991.98px) {
+            .misa-grid {
+                grid-template-columns: 1fr;
+            }
+            .misa-field {
+                grid-template-columns: 1fr;
+            }
+            .misa-field label {
+                margin-bottom: 4px;
+            }
+            .misa-field .misa-help {
+                grid-column: 1;
+            }
+        }
+    </style>
 
-    <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h3 mb-0 text-gray-800">
@@ -27,189 +79,162 @@
                 @csrf
                 @method('PUT')
 
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="serial_numbers" class="form-label fw-bold">Số seri (SN) <span class="text-danger">*</span></label>
-                            <input type="text" name="serial_numbers" id="serial_numbers" class="form-control" list="serial_number_list" value="{{ old('serial_numbers', $repairForm->serial_numbers) }}" required>
-                            <datalist id="serial_number_list">
-                                @foreach($warranties as $warranty)
-                                    <option value="{{ $warranty->serial_number }}">
-                                @endforeach
-                            </datalist>
+                <div class="misa-grid">
+                    <div class="misa-field misa-textarea" style="grid-column: 1 / -1;">
+                        <label for="serial_numbers">Số seri (SN) <span class="text-danger">*</span></label>
+                        <div>
+                            <textarea name="serial_numbers" id="serial_numbers" class="form-control" rows="3" placeholder="Nhập nhiều SN, mỗi dòng 1 SN hoặc ngăn cách bằng dấu phẩy" required>{{ old('serial_numbers', $repairForm->serial_numbers) }}</textarea>
+                            <div class="misa-help">Bạn có thể nhập nhiều SN trong 1 phiếu.</div>
+                            <div id="serial_autofill_hint" class="misa-help" style="display:none;"></div>
+                            <div id="serial_suggest_box" class="list-group mt-2" style="display:none; max-height: 220px; overflow:auto;"></div>
+                            @error('serial_numbers')
+                                <div class="text-danger mt-1">{{ $message }}</div>
+                            @enderror
                         </div>
+                    </div>
 
-                        <div class="mb-3">
-                            <label for="customer_company" class="form-label fw-bold">Khách hàng <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="customer_company" name="customer_company" value="{{ old('customer_company', $repairForm->customer_company) }}" required>
-                        </div>
+                    <div class="misa-field">
+                        <label for="customer_company">Khách hàng <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="customer_company" name="customer_company" value="{{ old('customer_company', $repairForm->customer_company) }}" required>
+                    </div>
 
-                        <div class="mb-3">
-                            <label for="contact_person" class="form-label fw-bold">Người liên hệ</label>
-                            <input type="text" class="form-control" id="contact_person" name="contact_person" value="{{ old('contact_person', $repairForm->contact_person) }}" placeholder="Nhập người liên hệ">
-                        </div>
+                    <div class="misa-field">
+                        <label for="equipment_name">Tên thiết bị <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="equipment_name" name="equipment_name" value="{{ old('equipment_name', $repairForm->equipment_name) }}" required>
+                    </div>
 
-                        <div class="mb-3">
-                            <label for="contact_phone" class="form-label fw-bold">Số điện thoại</label>
-                            <input type="text" class="form-control" id="contact_phone" name="contact_phone" value="{{ old('contact_phone', $repairForm->contact_phone) }}">
-                        </div>
+                    <div class="misa-field">
+                        <label for="contact_person">Người liên hệ</label>
+                        <input type="text" class="form-control" id="contact_person" name="contact_person" value="{{ old('contact_person', $repairForm->contact_person) }}" placeholder="Nhập người liên hệ">
+                    </div>
 
-                        <div class="mb-3">
-                            <label for="purchase_date" class="form-label fw-bold">Ngày mua hàng</label>
-                            <input type="date" class="form-control" id="purchase_date" name="purchase_date" value="{{ old('purchase_date', $repairForm->purchase_date ? $repairForm->purchase_date->format('Y-m-d') : '') }}">
-                        </div>
+                    <div class="misa-field">
+                        <label for="received_date">Ngày tiếp nhận <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="received_date" name="received_date" value="{{ old('received_date', $repairForm->received_date ? $repairForm->received_date->format('Y-m-d') : '') }}" required>
+                    </div>
 
-                        <div class="form-check mb-3">
+                    <div class="misa-field">
+                        <label for="contact_phone">Số điện thoại</label>
+                        <input type="text" class="form-control" id="contact_phone" name="contact_phone" value="{{ old('contact_phone', $repairForm->contact_phone) }}">
+                    </div>
+
+                    <div class="misa-field">
+                        <label for="warranty_status">Trạng thái bảo hành</label>
+                        <select name="warranty_status" id="warranty_status" class="form-select">
+                            <option value="">Tự động</option>
+                            <option value="under_warranty" {{ old('warranty_status', $repairForm->warranty_status) == 'under_warranty' ? 'selected' : '' }}>Còn bảo hành</option>
+                            <option value="out_of_warranty" {{ old('warranty_status', $repairForm->warranty_status) == 'out_of_warranty' ? 'selected' : '' }}>Hết bảo hành</option>
+                        </select>
+                    </div>
+
+                    <div class="misa-field">
+                        <label for="purchase_date">Ngày mua hàng</label>
+                        <input type="date" class="form-control" id="purchase_date" name="purchase_date" value="{{ old('purchase_date', $repairForm->purchase_date ? $repairForm->purchase_date->format('Y-m-d') : '') }}">
+                    </div>
+
+                    <div class="misa-field">
+                        <label for="status">Trạng thái <span class="text-danger">*</span></label>
+                        <select name="status" id="status" class="form-select" required>
+                            <option value="not_returned" {{ old('status', $repairForm->status) == 'not_returned' ? 'selected' : '' }}>Chưa gửi trả</option>
+                            <option value="returned" {{ old('status', $repairForm->status) == 'returned' ? 'selected' : '' }}>Đã gửi trả</option>
+                        </select>
+                    </div>
+
+                    <div class="misa-field" style="grid-column: 1 / -1;">
+                        <label></label>
+                        <div class="form-check m-0">
                             <input class="form-check-input" type="checkbox" value="1" id="purchase_date_unknown" name="purchase_date_unknown" {{ old('purchase_date_unknown', $repairForm->purchase_date ? 0 : 1) ? 'checked' : '' }}>
-                            <label class="form-check-label" for="purchase_date_unknown">Không</label>
+                            <label class="form-check-label" for="purchase_date_unknown">Không rõ ngày mua hàng</label>
                         </div>
                     </div>
 
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="equipment_name" class="form-label fw-bold">Tên thiết bị <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="equipment_name" name="equipment_name" value="{{ old('equipment_name', $repairForm->equipment_name) }}" required>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="received_date" class="form-label fw-bold">Ngày tiếp nhận <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" id="received_date" name="received_date" value="{{ old('received_date', $repairForm->received_date ? $repairForm->received_date->format('Y-m-d') : '') }}" required>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="warranty_status" class="form-label fw-bold">Trạng thái bảo hành</label>
-                            <select name="warranty_status" id="warranty_status" class="form-select">
-                                <option value="">Tự động</option>
-                                <option value="under_warranty" {{ old('warranty_status', $repairForm->warranty_status) == 'under_warranty' ? 'selected' : '' }}>Còn bảo hành</option>
-                                <option value="out_of_warranty" {{ old('warranty_status', $repairForm->warranty_status) == 'out_of_warranty' ? 'selected' : '' }}>Hết bảo hành</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label for="error_status" class="form-label fw-bold">Tình trạng lỗi <span class="text-danger">*</span></label>
-                    <textarea class="form-control" id="error_status" name="error_status" rows="3" required>{{ old('error_status', $repairForm->error_status) }}</textarea>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-12">
-                        <div class="mb-3">
-                            <label for="accessories" class="form-label fw-bold">Phụ kiện kèm theo</label>
-                            <input type="text" class="form-control" id="accessories" name="accessories" value="{{ old('accessories', $repairForm->accessories) }}" placeholder="Nhập phụ kiện kèm theo (nếu có)">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="repair_time_required" class="form-label fw-bold">Thời gian sửa chữa cần thiết</label>
-                            <input type="text" class="form-control" id="repair_time_required" name="repair_time_required" value="{{ old('repair_time_required', $repairForm->repair_time_required) }}" placeholder="VD: 3-5 ngày">
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="estimated_warranty_time" class="form-label fw-bold">Thời gian bảo hành dự kiến</label>
-                            <input type="text" class="form-control" id="estimated_warranty_time" name="estimated_warranty_time" value="{{ old('estimated_warranty_time', $repairForm->estimated_warranty_time) }}" placeholder="VD: 30 ngày">
-                        </div>
+                    <div class="misa-field misa-textarea" style="grid-column: 1 / -1;">
+                        <label for="error_status">Tình trạng lỗi <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="error_status" name="error_status" rows="3" required>{{ old('error_status', $repairForm->error_status) }}</textarea>
                     </div>
 
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="estimated_return_date" class="form-label fw-bold">Ngày trả máy (dự kiến)</label>
-                            <input type="date" class="form-control" id="estimated_return_date" name="estimated_return_date" value="{{ old('estimated_return_date', $repairForm->estimated_return_date ? $repairForm->estimated_return_date->format('Y-m-d') : '') }}">
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="actual_return_date" class="form-label fw-bold">Ngày trả máy cho khách</label>
-                            <input type="date" class="form-control" id="actual_return_date" name="actual_return_date" value="{{ old('actual_return_date', $repairForm->actual_return_date ? $repairForm->actual_return_date->format('Y-m-d') : '') }}">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-12">
-                        <hr>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-12">
-                        <h6 class="fw-bold text-primary mb-3">Thông tin bàn giao (Phiếu trả)</h6>
+                    <div class="misa-field">
+                        <label for="accessories">Phụ kiện kèm theo</label>
+                        <input type="text" class="form-control" id="accessories" name="accessories" value="{{ old('accessories', $repairForm->accessories) }}" placeholder="Nhập phụ kiện kèm theo (nếu có)">
                     </div>
 
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label for="handed_over_by" class="form-label fw-bold">Người bàn giao</label>
-                            <input type="text" class="form-control" id="handed_over_by" name="handed_over_by" value="{{ old('handed_over_by', $repairForm->handed_over_by) }}" placeholder="Nhập người bàn giao">
-                        </div>
+                    <div class="misa-field">
+                        <label for="actual_return_date">Ngày trả máy cho khách</label>
+                        <input type="date" class="form-control" id="actual_return_date" name="actual_return_date" value="{{ old('actual_return_date', $repairForm->actual_return_date ? $repairForm->actual_return_date->format('Y-m-d') : '') }}">
                     </div>
 
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label for="handed_over_by_phone" class="form-label fw-bold">Số điện thoại người bàn giao</label>
-                            <input type="text" class="form-control" id="handed_over_by_phone" name="handed_over_by_phone" value="{{ old('handed_over_by_phone', $repairForm->handed_over_by_phone) }}" placeholder="Nhập số điện thoại người bàn giao">
-                        </div>
+                    <div class="misa-field">
+                        <label for="repair_time_required">Thời gian sửa chữa cần thiết</label>
+                        <input type="text" class="form-control" id="repair_time_required" name="repair_time_required" value="{{ old('repair_time_required', $repairForm->repair_time_required) }}" placeholder="VD: 3-5 ngày">
                     </div>
 
-                    <div class="col-md-12">
-                        <div class="mb-3">
-                            <label for="handover_repair_info" class="form-label fw-bold">Thông tin đã sửa chữa</label>
-                            <textarea class="form-control" id="handover_repair_info" name="handover_repair_info" rows="3">{{ old('handover_repair_info', $repairForm->handover_repair_info) }}</textarea>
-                        </div>
+                    <div class="misa-field">
+                        <label for="estimated_return_date">Ngày trả máy (dự kiến)</label>
+                        <input type="date" class="form-control" id="estimated_return_date" name="estimated_return_date" value="{{ old('estimated_return_date', $repairForm->estimated_return_date ? $repairForm->estimated_return_date->format('Y-m-d') : '') }}">
                     </div>
 
-                    <div class="col-md-12">
-                        <div class="mb-3">
-                            <label for="handover_check_info" class="form-label fw-bold">Thời gian bảo hành/sửa chữa</label>
-                            <textarea class="form-control" id="handover_check_info" name="handover_check_info" rows="3">{{ old('handover_check_info', $repairForm->handover_check_info) }}</textarea>
-                        </div>
+                    <div class="misa-field">
+                        <label for="estimated_warranty_time">Thời gian bảo hành dự kiến</label>
+                        <input type="text" class="form-control" id="estimated_warranty_time" name="estimated_warranty_time" value="{{ old('estimated_warranty_time', $repairForm->estimated_warranty_time) }}" placeholder="VD: 30 ngày">
+                    </div>
+
+                    <div class="misa-section-title">Thông tin bàn giao (phiếu trả)</div>
+
+                    <div class="misa-field">
+                        <label for="handed_over_by">Người bàn giao</label>
+                        <select id="handed_over_by" name="handed_over_by" class="form-select">
+                            <option value="">-- Chọn người bàn giao --</option>
+                            <option value="Nguyễn Thị Hồng Vi" {{ old('handed_over_by', $repairForm->handed_over_by) === 'Nguyễn Thị Hồng Vi' ? 'selected' : '' }}>Nguyễn Thị Hồng Vi</option>
+                            <option value="Bùi Nguyễn Tường Vy" {{ old('handed_over_by', $repairForm->handed_over_by) === 'Bùi Nguyễn Tường Vy' ? 'selected' : '' }}>Bùi Nguyễn Tường Vy</option>
+                        </select>
+                    </div>
+
+                    <div class="misa-field">
+                        <label for="handed_over_by_phone">SĐT người bàn giao</label>
+                        <input type="text" class="form-control" id="handed_over_by_phone" name="handed_over_by_phone" value="{{ old('handed_over_by_phone', $repairForm->handed_over_by_phone) }}" placeholder="Nhập số điện thoại người bàn giao">
+                    </div>
+
+                    <div class="misa-field misa-textarea" style="grid-column: 1 / -1;">
+                        <label for="handover_repair_info">Thông tin đã sửa chữa</label>
+                        <textarea class="form-control" id="handover_repair_info" name="handover_repair_info" rows="3">{{ old('handover_repair_info', $repairForm->handover_repair_info) }}</textarea>
+                    </div>
+
+                    <div class="misa-field">
+                        <label for="handover_check_info">Thời gian BH/sửa chữa</label>
+                        <input type="text" class="form-control" id="handover_check_info" name="handover_check_info" value="{{ old('handover_check_info', $repairForm->handover_check_info) }}">
+                    </div>
+
+                    <div class="misa-field">
+                        <label for="received_by">Người tiếp nhận</label>
+                        <select class="form-select" id="received_by" name="received_by">
+                            <option value="">-- Chọn người tiếp nhận --</option>
+                            <option value="Nguyễn Thị Hồng Vi" {{ old('received_by', $repairForm->received_by) === 'Nguyễn Thị Hồng Vi' ? 'selected' : '' }}>Nguyễn Thị Hồng Vi</option>
+                            <option value="Bùi Nguyễn Tường Vy" {{ old('received_by', $repairForm->received_by) === 'Bùi Nguyễn Tường Vy' ? 'selected' : '' }}>Bùi Nguyễn Tường Vy</option>
+                        </select>
+                    </div>
+
+                    <div class="misa-field">
+                        <label for="received_by_phone">SĐT người tiếp nhận</label>
+                        <input type="text" class="form-control" id="received_by_phone" name="received_by_phone" value="{{ old('received_by_phone', $repairForm->received_by_phone) }}" placeholder="Nhập số điện thoại người tiếp nhận">
+                    </div>
+
+                    <div class="misa-field">
+                        <label for="service_representative">Phụ trách DVKH</label>
+                        <select class="form-select" id="service_representative" name="service_representative">
+                            <option value="">-- Chọn phụ trách DVKH --</option>
+                            <option value="Nguyễn Thị Hồng Vi" {{ old('service_representative', $repairForm->service_representative) === 'Nguyễn Thị Hồng Vi' ? 'selected' : '' }}>Nguyễn Thị Hồng Vi</option>
+                            <option value="Bùi Nguyễn Tường Vy" {{ old('service_representative', $repairForm->service_representative) === 'Bùi Nguyễn Tường Vy' ? 'selected' : '' }}>Bùi Nguyễn Tường Vy</option>
+                        </select>
+                    </div>
+
+                    <div class="misa-field misa-textarea" style="grid-column: 1 / -1;">
+                        <label for="notes">Ghi chú</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3">{{ old('notes', $repairForm->notes) }}</textarea>
                     </div>
                 </div>
 
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label for="received_by" class="form-label fw-bold">Người tiếp nhận</label>
-                            <input type="text" class="form-control" id="received_by" name="received_by" value="{{ old('received_by', $repairForm->received_by) }}" placeholder="Nhập người tiếp nhận">
-                        </div>
-                    </div>
-
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label for="received_by_phone" class="form-label fw-bold">Số điện thoại người tiếp nhận</label>
-                            <input type="text" class="form-control" id="received_by_phone" name="received_by_phone" value="{{ old('received_by_phone', $repairForm->received_by_phone) }}" placeholder="Nhập số điện thoại người tiếp nhận">
-                        </div>
-                    </div>
-
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label for="service_representative" class="form-label fw-bold">Phụ trách dịch vụ khách hàng</label>
-                            <input type="text" class="form-control" id="service_representative" name="service_representative" value="{{ old('service_representative', $repairForm->service_representative) }}" placeholder="Nhập tên phụ trách dịch vụ khách hàng">
-                        </div>
-                    </div>
-
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label for="status" class="form-label fw-bold">Trạng thái <span class="text-danger">*</span></label>
-                            <select name="status" id="status" class="form-select" required>
-                                <option value="not_returned" {{ old('status', $repairForm->status) == 'not_returned' ? 'selected' : '' }}>Chưa gửi trả</option>
-                                <option value="returned" {{ old('status', $repairForm->status) == 'returned' ? 'selected' : '' }}>Đã gửi trả</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-12">
-                        <div class="mb-3">
-                            <label for="notes" class="form-label fw-bold">Ghi chú</label>
-                            <textarea class="form-control" id="notes" name="notes" rows="3">{{ old('notes', $repairForm->notes) }}</textarea>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="text-end">
+                <div class="d-flex justify-content-end gap-2 mt-3">
+                    <a href="{{ route('admin.repair-forms.index') }}" class="btn btn-secondary">Hủy</a>
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-check"></i> Cập nhật phiếu
                     </button>
@@ -222,19 +247,124 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const warrantyMap = @json($warrantyMap);
+    const normalizeSn = (value) => (value || '').toString().trim().toUpperCase();
+    const normalizedWarrantyMap = {};
+    Object.keys(warrantyMap || {}).forEach((key) => {
+        normalizedWarrantyMap[normalizeSn(key)] = warrantyMap[key];
+    });
 
-    const purchaseDateUnknownEl = document.getElementById('purchase_date_unknown');
+    const serialEl = document.getElementById('serial_numbers');
+    const customerEl = document.getElementById('customer_company');
+    const contactPersonEl = document.getElementById('contact_person');
+    const phoneEl = document.getElementById('contact_phone');
+    const equipmentEl = document.getElementById('equipment_name');
     const purchaseDateEl = document.getElementById('purchase_date');
-    const serialNumbersEl = document.getElementById('serial_numbers');
-    const customerCompanyEl = document.getElementById('customer_company');
-    const contactPhoneEl = document.getElementById('contact_phone');
-    const equipmentNameEl = document.getElementById('equipment_name');
+    const purchaseUnknownEl = document.getElementById('purchase_date_unknown');
+    const warrantyStatusEl = document.getElementById('warranty_status');
     const receivedDateEl = document.getElementById('received_date');
     const estimatedWarrantyTimeEl = document.getElementById('estimated_warranty_time');
     const estimatedReturnDateEl = document.getElementById('estimated_return_date');
+    const hintEl = document.getElementById('serial_autofill_hint');
+    const suggestBoxEl = document.getElementById('serial_suggest_box');
+
+    const AUTO_KEY = 'data-autofilled';
+    let lastSn = null;
+
+    const allSerials = Object.keys(normalizedWarrantyMap || {});
+
+    function extractSerialParts(raw) {
+        return ((raw || '') + '')
+            .replace(/\r\n?/g, '\n')
+            .split(/[\n,;\t ]+/)
+            .map((x) => normalizeSn(x))
+            .filter(Boolean);
+    }
+
+    function getCurrentSerialToken(raw) {
+        const text = (raw || '') + '';
+        const m = text.match(/([^\n,;\t ]*)$/);
+        return normalizeSn(m ? m[1] : '');
+    }
+
+    function replaceCurrentToken(raw, newToken) {
+        const text = (raw || '') + '';
+        return text.replace(/([^\n,;\t ]*)$/, newToken);
+    }
+
+    function closeSuggestBox() {
+        if (!suggestBoxEl) return;
+        suggestBoxEl.style.display = 'none';
+        suggestBoxEl.innerHTML = '';
+    }
+
+    function openSuggestBox(matches, token) {
+        if (!suggestBoxEl || !serialEl) return;
+        if (!token || !matches.length) {
+            closeSuggestBox();
+            return;
+        }
+
+        suggestBoxEl.innerHTML = '';
+        matches.slice(0, 12).forEach((sn) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'list-group-item list-group-item-action py-2';
+            btn.textContent = sn;
+            btn.addEventListener('click', function () {
+                serialEl.value = replaceCurrentToken(serialEl.value, sn + '\n');
+                closeSuggestBox();
+                tryFillFromSerial();
+                serialEl.focus();
+            });
+            suggestBoxEl.appendChild(btn);
+        });
+        suggestBoxEl.style.display = '';
+    }
+
+    function updateSerialSuggest() {
+        if (!serialEl) return;
+        const token = getCurrentSerialToken(serialEl.value);
+        if (!token || token.length < 2) {
+            closeSuggestBox();
+            return;
+        }
+
+        const used = new Set(extractSerialParts(serialEl.value));
+        const matches = allSerials.filter((sn) => sn.includes(token) && !used.has(sn));
+        openSuggestBox(matches, token);
+    }
+
+    function markAutofilled(el) {
+        if (!el) return;
+        el.setAttribute(AUTO_KEY, '1');
+    }
+
+    function unmarkAutofilled(el) {
+        if (!el) return;
+        el.removeAttribute(AUTO_KEY);
+    }
+
+    function isAutofilled(el) {
+        if (!el) return false;
+        return el.getAttribute(AUTO_KEY) === '1';
+    }
+
+    function attachUserEditTracker(el) {
+        if (!el) return;
+        el.addEventListener('input', function () {
+            unmarkAutofilled(el);
+        });
+    }
+
+    attachUserEditTracker(customerEl);
+    attachUserEditTracker(contactPersonEl);
+    attachUserEditTracker(phoneEl);
+    attachUserEditTracker(equipmentEl);
+    attachUserEditTracker(purchaseDateEl);
+    attachUserEditTracker(warrantyStatusEl);
 
     function syncPurchaseDateUnknown() {
-        const unknown = !!(purchaseDateUnknownEl && purchaseDateUnknownEl.checked);
+        const unknown = !!(purchaseUnknownEl && purchaseUnknownEl.checked);
         if (purchaseDateEl) {
             purchaseDateEl.disabled = unknown;
             if (unknown) {
@@ -243,33 +373,111 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    if (purchaseDateUnknownEl) {
-        purchaseDateUnknownEl.addEventListener('change', syncPurchaseDateUnknown);
+    if (purchaseUnknownEl) {
+        purchaseUnknownEl.addEventListener('change', syncPurchaseDateUnknown);
     }
     syncPurchaseDateUnknown();
 
     function tryFillFromSerial() {
-        const sn = (serialNumbersEl && serialNumbersEl.value ? serialNumbersEl.value : '').trim();
-        const info = warrantyMap ? warrantyMap[sn] : null;
+        const raw = (serialEl ? serialEl.value : '') || '';
+        const serials = Array.from(new Set(extractSerialParts(raw)));
+        const firstSn = serials.length ? serials[0] : '';
+        const info = firstSn ? normalizedWarrantyMap[firstSn] : null;
+
+        const snChanged = lastSn !== firstSn;
+        lastSn = firstSn;
+
         if (!info) {
+            if (hintEl) {
+                hintEl.textContent = firstSn ? 'Không tìm thấy SN đầu tiên trong hệ thống bảo hành.' : '';
+                hintEl.classList.remove('text-success', 'text-muted');
+                hintEl.classList.add('text-danger');
+                hintEl.style.display = firstSn ? '' : 'none';
+            }
+            if (snChanged) {
+                if (customerEl && isAutofilled(customerEl)) customerEl.value = '';
+                if (contactPersonEl && isAutofilled(contactPersonEl)) contactPersonEl.value = '';
+                if (phoneEl && isAutofilled(phoneEl)) phoneEl.value = '';
+                if (equipmentEl && isAutofilled(equipmentEl)) equipmentEl.value = '';
+                if (purchaseDateEl && isAutofilled(purchaseDateEl)) purchaseDateEl.value = '';
+                if (warrantyStatusEl && isAutofilled(warrantyStatusEl)) warrantyStatusEl.value = '';
+
+                unmarkAutofilled(customerEl);
+                unmarkAutofilled(contactPersonEl);
+                unmarkAutofilled(phoneEl);
+                unmarkAutofilled(equipmentEl);
+                unmarkAutofilled(purchaseDateEl);
+                unmarkAutofilled(warrantyStatusEl);
+            }
             return;
         }
 
-        if (customerCompanyEl && !customerCompanyEl.value) {
-            customerCompanyEl.value = info.customer || '';
+        let matchedCount = 0;
+        serials.forEach((sn) => {
+            if (normalizedWarrantyMap[sn]) matchedCount++;
+        });
+
+        if (hintEl) {
+            hintEl.textContent = serials.length > 1
+                ? ('Đã nhận ' + serials.length + ' SN, khớp ' + matchedCount + ' SN. Tự điền theo SN đầu tiên: ' + firstSn)
+                : '';
+            hintEl.classList.remove('text-danger', 'text-muted');
+            hintEl.classList.add('text-success');
+            hintEl.style.display = serials.length > 1 ? '' : 'none';
         }
-        if (contactPhoneEl && !contactPhoneEl.value) {
-            contactPhoneEl.value = info.phone || '';
+
+        const canOverwrite = (el) => !el || !el.value || isAutofilled(el);
+
+        if (customerEl && canOverwrite(customerEl)) {
+            customerEl.value = info.customer || '';
+            markAutofilled(customerEl);
         }
-        if (equipmentNameEl && !equipmentNameEl.value) {
-            equipmentNameEl.value = info.product || '';
+        if (contactPersonEl && canOverwrite(contactPersonEl)) {
+            contactPersonEl.value = info.customer || '';
+            markAutofilled(contactPersonEl);
+        }
+        if (phoneEl && canOverwrite(phoneEl)) {
+            phoneEl.value = info.phone || '';
+            markAutofilled(phoneEl);
+        }
+        if (equipmentEl && canOverwrite(equipmentEl)) {
+            equipmentEl.value = info.product || '';
+            markAutofilled(equipmentEl);
+        }
+
+        const purchaseUnknown = !!(purchaseUnknownEl && purchaseUnknownEl.checked);
+        if (!purchaseUnknown && purchaseDateEl && info.purchase_date && canOverwrite(purchaseDateEl)) {
+            purchaseDateEl.value = info.purchase_date;
+            markAutofilled(purchaseDateEl);
+        }
+
+        if (warrantyStatusEl && info.warranty_status && canOverwrite(warrantyStatusEl)) {
+            warrantyStatusEl.value = info.warranty_status;
+            markAutofilled(warrantyStatusEl);
         }
     }
 
-    if (serialNumbersEl) {
-        serialNumbersEl.addEventListener('change', tryFillFromSerial);
-        serialNumbersEl.addEventListener('keyup', tryFillFromSerial);
+    if (serialEl) {
+        serialEl.addEventListener('change', function () {
+            tryFillFromSerial();
+            updateSerialSuggest();
+        });
+        serialEl.addEventListener('keyup', function () {
+            tryFillFromSerial();
+            updateSerialSuggest();
+        });
+        serialEl.addEventListener('focus', updateSerialSuggest);
+        serialEl.addEventListener('blur', function () {
+            setTimeout(closeSuggestBox, 150);
+            tryFillFromSerial();
+        });
     }
+
+    document.addEventListener('click', function (e) {
+        if (!suggestBoxEl || !serialEl) return;
+        if (e.target === serialEl || suggestBoxEl.contains(e.target)) return;
+        closeSuggestBox();
+    });
 
     function pad2(n) {
         return String(n).padStart(2, '0');
