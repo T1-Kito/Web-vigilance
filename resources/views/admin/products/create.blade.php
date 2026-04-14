@@ -165,7 +165,15 @@
                 <div class="row g-3">
                     <div class="col-md-3">
                         <label class="form-label">Giá bán niêm yết <span class="text-danger">*</span></label>
-                        <input type="text" inputmode="numeric" id="price" name="price" class="form-control money-input @error('price') is-invalid @enderror" value="{{ old('price', 0) }}" placeholder="Nhập giá bán hoặc giá vốn">
+                        <div class="input-group">
+                            <select id="competitor_filter_select" class="form-select" style="max-width: 170px;">
+                                <option value="">So: Tất cả</option>
+                                <option value="sieuthivienthong.com">So: Siêu Thị Viễn Thông</option>
+                                <option value="vuhoangtelecom.vn">So: Vũ Hoàng</option>
+                            </select>
+                            <input type="text" inputmode="numeric" id="price" name="price" class="form-control money-input @error('price') is-invalid @enderror" value="{{ old('price', 0) }}" placeholder="Nhập giá bán hoặc giá vốn">
+                        </div>
+                        <div id="competitor-live-compare" class="small mt-2 text-wrap"></div>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Giá vốn</label>
@@ -179,6 +187,7 @@
                         <label class="form-label">Thuế GTGT (%)</label>
                         <input type="number" step="0.01" name="vat_percent" class="form-control" value="{{ old('vat_percent', 0) }}" min="0" max="100">
                     </div>
+
 
                     <div class="col-md-4"><label class="form-label">Đơn giá nhà máy (auto)</label><input type="text" inputmode="numeric" id="factory_price" name="factory_price" class="form-control money-input" value="{{ old('factory_price') }}" readonly></div>
                     <div class="col-md-4"><label class="form-label">Giá bán cho Đại lý 1-5 (auto)</label><input type="text" inputmode="numeric" id="agency_price" name="agency_price" class="form-control money-input" value="{{ old('agency_price') }}" readonly></div>
@@ -389,6 +398,8 @@ document.addEventListener('DOMContentLoaded', function () {
         bindMoneyInput(row.querySelector('.money-input'));
     };
 
+    const compareBox = document.getElementById('competitor-live-compare');
+    const competitorFilterSelect = document.getElementById('competitor_filter_select');
     const costInput = document.getElementById('cost_price');
     const listInput = document.getElementById('price');
     const factoryInput = document.getElementById('factory_price');
@@ -451,6 +462,74 @@ document.addEventListener('DOMContentLoaded', function () {
         applyFromList();
     }
 
+    async function runCompetitorCompare() {
+        if (!compareBox || !listInput) return;
+        const currentPrice = parseMoneyInput(listInput.value || '');
+        const competitor = competitorFilterSelect?.value || '';
+        if (currentPrice <= 0) {
+            compareBox.className = 'small mt-2 text-muted';
+            compareBox.textContent = competitor
+                ? 'Nhập giá để so với dữ liệu đối thủ.'
+                : 'Nhập giá để xem giá có đang ổn không.';
+            return;
+        }
+
+        try {
+            const params = new URLSearchParams({
+                name: (document.querySelector('input[name="name"]')?.value || '').trim(),
+                serial_number: (document.querySelector('input[name="serial_number"]')?.value || '').trim(),
+                price: String(currentPrice || 0),
+            });
+            if (competitor) params.set('competitor', competitor);
+
+            const res = await fetch(`{{ route('admin.products.competitor-compare') }}?${params.toString()}`, {
+                headers: { 'Accept': 'application/json' }
+            });
+            const data = await res.json();
+
+            if (!data?.ok || !data?.has_data) {
+                compareBox.className = 'small mt-2 text-muted';
+                compareBox.textContent = competitor
+                    ? 'Chưa có dữ liệu đối thủ để so sánh cho tên/mã này.'
+                    : 'Chưa có dữ liệu đối thủ để so sánh cho tên/mã này.';
+                return;
+            }
+
+            const best = Number(data.best_competitor_price || 0);
+            const delta = Number(data.delta ?? 0);
+            const compName = data.best_competitor || 'đối thủ';
+            const bestUrl = (data.best_competitor_url || '').trim();
+            const linkHtml = bestUrl ? ` <a href="${bestUrl}" target="_blank" rel="noopener" class="ms-1">Xem</a>` : '';
+
+            if (data.status === 'higher') {
+                compareBox.className = 'small mt-2 text-danger fw-semibold';
+                compareBox.innerHTML = `Giá bạn đang CAO hơn ${compName} khoảng ${formatThousands(String(delta))}đ.${linkHtml}`;
+            } else if (data.status === 'lower') {
+                compareBox.className = 'small mt-2 text-success fw-semibold';
+                compareBox.innerHTML = `Giá bạn đang THẤP hơn ${compName} khoảng ${formatThousands(String(Math.abs(delta)))}đ.${linkHtml}`;
+            } else {
+                compareBox.className = 'small mt-2 text-primary fw-semibold';
+                compareBox.innerHTML = `Giá bạn đang BẰNG giá thấp nhất của ${compName}.${linkHtml}`;
+            }
+        } catch (e) {
+            compareBox.className = 'small mt-2 text-muted';
+            compareBox.textContent = 'Không thể tải dữ liệu so sánh đối thủ lúc này.';
+        }
+    }
+
+    let compareTimer = null;
+    function scheduleCompare() {
+        if (compareTimer) clearTimeout(compareTimer);
+        compareTimer = setTimeout(runCompetitorCompare, 350);
+    }
+
+    if (listInput) listInput.addEventListener('input', scheduleCompare);
+    if (competitorFilterSelect) competitorFilterSelect.addEventListener('change', scheduleCompare);
+    const nameInput = document.querySelector('input[name="name"]');
+    const serialInput = document.querySelector('input[name="serial_number"]');
+    if (nameInput) nameInput.addEventListener('input', scheduleCompare);
+    if (serialInput) serialInput.addEventListener('input', scheduleCompare);
+    runCompetitorCompare();
 
     const form = document.querySelector('form[action="{{ route('admin.products.store') }}"]');
     if (form) {

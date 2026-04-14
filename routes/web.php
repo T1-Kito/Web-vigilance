@@ -697,6 +697,8 @@ Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(
 
     // Product management
     Route::get('products/lookup', [App\Http\Controllers\Admin\ProductController::class, 'lookup'])->name('products.lookup');
+    Route::get('products/competitor-compare', [App\Http\Controllers\Admin\ProductController::class, 'competitorCompare'])->name('products.competitor-compare');
+    Route::get('products/competitor-prices', [App\Http\Controllers\Admin\ProductController::class, 'competitorPrices'])->name('products.competitor-prices');
     Route::get('products/export-excel', [App\Http\Controllers\Admin\ProductController::class, 'exportExcel'])->name('products.exportExcel');
     Route::post('products/import-excel', [App\Http\Controllers\Admin\ProductController::class, 'importExcel'])->name('products.importExcel');
     Route::post('products/{product}/delete-image', [App\Http\Controllers\Admin\ProductController::class, 'deleteAdditionalImage'])->name('products.deleteImage');

@@ -471,6 +471,12 @@
                 </a>
             </div>
             <div class="nav-item">
+                <a href="{{ route('admin.products.competitor-prices') }}" class="nav-link {{ request()->routeIs('admin.products.competitor-prices') ? 'active' : '' }}">
+                    <div class="nav-icon"><i class="bi bi-binoculars"></i></div>
+                    Kho giá 
+                </a>
+            </div>
+            <div class="nav-item">
                 <a href="{{ route('admin.categories.index') }}" class="nav-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">
                     <div class="nav-icon"><i class="bi bi-grid"></i></div>
                     Quản lý danh mục

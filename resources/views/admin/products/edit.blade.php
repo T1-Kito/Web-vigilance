@@ -191,10 +191,18 @@
                 <div class="row g-3 misa-form-grid mb-3">
                     <div class="col-md-3">
                         <label class="form-label fw-bold">Giá bán niêm yết <span class="text-danger">*</span></label>
-                        <input type="text" inputmode="numeric" id="price" name="price" class="form-control money-input @error('price') is-invalid @enderror" value="{{ old('price', $product->price ?? 0) }}" placeholder="Nhập giá bán hoặc giá vốn">
+                        <div class="input-group">
+                            <select id="competitor_filter_select" class="form-select" style="max-width: 170px;">
+                                <option value="">So: Tất cả</option>
+                                <option value="sieuthivienthong.com">So: Siêu Thị Viễn Thông</option>
+                                <option value="vuhoangtelecom.vn">So: Vũ Hoàng</option>
+                            </select>
+                            <input type="text" inputmode="numeric" id="price" name="price" class="form-control money-input @error('price') is-invalid @enderror" value="{{ old('price', $product->price ?? 0) }}" placeholder="Nhập giá bán hoặc giá vốn">
+                        </div>
                         @error('price')
-                            <div class="invalid-feedback">{{ $message }}</div>
+                            <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
+                        <div id="competitor-live-compare" class="small mt-2 text-wrap"></div>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-bold">Giá vốn</label>
@@ -213,6 +221,8 @@
                         <input type="number" name="sort_order" class="form-control" value="{{ old('sort_order', $product->sort_order ?? 999) }}" min="1">
                         <small class="text-muted">Số nhỏ = ưu tiên</small>
                     </div>
+
+
                 </div>
 
                 <div class="row mb-3">
@@ -529,11 +539,15 @@
                     const raw = (value || '').toString().trim();
                     if (!raw) return 0;
 
-                    if (/^\d+(\.\d+)?$/.test(raw)) {
-                        const n = Number(raw);
+                    // Trường hợp dữ liệu từ DB dạng decimal: "1390000.00"
+                    // => hiểu là 1,390,000 (không phải 139,000,000)
+                    if (/^\d+[\.,]00$/.test(raw)) {
+                        const n = Number(raw.replace(',', '.'));
                         return Number.isFinite(n) ? Math.round(n) : 0;
                     }
 
+                    // Mặc định parse theo định dạng tiền VNĐ có phân tách hàng nghìn
+                    // ví dụ: "1.390.000" / "1,390,000" / "1 390 000"
                     const digits = raw.replace(/\D+/g, '');
                     return digits ? Number(digits) : 0;
                 }
@@ -625,6 +639,95 @@
                     applyFromList();
                 }
 
+                const compareBox = document.getElementById('competitor-live-compare');
+                const competitorFilterSelect = document.getElementById('competitor_filter_select');
+                let selectedCompetitor = competitorFilterSelect?.value || '';
+                let compareTimer = null;
+
+                function formatVnd(n) {
+                    const num = Number(n || 0);
+                    return String(Math.round(num)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                }
+
+                async function runCompetitorCompare() {
+                    if (!compareBox || !listInput) return;
+
+                    const currentPrice = parseMoneyInput(listInput.value || '');
+                    const params = new URLSearchParams({
+                        product_id: '{{ $product->id }}',
+                        name: (document.querySelector('input[name="name"]')?.value || '').trim(),
+                        serial_number: (document.querySelector('input[name="serial_number"]')?.value || '').trim(),
+                        price: String(currentPrice || 0),
+                    });
+
+                    if (selectedCompetitor) {
+                        params.set('competitor', selectedCompetitor);
+                    }
+
+                    try {
+                        const res = await fetch(`{{ route('admin.products.competitor-compare') }}?${params.toString()}`, {
+                            headers: { 'Accept': 'application/json' }
+                        });
+                        const data = await res.json();
+
+                        if (!data?.ok || !data?.has_data) {
+                            compareBox.className = 'small mt-2 text-muted text-wrap';
+                            compareBox.textContent = selectedCompetitor
+                                ? `Chưa có dữ liệu của ${selectedCompetitor} cho sản phẩm này.`
+                                : 'Chưa có dữ liệu đối thủ để so sánh tự động cho sản phẩm này.';
+                            return;
+                        }
+
+                        const best = Number(data.best_competitor_price || 0);
+                        const delta = Number(data.delta ?? 0);
+                        const competitor = data.best_competitor || 'đối thủ';
+
+                        if (currentPrice <= 0) {
+                            compareBox.className = 'small mt-2 text-muted';
+                            compareBox.textContent = `Đối thủ thấp nhất hiện tại: ${formatVnd(best)}đ (${competitor}). Nhập giá để xem cao/thấp.`;
+                            return;
+                        }
+
+                        const bestUrl = (data.best_competitor_url || '').trim();
+                        const linkHtml = bestUrl
+                            ? ` <a href="${bestUrl}" target="_blank" rel="noopener" class="ms-1">Xem sản phẩm đối thủ</a>`
+                            : '';
+
+                        if (data.status === 'higher') {
+                            compareBox.className = 'small mt-2 text-danger fw-semibold text-wrap';
+                            compareBox.innerHTML = `Giá bạn đang CAO hơn ${competitor} khoảng ${formatVnd(delta)}đ. ${linkHtml}`;
+                        } else if (data.status === 'lower') {
+                            compareBox.className = 'small mt-2 text-success fw-semibold text-wrap';
+                            compareBox.innerHTML = `Giá bạn đang THẤP hơn ${competitor} khoảng ${formatVnd(Math.abs(delta))}đ. ${linkHtml}`;
+                        } else {
+                            compareBox.className = 'small mt-2 text-primary fw-semibold text-wrap';
+                            compareBox.innerHTML = `Giá bạn đang BẰNG giá thấp nhất của ${competitor}. ${linkHtml}`;
+                        }
+                    } catch (e) {
+                        compareBox.className = 'small mt-2 text-muted';
+                        compareBox.textContent = 'Không thể tải dữ liệu so sánh đối thủ lúc này.';
+                    }
+                }
+
+                function scheduleCompare() {
+                    if (compareTimer) clearTimeout(compareTimer);
+                    compareTimer = setTimeout(runCompetitorCompare, 350);
+                }
+
+                if (listInput) listInput.addEventListener('input', scheduleCompare);
+                const nameInput = document.querySelector('input[name="name"]');
+                const serialInput = document.querySelector('input[name="serial_number"]');
+                if (nameInput) nameInput.addEventListener('input', scheduleCompare);
+                if (serialInput) serialInput.addEventListener('input', scheduleCompare);
+
+                if (competitorFilterSelect) {
+                    competitorFilterSelect.addEventListener('change', function () {
+                        selectedCompetitor = competitorFilterSelect.value || '';
+                        runCompetitorCompare();
+                    });
+                }
+
+                runCompetitorCompare();
 
                 const form = document.querySelector('form[action="{{ route('admin.products.update', $product->id) }}"]');
                 if (form) {
