@@ -6,9 +6,17 @@
 <div class="container-fluid py-3">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h4 class="mb-0">Kho giá đối thủ</h4>
-        @if(\App\Support\Permission::allows(auth()->user(), 'products.view'))
-        <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary btn-sm">Về sản phẩm</a>
-        @endif
+        <div class="d-flex gap-2">
+            @if(\App\Support\Permission::allows(auth()->user(), 'products.competitor.edit'))
+                <form method="POST" action="{{ route('admin.products.competitor-prices.vinh-nguyen.sync') }}" onsubmit="return confirm('Quét lại giá từ Vinh Nguyễn?')">
+                    @csrf
+                    <button class="btn btn-primary btn-sm" type="submit">Quét Vinh Nguyễn</button>
+                </form>
+            @endif
+            @if(\App\Support\Permission::allows(auth()->user(), 'products.view'))
+            <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary btn-sm">Về sản phẩm</a>
+            @endif
+        </div>
     </div>
 
     <div class="card border-0 shadow-sm mb-3">

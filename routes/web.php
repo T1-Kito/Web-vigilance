@@ -699,11 +699,13 @@ Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::get('products/lookup', [App\Http\Controllers\Admin\ProductController::class, 'lookup'])->name('products.lookup');
     Route::get('products/competitor-compare', [App\Http\Controllers\Admin\ProductController::class, 'competitorCompare'])->name('products.competitor-compare');
     Route::get('products/competitor-prices', [App\Http\Controllers\Admin\ProductController::class, 'competitorPrices'])->name('products.competitor-prices');
+    Route::get('products/competitor-price-refs', [App\Http\Controllers\Admin\ProductController::class, 'competitorPriceRefs'])->name('products.competitor-price-refs');
     Route::get('products/export-excel', [App\Http\Controllers\Admin\ProductController::class, 'exportExcel'])->name('products.exportExcel')->middleware('permission:products.export');
     Route::post('products/import-excel', [App\Http\Controllers\Admin\ProductController::class, 'importExcel'])->name('products.importExcel')->middleware('permission:products.import');
     Route::post('products/{product}/delete-image', [App\Http\Controllers\Admin\ProductController::class, 'deleteAdditionalImage'])->name('products.deleteImage')->middleware('permission:products.edit');
     Route::get('products/{product}/activity-history', [App\Http\Controllers\Admin\ProductController::class, 'activityHistory'])->name('products.activity-history')->middleware('permission:products.view');
     Route::get('products/competitor-prices', [App\Http\Controllers\Admin\ProductController::class, 'competitorPrices'])->name('products.competitor-prices')->middleware('permission:products.competitor.view');
+    Route::post('products/competitor-prices/vinh-nguyen/sync', [App\Http\Controllers\Admin\ProductController::class, 'syncVinhNguyenPrices'])->name('products.competitor-prices.vinh-nguyen.sync')->middleware('permission:products.competitor.edit');
     Route::get('products/competitor-compare', [App\Http\Controllers\Admin\ProductController::class, 'competitorCompare'])->name('products.competitor-compare')->middleware('permission:products.competitor.view');
     Route::get('products', [App\Http\Controllers\Admin\ProductController::class, 'index'])->name('products.index')->middleware('permission:products.view');
     Route::get('products/create', [App\Http\Controllers\Admin\ProductController::class, 'create'])->name('products.create')->middleware('permission:products.create');

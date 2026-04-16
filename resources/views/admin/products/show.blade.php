@@ -77,7 +77,7 @@
             <h2 class="misa-section-title">Thông tin giá</h2>
             <div class="row g-4">
                 <div class="col-lg-6">
-                    <div class="misa-kv"><span>Giá bán</span><strong>{{ number_format((float) ($product->price ?? 0), 0, ',', '.') }}</strong></div>
+                    <div class="misa-kv"><span>Giá bán</span><strong id="local-price-display">{{ number_format((float) ($product->price ?? 0), 0, ',', '.') }}</strong></div>
                     <div class="misa-kv"><span>Đơn giá nhà máy</span><strong>{{ number_format((float) ($product->factory_price ?? $product->price), 0, ',', '.') }}</strong></div>
                     <div class="misa-kv"><span>Giá bán cho Đại Lý</span><strong>{{ number_format((float) ($product->agency_price ?? $product->price), 0, ',', '.') }}</strong></div>
                     <div class="misa-kv"><span>Giá bán cho Khách Lẻ</span><strong>{{ number_format((float) ($product->retail_price ?? $product->price), 0, ',', '.') }}</strong></div>
@@ -92,6 +92,7 @@
                 </div>
             </div>
         </div>
+
 
         <div class="misa-section">
             <h2 class="misa-section-title">Thông tin bảo hành</h2>

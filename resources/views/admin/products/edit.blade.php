@@ -110,7 +110,7 @@
             
             <form action="{{ route('admin.products.update', $product->id) }}" method="POST" enctype="multipart/form-data">
                 @csrf
-                @method('PUT')
+                @method('PATCH')
                 <input type="hidden" name="return_url" value="{{ request('return_url') }}">
                 <div class="section-title">1) Thông tin chung</div>
                 <div class="section-note">Nhập mã/seri, tên sản phẩm, danh mục và hãng.</div>
@@ -188,31 +188,54 @@
                         <div class="section-note">Nhập Giá vốn hoặc Giá niêm yết, hệ thống tự tính các giá liên quan.</div>
                     </div>
                     <div class="card-body">
-                <div class="row g-3 misa-form-grid mb-3">
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">Giá bán niêm yết <span class="text-danger">*</span></label>
-                        <div class="input-group">
-                            <select id="competitor_filter_select" class="form-select" style="max-width: 170px;">
-                                <option value="">So: Tất cả</option>
-                                <option value="sieuthivienthong.com">So: Siêu Thị Viễn Thông</option>
-                                <option value="vuhoangtelecom.vn">So: Vũ Hoàng</option>
-                            </select>
-                            <input type="text" inputmode="numeric" id="price" name="price" class="form-control money-input @error('price') is-invalid @enderror" value="{{ old('price', $product->price ?? 0) }}" placeholder="Nhập giá bán hoặc giá vốn">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Giá đối thủ 1</label>
+                        <div class="small text-muted mb-1" style="min-height: 18px;">{{ $competitorPriceRefs[0]['label'] ?? 'Vinh Nguyễn' }}</div>
+                        <div style="min-height: 20px;">
+                            @if(!empty($competitorPriceRefs[0]['product_url']))
+                                <a href="{{ $competitorPriceRefs[0]['product_url'] }}" target="_blank" rel="noopener" class="small">Mở link đối thủ</a>
+                            @endif
                         </div>
+                        <input type="text" class="form-control money-input mt-1" value="{{ old('competitor_price_1', number_format((float) ($competitorPriceRefs[0]['price'] ?? 0), 0, ',', '.')) }}" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Giá đối thủ 2</label>
+                        <div class="small text-muted mb-1" style="min-height: 18px;">{{ $competitorPriceRefs[1]['label'] ?? 'Đối thủ 2' }}</div>
+                        <div style="min-height: 20px;">
+                            @if(!empty($competitorPriceRefs[1]['product_url']))
+                                <a href="{{ $competitorPriceRefs[1]['product_url'] }}" target="_blank" rel="noopener" class="small">Mở link đối thủ</a>
+                            @endif
+                        </div>
+                        <input type="text" class="form-control money-input mt-1" value="{{ old('competitor_price_2', number_format((float) ($competitorPriceRefs[1]['price'] ?? 0), 0, ',', '.')) }}" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Giá đối thủ 3</label>
+                        <div class="small text-muted mb-1" style="min-height: 18px;">{{ $competitorPriceRefs[2]['label'] ?? 'Đối thủ 3' }}</div>
+                        <div style="min-height: 20px;">
+                            @if(!empty($competitorPriceRefs[2]['product_url']))
+                                <a href="{{ $competitorPriceRefs[2]['product_url'] }}" target="_blank" rel="noopener" class="small">Mở link đối thủ</a>
+                            @endif
+                        </div>
+                        <input type="text" class="form-control money-input mt-1" value="{{ old('competitor_price_3', number_format((float) ($competitorPriceRefs[2]['price'] ?? 0), 0, ',', '.')) }}" readonly>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-bold">Giá của mình <span class="text-danger">*</span></label>
+                        <input type="text" inputmode="numeric" id="price" name="price" class="form-control money-input @error('price') is-invalid @enderror" value="{{ old('price', $product->price ?? 0) }}" placeholder="Nhập giá bán hoặc giá vốn">
                         @error('price')
                             <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
                         <div id="competitor-live-compare" class="small mt-2 text-wrap"></div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label class="form-label fw-bold">Giá vốn</label>
                         <input type="text" inputmode="numeric" id="cost_price" name="cost_price" class="form-control money-input" value="{{ old('cost_price', $product->cost_price) }}" placeholder="Nhập giá vốn để tự tính">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label class="form-label fw-bold">Giảm giá (%)</label>
                         <input type="number" name="discount_percent" class="form-control" value="{{ old('discount_percent', $product->discount_percent) }}" min="0" max="100">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label class="form-label fw-bold">Thuế GTGT (%)</label>
                         <input type="number" step="0.01" name="vat_percent" class="form-control" value="{{ old('vat_percent', $product->vat_percent ?? 0) }}" min="0" max="100">
                     </div>
