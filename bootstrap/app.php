@@ -21,7 +21,21 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpExceptionInterface $e, $request) {
+            if ((int) $e->getStatusCode() === 419) {
+                $message = 'Phiên làm việc đã hết hạn. Vui lòng tải lại trang và thử lại.';
+
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'message' => $message,
+                    ], 419);
+                }
+
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', $message);
+            }
+        });
     })
     ->withProviders([
         Maatwebsite\Excel\ExcelServiceProvider::class,
