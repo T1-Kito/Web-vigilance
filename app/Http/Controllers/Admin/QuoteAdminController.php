@@ -22,6 +22,7 @@ class QuoteAdminController extends Controller
 {
     public function index(Request $request)
     {
+        abort_unless(\App\Support\Permission::allows(auth()->user(), 'quotation.view'), 403);
         $defaultStatus = '';
 
         $statusOptions = [

@@ -9,7 +9,7 @@
             <h1 class="h3 mb-0 text-gray-800">
                 <i class="bi bi-people"></i> Quản lý người dùng
             </h1>
-            <p class="text-muted">Nâng lên admin hoặc hạ xuống người dùng</p>
+            <p class="text-muted">Nâng cấp vai trò và phân quyền chi tiết</p>
         </div>
     </div>
 
@@ -61,19 +61,29 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <form method="POST" action="{{ route('admin.users.updateRole', $u) }}" class="d-flex gap-2">
-                                        @csrf
-                                        @method('PATCH')
+                                    <div class="d-flex flex-column gap-2">
+                                        @if($u->id !== auth()->id() && (auth()->user()?->role === 'admin' || \App\Support\Permission::allows(auth()->user(), 'users.manage')))
+                                            <form method="POST" action="{{ route('admin.users.updateRole', $u) }}" class="d-flex gap-2">
+                                                @csrf
+                                                @method('PATCH')
 
-                                        <select name="role" class="form-select form-select-sm" {{ auth()->id() === $u->id ? 'disabled' : '' }}>
-                                            <option value="user" {{ $u->role === 'user' ? 'selected' : '' }}>user</option>
-                                            <option value="admin" {{ $u->role === 'admin' ? 'selected' : '' }}>admin</option>
-                                        </select>
+                                                <select name="role" class="form-select form-select-sm">
+                                                    <option value="user" {{ $u->role === 'user' ? 'selected' : '' }}>user</option>
+                                                    <option value="admin" {{ $u->role === 'admin' ? 'selected' : '' }}>admin</option>
+                                                </select>
 
-                                        <button type="submit" class="btn btn-sm btn-primary" {{ auth()->id() === $u->id ? 'disabled' : '' }}>
-                                            Lưu
-                                        </button>
-                                    </form>
+                                                <button type="submit" class="btn btn-sm btn-primary">
+                                                    Lưu
+                                                </button>
+                                            </form>
+                                        @endif
+
+                                        @if(auth()->user()?->role === 'admin' || \App\Support\Permission::allows(auth()->user(), 'users.permission'))
+                                            <a href="{{ route('admin.users.permissions.edit', $u) }}" class="btn btn-sm btn-outline-secondary {{ auth()->id() === $u->id ? 'disabled' : '' }}">
+                                                Quyền
+                                            </a>
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                         @empty

@@ -4,9 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\ActivityLogger;
+use App\Support\Permission;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Support\ActivityLogger;
 
 class UserController extends Controller
 {
@@ -20,7 +21,7 @@ class UserController extends Controller
         $allowed = trim(strtolower($allowed));
 
         if ($allowed === '') {
-            return $user->role === 'admin';
+            return Permission::allows($user, 'super.admin') || Permission::allows($user, 'admin.access');
         }
 
         return strtolower((string) $user->email) === $allowed;
@@ -33,7 +34,7 @@ class UserController extends Controller
 
     public function index(Request $request)
     {
-        if (!$this->isSuperAdmin(Auth::user())) {
+        if (!$this->isSuperAdmin(Auth::user()) && !Permission::allows(Auth::user(), 'users.manage') && !Permission::allows(Auth::user(), 'users.view')) {
             return $this->denyNotEnoughLevel();
         }
 
@@ -60,6 +61,8 @@ class UserController extends Controller
 
         $validated = $request->validate([
             'role' => ['required', 'in:admin,user'],
+            'permissions' => ['sometimes', 'array'],
+            'permissions.*' => ['string'],
         ]);
 
         if (Auth::id() === $user->id) {
@@ -77,9 +80,14 @@ class UserController extends Controller
         }
 
         $user->role = $newRole;
+        if ($request->has('permissions')) {
+            $user->permissions = array_values(array_filter((array) $validated['permissions'], function ($permission) {
+                return is_string($permission) && $permission !== '';
+            }));
+        }
         $user->save();
 
-        $after = $user->fresh()->only(['role', 'email', 'name']);
+        $after = $user->fresh()->only(['role', 'permissions', 'email', 'name']);
         ActivityLogger::log('user.update_role', $user, 'Cập nhật quyền người dùng', [
             'before' => $before,
             'after' => $after,

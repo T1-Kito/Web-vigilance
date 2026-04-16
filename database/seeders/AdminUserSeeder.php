@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
+use App\Models\Permission;
 use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class AdminUserSeeder extends Seeder
@@ -14,15 +14,21 @@ class AdminUserSeeder extends Seeder
      */
     public function run(): void
     {
-        User::create([
-            'name' => 'Admin',
-            'email' => 'admin@webcn.com',
-            'password' => Hash::make('123456'),
-            'role' => 'admin',
-        ]);
+        $allPermissions = Permission::query()->pluck('slug')->all();
 
-        $this->command->info('Admin user created successfully!');
+        $user = User::updateOrCreate(
+            ['email' => 'admin@webcn.com'],
+            [
+                'name' => 'Admin',
+                'password' => Hash::make('123456'),
+                'role' => 'admin',
+                'permissions' => $allPermissions,
+            ]
+        );
+
+        $this->command->info('Admin user ready successfully!');
         $this->command->info('Email: admin@webcn.com');
         $this->command->info('Password: 123456');
+        $this->command->info('Permissions assigned: ' . count($allPermissions));
     }
 }

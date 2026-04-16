@@ -699,58 +699,94 @@ Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::get('products/lookup', [App\Http\Controllers\Admin\ProductController::class, 'lookup'])->name('products.lookup');
     Route::get('products/competitor-compare', [App\Http\Controllers\Admin\ProductController::class, 'competitorCompare'])->name('products.competitor-compare');
     Route::get('products/competitor-prices', [App\Http\Controllers\Admin\ProductController::class, 'competitorPrices'])->name('products.competitor-prices');
-    Route::get('products/export-excel', [App\Http\Controllers\Admin\ProductController::class, 'exportExcel'])->name('products.exportExcel');
-    Route::post('products/import-excel', [App\Http\Controllers\Admin\ProductController::class, 'importExcel'])->name('products.importExcel');
-    Route::post('products/{product}/delete-image', [App\Http\Controllers\Admin\ProductController::class, 'deleteAdditionalImage'])->name('products.deleteImage');
-    Route::get('products/{product}/activity-history', [App\Http\Controllers\Admin\ProductController::class, 'activityHistory'])->name('products.activity-history');
-    Route::resource('products', App\Http\Controllers\Admin\ProductController::class);
+    Route::get('products/export-excel', [App\Http\Controllers\Admin\ProductController::class, 'exportExcel'])->name('products.exportExcel')->middleware('permission:products.export');
+    Route::post('products/import-excel', [App\Http\Controllers\Admin\ProductController::class, 'importExcel'])->name('products.importExcel')->middleware('permission:products.import');
+    Route::post('products/{product}/delete-image', [App\Http\Controllers\Admin\ProductController::class, 'deleteAdditionalImage'])->name('products.deleteImage')->middleware('permission:products.edit');
+    Route::get('products/{product}/activity-history', [App\Http\Controllers\Admin\ProductController::class, 'activityHistory'])->name('products.activity-history')->middleware('permission:products.view');
+    Route::get('products/competitor-prices', [App\Http\Controllers\Admin\ProductController::class, 'competitorPrices'])->name('products.competitor-prices')->middleware('permission:products.competitor.view');
+    Route::get('products/competitor-compare', [App\Http\Controllers\Admin\ProductController::class, 'competitorCompare'])->name('products.competitor-compare')->middleware('permission:products.competitor.view');
+    Route::get('products', [App\Http\Controllers\Admin\ProductController::class, 'index'])->name('products.index')->middleware('permission:products.view');
+    Route::get('products/create', [App\Http\Controllers\Admin\ProductController::class, 'create'])->name('products.create')->middleware('permission:products.create');
+    Route::post('products', [App\Http\Controllers\Admin\ProductController::class, 'store'])->name('products.store')->middleware('permission:products.create');
+    Route::get('products/{product}', [App\Http\Controllers\Admin\ProductController::class, 'show'])->name('products.show')->middleware('permission:products.view');
+    Route::get('products/{product}/edit', [App\Http\Controllers\Admin\ProductController::class, 'edit'])->name('products.edit')->middleware('permission:products.edit');
+    Route::patch('products/{product}', [App\Http\Controllers\Admin\ProductController::class, 'update'])->name('products.update')->middleware('permission:products.edit');
+    Route::delete('products/{product}', [App\Http\Controllers\Admin\ProductController::class, 'destroy'])->name('products.destroy')->middleware('permission:products.delete');
     Route::get('pricing-formula', [\App\Http\Controllers\Admin\PricingFormulaController::class, 'edit'])->name('pricing-formula.edit');
     Route::patch('pricing-formula', [\App\Http\Controllers\Admin\PricingFormulaController::class, 'update'])->name('pricing-formula.update');
     
     // Category management
-    Route::resource('categories', App\Http\Controllers\Admin\CategoryController::class);
+    Route::resource('categories', App\Http\Controllers\Admin\CategoryController::class)
+        ->only(['index', 'show', 'create', 'store', 'edit', 'update', 'destroy'])
+        ->middleware([
+            'index' => 'permission:categories.view',
+            'show' => 'permission:categories.view',
+            'create' => 'permission:categories.create',
+            'store' => 'permission:categories.create',
+            'edit' => 'permission:categories.edit',
+            'update' => 'permission:categories.edit',
+            'destroy' => 'permission:categories.delete',
+        ]);
 
     // Warranty management
-    Route::get('warranties/claims', [App\Http\Controllers\Admin\WarrantyController::class, 'claims'])->name('warranties.claims');
-    Route::patch('warranties/claims/{claim}/status', [App\Http\Controllers\Admin\WarrantyController::class, 'updateClaimStatus'])->name('warranties.claims.update-status');
+    Route::get('warranties/claims', [App\Http\Controllers\Admin\WarrantyController::class, 'claims'])->name('warranties.claims')->middleware('permission:warranty-claims.view');
+    Route::patch('warranties/claims/{claim}/status', [App\Http\Controllers\Admin\WarrantyController::class, 'updateClaimStatus'])->name('warranties.claims.update-status')->middleware('permission:warranty-claims.process');
     // Đặt export/import TRƯỚC resource để tránh bị nuốt bởi {warranty}
-    Route::get('warranties/export-excel', [App\Http\Controllers\Admin\WarrantyController::class, 'exportExcel'])->name('warranties.exportExcel');
-    Route::post('warranties/import-excel', [App\Http\Controllers\Admin\WarrantyController::class, 'importExcel'])->name('warranties.importExcel');
-    Route::post('warranties/destroy-all', [App\Http\Controllers\Admin\WarrantyController::class, 'destroyAll'])->name('warranties.destroyAll');
-    Route::resource('warranties', App\Http\Controllers\Admin\WarrantyController::class);
+    Route::get('warranties/export-excel', [App\Http\Controllers\Admin\WarrantyController::class, 'exportExcel'])->name('warranties.exportExcel')->middleware('permission:warranties.view');
+    Route::post('warranties/import-excel', [App\Http\Controllers\Admin\WarrantyController::class, 'importExcel'])->name('warranties.importExcel')->middleware('permission:warranties.create');
+    Route::post('warranties/destroy-all', [App\Http\Controllers\Admin\WarrantyController::class, 'destroyAll'])->name('warranties.destroyAll')->middleware('permission:warranties.delete');
+    Route::resource('warranties', App\Http\Controllers\Admin\WarrantyController::class)
+        ->middleware([
+            'index' => 'permission:warranties.view',
+            'show' => 'permission:warranties.view',
+            'create' => 'permission:warranties.create',
+            'store' => 'permission:warranties.create',
+            'edit' => 'permission:warranties.edit',
+            'update' => 'permission:warranties.edit',
+            'destroy' => 'permission:warranties.delete',
+        ]);
 
     // Repair Forms Routes
-    Route::resource('repair-forms', App\Http\Controllers\Admin\RepairFormController::class);
-    Route::get('repair-forms/{repairForm}/export-word', [App\Http\Controllers\Admin\RepairFormController::class, 'exportWord'])->name('repair-forms.exportWord');
-    Route::get('repair-forms/{repairForm}/print-modern', [App\Http\Controllers\Admin\RepairFormController::class, 'printModern'])->name('repair-forms.printModern');
-    Route::get('repair-forms/{repairForm}/print-return', [App\Http\Controllers\Admin\RepairFormController::class, 'printReturn'])->name('repair-forms.printReturn');
-    Route::post('repair-forms/{repairForm}/print-return/save', [App\Http\Controllers\Admin\RepairFormController::class, 'savePrintReturnInfo'])->name('repair-forms.savePrintReturnInfo');
-    Route::get('warranties/{warranty}/create-repair-form', [App\Http\Controllers\Admin\RepairFormController::class, 'createFromWarranty'])->name('repair-forms.createFromWarranty');
-    Route::get('warranty-claims/{warrantyClaim}/create-repair-form', [App\Http\Controllers\Admin\RepairFormController::class, 'createFromClaim'])->name('repair-forms.createFromClaim');
+    Route::resource('repair-forms', App\Http\Controllers\Admin\RepairFormController::class)
+        ->middleware([
+            'index' => 'permission:warranties.view',
+            'show' => 'permission:warranties.view',
+            'create' => 'permission:warranties.create',
+            'store' => 'permission:warranties.create',
+            'edit' => 'permission:warranties.edit',
+            'update' => 'permission:warranties.edit',
+            'destroy' => 'permission:warranties.delete',
+        ]);
+    Route::get('repair-forms/{repairForm}/export-word', [App\Http\Controllers\Admin\RepairFormController::class, 'exportWord'])->name('repair-forms.exportWord')->middleware('permission:warranties.view');
+    Route::get('repair-forms/{repairForm}/print-modern', [App\Http\Controllers\Admin\RepairFormController::class, 'printModern'])->name('repair-forms.printModern')->middleware('permission:warranties.view');
+    Route::get('repair-forms/{repairForm}/print-return', [App\Http\Controllers\Admin\RepairFormController::class, 'printReturn'])->name('repair-forms.printReturn')->middleware('permission:warranties.view');
+    Route::post('repair-forms/{repairForm}/print-return/save', [App\Http\Controllers\Admin\RepairFormController::class, 'savePrintReturnInfo'])->name('repair-forms.savePrintReturnInfo')->middleware('permission:warranties.edit');
+    Route::get('warranties/{warranty}/create-repair-form', [App\Http\Controllers\Admin\RepairFormController::class, 'createFromWarranty'])->name('repair-forms.createFromWarranty')->middleware('permission:warranties.create');
+    Route::get('warranty-claims/{warrantyClaim}/create-repair-form', [App\Http\Controllers\Admin\RepairFormController::class, 'createFromClaim'])->name('repair-forms.createFromClaim')->middleware('permission:warranties.create');
 
     // Order management (create trước {orderId} để không nuốt "create")
-    Route::get('orders/create', [\App\Http\Controllers\Admin\OrderAdminController::class, 'create'])->name('orders.create');
-    Route::post('orders', [\App\Http\Controllers\Admin\OrderAdminController::class, 'store'])->name('orders.store');
-    Route::get('orders/line-options/{product}', [\App\Http\Controllers\Admin\OrderAdminController::class, 'lineOptions'])->name('orders.line-options');
+    Route::get('orders/create', [\App\Http\Controllers\Admin\OrderAdminController::class, 'create'])->name('orders.create')->middleware('permission:orders.create');
+    Route::post('orders', [\App\Http\Controllers\Admin\OrderAdminController::class, 'store'])->name('orders.store')->middleware('permission:orders.create');
+    Route::get('orders/line-options/{product}', [\App\Http\Controllers\Admin\OrderAdminController::class, 'lineOptions'])->name('orders.line-options')->middleware('permission:orders.view');
     // Modal hiển thị lịch sử mua hàng của khách (theo MST/SĐT từ form tạo đơn)
-    Route::get('orders/customer-history', [\App\Http\Controllers\Admin\OrderAdminController::class, 'customerPurchaseHistory'])->name('orders.customer-history');
-    Route::get('orders', [\App\Http\Controllers\Admin\OrderAdminController::class, 'index'])->name('orders.index');
-    Route::get('orders/{orderId}', [\App\Http\Controllers\Admin\OrderAdminController::class, 'show'])->name('orders.show');
-    Route::get('orders/{order}/workflow', [\App\Http\Controllers\Admin\OrderAdminController::class, 'workflow'])->name('orders.workflow');
-    Route::patch('orders/{order}', [\App\Http\Controllers\Admin\OrderAdminController::class, 'update'])->name('orders.update');
-    Route::delete('orders/{order}', [\App\Http\Controllers\Admin\OrderAdminController::class, 'destroy'])->name('orders.destroy');
+    Route::get('orders/customer-history', [\App\Http\Controllers\Admin\OrderAdminController::class, 'customerPurchaseHistory'])->name('orders.customer-history')->middleware('permission:customers.lookup');
+    Route::get('orders', [\App\Http\Controllers\Admin\OrderAdminController::class, 'index'])->name('orders.index')->middleware('permission:orders.view');
+    Route::get('orders/{orderId}', [\App\Http\Controllers\Admin\OrderAdminController::class, 'show'])->name('orders.show')->middleware('permission:orders.view');
+    Route::get('orders/{order}/workflow', [\App\Http\Controllers\Admin\OrderAdminController::class, 'workflow'])->name('orders.workflow')->middleware('permission:orders.edit');
+    Route::patch('orders/{order}', [\App\Http\Controllers\Admin\OrderAdminController::class, 'update'])->name('orders.update')->middleware('permission:orders.edit');
+    Route::delete('orders/{order}', [\App\Http\Controllers\Admin\OrderAdminController::class, 'destroy'])->name('orders.destroy')->middleware('permission:orders.delete');
 
     // Quote management (danh sách báo giá riêng)
-    Route::get('quotes', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'index'])->name('quotes.index');
-    Route::get('quotes/create', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'create'])->name('quotes.create');
-    Route::post('quotes', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'store'])->name('quotes.store');
-    Route::get('quotes/{quote}', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'show'])->name('quotes.show');
-    Route::get('quotes/{quote}/print', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'print'])->name('quotes.print');
-    Route::get('quotes/{quote}/edit', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'edit'])->name('quotes.edit');
-    Route::patch('quotes/{quote}', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'update'])->name('quotes.update');
-    Route::delete('quotes/{quote}', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'destroy'])->name('quotes.destroy');
-    Route::patch('quotes/{quote}/status', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'updateStatus'])->name('quotes.update-status');
-    Route::post('quotes/{quote}/convert-to-order', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'convertToOrder'])->name('quotes.convert-to-order');
+    Route::get('quotes', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'index'])->name('quotes.index')->middleware('permission:quotation.view');
+    Route::get('quotes/create', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'create'])->name('quotes.create')->middleware('permission:quotation.create');
+    Route::post('quotes', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'store'])->name('quotes.store')->middleware('permission:quotation.create');
+    Route::get('quotes/{quote}', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'show'])->name('quotes.show')->middleware('permission:quotation.view');
+    Route::get('quotes/{quote}/print', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'print'])->name('quotes.print')->middleware('permission:quotation.print');
+    Route::get('quotes/{quote}/edit', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'edit'])->name('quotes.edit')->middleware('permission:quotation.edit');
+    Route::patch('quotes/{quote}', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'update'])->name('quotes.update')->middleware('permission:quotation.edit');
+    Route::delete('quotes/{quote}', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'destroy'])->name('quotes.destroy')->middleware('permission:quotation.delete');
+    Route::patch('quotes/{quote}/status', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'updateStatus'])->name('quotes.update-status')->middleware('permission:quotation.approve');
+    Route::post('quotes/{quote}/convert-to-order', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'convertToOrder'])->name('quotes.convert-to-order')->middleware('permission:quotation.convert');
 
     // Sales order management (đơn bán ngoài từ báo giá)
     Route::get('sales-orders', [\App\Http\Controllers\Admin\SalesOrderAdminController::class, 'index'])->name('sales-orders.index');
@@ -764,48 +800,68 @@ Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::delete('sales-orders/{salesOrder}', [\App\Http\Controllers\Admin\SalesOrderAdminController::class, 'destroy'])->name('sales-orders.destroy');
 
     // Document templates
-    Route::get('document-templates', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'index'])->name('document-templates.index');
-    Route::post('document-templates', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'store'])->name('document-templates.store');
-    Route::patch('document-templates/{documentTemplate}', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'update'])->name('document-templates.update');
-    Route::delete('document-templates/{documentTemplate}', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'destroy'])->name('document-templates.destroy');
-    Route::get('document-templates/fields/download', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'downloadFields'])->name('document-templates.fields.download');
+    Route::get('document-templates', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'index'])->name('document-templates.index')->middleware('permission:document-templates.view');
+    Route::post('document-templates', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'store'])->name('document-templates.store')->middleware('permission:document-templates.edit');
+    Route::patch('document-templates/{documentTemplate}', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'update'])->name('document-templates.update')->middleware('permission:document-templates.edit');
+    Route::delete('document-templates/{documentTemplate}', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'destroy'])->name('document-templates.destroy')->middleware('permission:document-templates.edit');
+    Route::get('document-templates/fields/download', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'downloadFields'])->name('document-templates.fields.download')->middleware('permission:document-templates.view');
     Route::get('document-templates/{documentTemplate}/render/quote/{quote}', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'renderQuote'])->name('document-templates.render.quote');
     Route::get('document-templates/{documentTemplate}/render/sales-order/{salesOrder}', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'renderSalesOrder'])->name('document-templates.render.sales-order');
     Route::get('document-templates/render-default/quote/{quote}', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'renderDefaultQuote'])->name('document-templates.render-default.quote');
     Route::get('document-templates/render-default/sales-order/{salesOrder}', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'renderDefaultSalesOrder'])->name('document-templates.render-default.sales-order');
 
     // Debt management
-    Route::get('debts', [\App\Http\Controllers\Admin\DebtAdminController::class, 'index'])->name('debts.index');
-    Route::get('debts/{debt}', [\App\Http\Controllers\Admin\DebtAdminController::class, 'show'])->name('debts.show');
-    Route::patch('debts/{debt}', [\App\Http\Controllers\Admin\DebtAdminController::class, 'update'])->name('debts.update');
+    Route::get('debts', [\App\Http\Controllers\Admin\DebtAdminController::class, 'index'])->name('debts.index')->middleware('permission:debts.view');
+    Route::get('debts/{debt}', [\App\Http\Controllers\Admin\DebtAdminController::class, 'show'])->name('debts.show')->middleware('permission:debts.view');
+    Route::patch('debts/{debt}', [\App\Http\Controllers\Admin\DebtAdminController::class, 'update'])->name('debts.update')->middleware('permission:debts.edit');
 
     // Delivery management (phiếu xuất kho)
-    Route::get('deliveries', [\App\Http\Controllers\Admin\DeliveryAdminController::class, 'index'])->name('deliveries.index');
-    Route::get('orders/{order}/deliveries/create', [\App\Http\Controllers\Admin\DeliveryAdminController::class, 'createFromOrder'])->name('deliveries.create-from-order');
-    Route::post('orders/{order}/deliveries', [\App\Http\Controllers\Admin\DeliveryAdminController::class, 'store'])->name('deliveries.store');
-    Route::get('deliveries/{delivery}', [\App\Http\Controllers\Admin\DeliveryAdminController::class, 'show'])->name('deliveries.show');
-    Route::get('deliveries/{delivery}/print', [\App\Http\Controllers\Admin\DeliveryAdminController::class, 'print'])->name('deliveries.print');
-    Route::delete('deliveries/{delivery}', [\App\Http\Controllers\Admin\DeliveryAdminController::class, 'destroy'])->name('deliveries.destroy');
+    Route::get('deliveries', [\App\Http\Controllers\Admin\DeliveryAdminController::class, 'index'])->name('deliveries.index')->middleware('permission:deliveries.view');
+    Route::get('orders/{order}/deliveries/create', [\App\Http\Controllers\Admin\DeliveryAdminController::class, 'createFromOrder'])->name('deliveries.create-from-order')->middleware('permission:deliveries.create');
+    Route::post('orders/{order}/deliveries', [\App\Http\Controllers\Admin\DeliveryAdminController::class, 'store'])->name('deliveries.store')->middleware('permission:deliveries.create');
+    Route::get('deliveries/{delivery}', [\App\Http\Controllers\Admin\DeliveryAdminController::class, 'show'])->name('deliveries.show')->middleware('permission:deliveries.view');
+    Route::get('deliveries/{delivery}/print', [\App\Http\Controllers\Admin\DeliveryAdminController::class, 'print'])->name('deliveries.print')->middleware('permission:deliveries.view');
+    Route::delete('deliveries/{delivery}', [\App\Http\Controllers\Admin\DeliveryAdminController::class, 'destroy'])->name('deliveries.destroy')->middleware('permission:deliveries.delete');
 
     // Invoice management (hóa đơn)
-    Route::get('invoices', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'index'])->name('invoices.index');
-    Route::get('orders/{order}/invoices/create', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'createFromOrder'])->name('invoices.create-from-order');
-    Route::post('orders/{order}/invoices', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'store'])->name('invoices.store');
-    Route::get('invoices/{invoice}', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'show'])->name('invoices.show');
-    Route::delete('invoices/{invoice}', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'destroy'])->name('invoices.destroy');
+    Route::get('invoices', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'index'])->name('invoices.index')->middleware('permission:invoices.view');
+    Route::get('orders/{order}/invoices/create', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'createFromOrder'])->name('invoices.create-from-order')->middleware('permission:invoices.create');
+    Route::post('orders/{order}/invoices', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'store'])->name('invoices.store')->middleware('permission:invoices.create');
+    Route::get('invoices/{invoice}', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'show'])->name('invoices.show')->middleware('permission:invoices.view');
+    Route::delete('invoices/{invoice}', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'destroy'])->name('invoices.destroy')->middleware('permission:invoices.delete');
 
     // Purchase management
     Route::get('purchase-orders/{purchaseOrder}/export-pdf', [\App\Http\Controllers\Admin\PurchaseOrderController::class, 'exportPdf'])
-        ->name('purchase-orders.export-pdf');
+        ->name('purchase-orders.export-pdf')->middleware('permission:purchase-orders.view');
     Route::resource('purchase-orders', \App\Http\Controllers\Admin\PurchaseOrderController::class)
-        ->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
+        ->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy'])
+        ->middleware([
+            'index' => 'permission:purchase-orders.view',
+            'show' => 'permission:purchase-orders.view',
+            'create' => 'permission:purchase-orders.create',
+            'store' => 'permission:purchase-orders.create',
+            'edit' => 'permission:purchase-orders.edit',
+            'update' => 'permission:purchase-orders.edit',
+            'destroy' => 'permission:purchase-orders.delete',
+        ]);
 
     // Banners management
-    Route::resource('banners', \App\Http\Controllers\Admin\BannerController::class);
+    Route::resource('banners', \App\Http\Controllers\Admin\BannerController::class)
+        ->only(['index', 'create', 'store', 'edit', 'update', 'destroy'])
+        ->middleware([
+            'index' => 'permission:banners.manage',
+            'create' => 'permission:banners.manage',
+            'store' => 'permission:banners.manage',
+            'edit' => 'permission:banners.manage',
+            'update' => 'permission:banners.manage',
+            'destroy' => 'permission:banners.manage',
+        ]);
 
     // Users management
-    Route::get('users', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('users.index');
-    Route::patch('users/{user}/role', [\App\Http\Controllers\Admin\UserController::class, 'updateRole'])->name('users.updateRole');
+    Route::get('users', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('users.index')->middleware('permission:users.view');
+    Route::patch('users/{user}/role', [\App\Http\Controllers\Admin\UserController::class, 'updateRole'])->name('users.updateRole')->middleware('permission:users.manage');
+    Route::get('users/{user}/permissions', [\App\Http\Controllers\Admin\PermissionController::class, 'edit'])->name('users.permissions.edit')->middleware('permission:users.permission');
+    Route::patch('users/{user}/permissions', [\App\Http\Controllers\Admin\PermissionController::class, 'update'])->name('users.permissions.update')->middleware('permission:users.permission');
 
     // Profile
     Route::get('profile/avatar', [\App\Http\Controllers\Admin\ProfileController::class, 'editAvatar'])->name('profile.avatar.edit');
@@ -815,11 +871,17 @@ Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(
     // Activity logs
     Route::get('activity-logs', [\App\Http\Controllers\Admin\ActivityLogController::class, 'index'])->name('activity-logs.index');
 
-    Route::get('customers/lookup', [\App\Http\Controllers\Admin\CustomerController::class, 'lookup'])->name('customers.lookup');
-    Route::get('customers/tax-lookup/{taxCode}', [\App\Http\Controllers\Admin\CustomerController::class, 'taxLookup'])->name('customers.taxLookup');
-    Route::get('customers/import', [\App\Http\Controllers\Admin\CustomerController::class, 'importForm'])->name('customers.import.form');
-    Route::post('customers/import-excel', [\App\Http\Controllers\Admin\CustomerController::class, 'importExcel'])->name('customers.importExcel');
-    Route::resource('customers', \App\Http\Controllers\Admin\CustomerController::class);
+    Route::get('customers/lookup', [\App\Http\Controllers\Admin\CustomerController::class, 'lookup'])->name('customers.lookup')->middleware('permission:customers.lookup');
+    Route::get('customers/tax-lookup/{taxCode}', [\App\Http\Controllers\Admin\CustomerController::class, 'taxLookup'])->name('customers.taxLookup')->middleware('permission:customers.lookup');
+    Route::get('customers/import', [\App\Http\Controllers\Admin\CustomerController::class, 'importForm'])->name('customers.import.form')->middleware('permission:customers.import');
+    Route::post('customers/import-excel', [\App\Http\Controllers\Admin\CustomerController::class, 'importExcel'])->name('customers.importExcel')->middleware('permission:customers.import');
+    Route::get('customers', [\App\Http\Controllers\Admin\CustomerController::class, 'index'])->name('customers.index')->middleware('permission:customers.view');
+    Route::get('customers/create', [\App\Http\Controllers\Admin\CustomerController::class, 'create'])->name('customers.create')->middleware('permission:customers.create');
+    Route::post('customers', [\App\Http\Controllers\Admin\CustomerController::class, 'store'])->name('customers.store')->middleware('permission:customers.create');
+    Route::get('customers/{customer}', [\App\Http\Controllers\Admin\CustomerController::class, 'show'])->name('customers.show')->middleware('permission:customers.view');
+    Route::get('customers/{customer}/edit', [\App\Http\Controllers\Admin\CustomerController::class, 'edit'])->name('customers.edit')->middleware('permission:customers.edit');
+    Route::patch('customers/{customer}', [\App\Http\Controllers\Admin\CustomerController::class, 'update'])->name('customers.update')->middleware('permission:customers.edit');
+    Route::delete('customers/{customer}', [\App\Http\Controllers\Admin\CustomerController::class, 'destroy'])->name('customers.destroy')->middleware('permission:customers.delete');
 
     // Quản lý thông tin khách đặt hàng (dưới mục khách hàng)
     Route::get('customer-order-info', [\App\Http\Controllers\Admin\CustomerOrderInfoController::class, 'index'])->name('customer-order-info.index');

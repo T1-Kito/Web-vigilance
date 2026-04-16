@@ -200,6 +200,7 @@ class ProductController extends Controller
 
     public function create()
     {
+        abort_unless(\App\Support\Permission::allows(auth()->user(), 'products.create'), 403);
         $categories = Category::all();
         $pricingSetting = PricingFormulaSetting::current();
         return view('admin.products.create', compact('categories', 'pricingSetting'));
@@ -207,6 +208,7 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
+        abort_unless(\App\Support\Permission::allows(auth()->user(), 'products.create'), 403);
         $this->normalizeMoneyFields($request);
 
         if (!$request->filled('price')) {
@@ -365,6 +367,7 @@ class ProductController extends Controller
 
     public function edit(Product $product)
     {
+        abort_unless(\App\Support\Permission::allows(auth()->user(), 'products.edit'), 403);
         $categories = Category::all();
         $pricingSetting = PricingFormulaSetting::current();
         $product->load(['images', 'priceTiers']);
@@ -373,6 +376,7 @@ class ProductController extends Controller
 
     public function update(Request $request, Product $product)
     {
+        abort_unless(\App\Support\Permission::allows(auth()->user(), 'products.edit'), 403);
         $this->normalizeMoneyFields($request);
 
         $before = $product->only(['name', 'price', 'discount_percent', 'sort_order', 'status', 'is_featured', 'category_id', 'brand', 'serial_number']);
@@ -617,6 +621,7 @@ class ProductController extends Controller
 
     public function destroy(Product $product)
     {
+        abort_unless(\App\Support\Permission::allows(auth()->user(), 'products.delete'), 403);
         ActivityLogger::log('product.delete', $product, 'Xóa sản phẩm: ' . ($product->name ?? ''), [
             'name' => $product->name ?? null,
         ]);
@@ -626,6 +631,7 @@ class ProductController extends Controller
 
     public function show(Product $product)
     {
+        abort_unless(\App\Support\Permission::allows(auth()->user(), 'products.view'), 403);
         $product->load('images');
 
         $quoteItems = \App\Models\QuoteItem::query()

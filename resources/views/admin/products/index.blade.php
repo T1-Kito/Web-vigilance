@@ -17,9 +17,11 @@
                     </div>
     @endif
             </div>
+            @if(\App\Support\Permission::allows(auth()->user(), 'products.create'))
             <a href="{{ route('admin.products.create') }}" style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 12px 24px; border-radius: 12px; text-decoration: none; font-weight: 600; font-size: 1.1em; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); transition: all 0.3s ease;">
                 <i class="bi bi-plus-circle"></i>Thêm sản phẩm
             </a>
+            @endif
         </div>
         
         <!-- Search Section -->
@@ -76,6 +78,7 @@
         <!-- Import/Export Section -->
         <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
             <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                @if(\App\Support\Permission::allows(auth()->user(), 'products.import'))
                 <form action="{{ route('admin.products.importExcel') }}" method="POST" enctype="multipart/form-data" style="display: flex; align-items: center; gap: 10px;">
         @csrf
                     <div style="position: relative;">
@@ -85,9 +88,12 @@
                         <i class="bi bi-upload me-2"></i>Import Excel
                     </button>
                 </form>
+                @endif
+                @if(\App\Support\Permission::allows(auth()->user(), 'products.export'))
                 <a href="{{ route('admin.products.exportExcel') }}" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 1em;">
                     <i class="bi bi-file-earmark-excel me-2"></i>Export Excel
                 </a>
+                @endif
             </div>
         </div>
     </div>
@@ -185,11 +191,14 @@
                                         <i class="bi bi-eye me-2 text-primary"></i>Chi tiết
                                     </a>
                                 </li>
+                                @if(\App\Support\Permission::allows(auth()->user(), 'products.edit'))
                                 <li>
                                     <a class="dropdown-item" href="{{ route('admin.products.edit', $product->id) . '?return_url=' . urlencode(request()->fullUrl()) }}">
                                         <i class="bi bi-pencil-square me-2 text-secondary"></i>Sửa
                                     </a>
                                 </li>
+                                @endif
+                                @if(\App\Support\Permission::allows(auth()->user(), 'products.delete'))
                                 <li><hr class="dropdown-divider my-1"></li>
                                 <li>
                                     <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" onsubmit="return confirm('Bạn có chắc muốn xóa sản phẩm này?')">
@@ -200,6 +209,7 @@
                                         </button>
                                     </form>
                                 </li>
+                                @endif
                             </ul>
                         </div>
                     </td>

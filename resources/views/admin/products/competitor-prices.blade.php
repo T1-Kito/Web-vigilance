@@ -6,7 +6,9 @@
 <div class="container-fluid py-3">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h4 class="mb-0">Kho giá đối thủ</h4>
+        @if(\App\Support\Permission::allows(auth()->user(), 'products.view'))
         <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary btn-sm">Về sản phẩm</a>
+        @endif
     </div>
 
     <div class="card border-0 shadow-sm mb-3">
