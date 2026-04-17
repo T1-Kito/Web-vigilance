@@ -400,6 +400,9 @@
             @if($can('document-templates.view') || $can('document-templates.edit'))
             <div class="nav-item"><a href="{{ route('admin.document-templates.index') }}" class="nav-link {{ request()->routeIs('admin.document-templates.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-file-earmark-richtext"></i></div>Mẫu in chứng từ</a></div>
             @endif
+            @if($can('document-templates.view') || $can('document-templates.edit'))
+            <div class="nav-item"><a href="{{ route('admin.pdf-templates.index') }}" class="nav-link {{ request()->routeIs('admin.pdf-templates.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-filetype-html"></i></div>Quản lý PDF</a></div>
+            @endif
             @if($can('debts.view'))
             <div class="nav-item"><a href="{{ route('admin.debts.index') }}" class="nav-link {{ request()->routeIs('admin.debts.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-cash-coin"></i></div>Quản lý công nợ</a></div>
             @endif

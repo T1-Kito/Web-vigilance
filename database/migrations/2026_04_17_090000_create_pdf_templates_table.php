@@ -7,12 +7,13 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('document_templates', function (Blueprint $table) {
+        Schema::create('pdf_templates', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('type', 30); // quote | sales_order | invoice
-            $table->string('file_path');
-            $table->string('file_type', 20)->default('docx');
+            $table->string('type', 30)->default('quote');
+            $table->string('view_name', 100)->default('preview');
+            $table->longText('html_content');
+            $table->longText('css_content')->nullable();
             $table->boolean('is_active')->default(true);
             $table->boolean('is_default')->default(false);
             $table->timestamps();
@@ -23,6 +24,6 @@ return new class extends Migration {
 
     public function down(): void
     {
-        Schema::dropIfExists('document_templates');
+        Schema::dropIfExists('pdf_templates');
     }
 };

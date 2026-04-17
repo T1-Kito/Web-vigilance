@@ -808,9 +808,20 @@ Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::delete('document-templates/{documentTemplate}', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'destroy'])->name('document-templates.destroy')->middleware('permission:document-templates.edit');
     Route::get('document-templates/fields/download', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'downloadFields'])->name('document-templates.fields.download')->middleware('permission:document-templates.view');
     Route::get('document-templates/{documentTemplate}/render/quote/{quote}', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'renderQuote'])->name('document-templates.render.quote');
+    Route::get('document-templates/{documentTemplate}/render/pdf/{quote}', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'renderPdf'])->name('document-templates.render.pdf');
     Route::get('document-templates/{documentTemplate}/render/sales-order/{salesOrder}', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'renderSalesOrder'])->name('document-templates.render.sales-order');
     Route::get('document-templates/render-default/quote/{quote}', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'renderDefaultQuote'])->name('document-templates.render-default.quote');
     Route::get('document-templates/render-default/sales-order/{salesOrder}', [\App\Http\Controllers\Admin\DocumentTemplateController::class, 'renderDefaultSalesOrder'])->name('document-templates.render-default.sales-order');
+
+    Route::get('pdf-templates', [\App\Http\Controllers\Admin\PdfTemplateController::class, 'index'])->name('pdf-templates.index')->middleware('permission:document-templates.view');
+    Route::post('pdf-templates', [\App\Http\Controllers\Admin\PdfTemplateController::class, 'store'])->name('pdf-templates.store')->middleware('permission:document-templates.edit');
+    Route::patch('pdf-templates/{pdfTemplate}', [\App\Http\Controllers\Admin\PdfTemplateController::class, 'update'])->name('pdf-templates.update')->middleware('permission:document-templates.edit');
+    Route::delete('pdf-templates/{pdfTemplate}', [\App\Http\Controllers\Admin\PdfTemplateController::class, 'destroy'])->name('pdf-templates.destroy')->middleware('permission:document-templates.edit');
+    Route::post('pdf-templates/{pdfTemplate}/clone', [\App\Http\Controllers\Admin\PdfTemplateController::class, 'clone'])->name('pdf-templates.clone')->middleware('permission:document-templates.edit');
+    Route::patch('pdf-templates/{pdfTemplate}/toggle-active', [\App\Http\Controllers\Admin\PdfTemplateController::class, 'toggleActive'])->name('pdf-templates.toggle-active')->middleware('permission:document-templates.edit');
+    Route::patch('pdf-templates/{pdfTemplate}/set-default', [\App\Http\Controllers\Admin\PdfTemplateController::class, 'setDefault'])->name('pdf-templates.set-default')->middleware('permission:document-templates.edit');
+    Route::get('pdf-templates/{pdfTemplate}/preview', [\App\Http\Controllers\Admin\PdfTemplateController::class, 'preview'])->name('pdf-templates.preview');
+    Route::get('pdf-templates/render-default/quote/{quote}', [\App\Http\Controllers\Admin\PdfTemplateController::class, 'renderDefaultQuote'])->name('pdf-templates.render-default.quote');
 
     // Debt management
     Route::get('debts', [\App\Http\Controllers\Admin\DebtAdminController::class, 'index'])->name('debts.index')->middleware('permission:debts.view');

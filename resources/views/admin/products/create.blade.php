@@ -366,12 +366,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function toMoneyInteger(value) {
         const raw = (value || '').toString().trim();
         if (!raw) return 0;
-
-        if (/^\d+(\.\d+)?$/.test(raw)) {
-            const n = Number(raw);
-            return Number.isFinite(n) ? Math.round(n) : 0;
-        }
-
+        
         const digits = raw.replace(/\D+/g, '');
         return digits ? Number(digits) : 0;
     }

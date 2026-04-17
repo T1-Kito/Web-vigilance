@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Models\Quote;
 use App\Models\SalesOrder;
 use App\Support\DocxTemplateRenderer;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -21,6 +22,7 @@ class DocumentTemplateController extends Controller
         'StaffCode','CreatedBy','Warranty','SubTotal','VatPercent','VatAmount','DiscountPercent','TotalAmount','TotalAmountInWords',
         '#Items','/Items',
         'Item.No','Item.Name','Item.Category','ItemCategory','Category','Item.Unit','Item.Quantity','Item.UnitPrice','Item.LineTotal','Item.Image',
+        'PdfHtml',
     ];
     public function index(Request $request)
     {
@@ -45,8 +47,8 @@ class DocumentTemplateController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'type' => ['required', 'in:quote,sales_order,invoice'],
-            'file' => ['required', 'file', 'mimes:docx,xlsx,xls'],
+            'type' => ['required', 'in:quote,sales_order,invoice,pdf'],
+            'file' => ['required', 'file', 'mimes:docx,xlsx,xls,pdf,html,htm'],
             'is_active' => ['nullable', 'boolean'],
             'is_default' => ['nullable', 'boolean'],
         ]);
@@ -56,7 +58,9 @@ class DocumentTemplateController extends Controller
             return back()->withInput()->with('error', $fieldError);
         }
 
-        $path = $request->file('file')->store('document_templates');
+        $uploadedFile = $request->file('file');
+        $fileType = strtolower((string) $uploadedFile->getClientOriginalExtension());
+        $path = $uploadedFile->store('document_templates');
 
         if (!empty($validated['is_default'])) {
             DocumentTemplate::query()->where('type', $validated['type'])->update(['is_default' => false]);
@@ -66,6 +70,7 @@ class DocumentTemplateController extends Controller
             'name' => $validated['name'],
             'type' => $validated['type'],
             'file_path' => $path,
+            'file_type' => $fileType,
             'is_active' => (bool) ($validated['is_active'] ?? true),
             'is_default' => (bool) ($validated['is_default'] ?? false),
         ]);
@@ -77,14 +82,15 @@ class DocumentTemplateController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'type' => ['required', 'in:quote,sales_order,invoice'],
+            'type' => ['required', 'in:quote,sales_order,invoice,pdf'],
             'is_active' => ['nullable', 'boolean'],
             'is_default' => ['nullable', 'boolean'],
-            'file' => ['nullable', 'file', 'mimes:docx,xlsx,xls'],
+            'file' => ['nullable', 'file', 'mimes:docx,xlsx,xls,pdf,html,htm'],
         ]);
 
         if ($request->hasFile('file')) {
-            $fieldError = $this->validateTemplateFields($request->file('file')->getRealPath(), (string) $request->file('file')->getClientOriginalExtension());
+            $uploadedFile = $request->file('file');
+            $fieldError = $this->validateTemplateFields($uploadedFile->getRealPath(), (string) $uploadedFile->getClientOriginalExtension());
             if ($fieldError) {
                 return back()->withInput()->with('error', $fieldError);
             }
@@ -92,7 +98,8 @@ class DocumentTemplateController extends Controller
             if (!empty($documentTemplate->file_path)) {
                 Storage::delete($documentTemplate->file_path);
             }
-            $documentTemplate->file_path = $request->file('file')->store('document_templates');
+            $documentTemplate->file_path = $uploadedFile->store('document_templates');
+            $documentTemplate->file_type = strtolower((string) $uploadedFile->getClientOriginalExtension());
         }
 
         if (!empty($validated['is_default'])) {
@@ -105,6 +112,7 @@ class DocumentTemplateController extends Controller
             'is_active' => (bool) ($validated['is_active'] ?? false),
             'is_default' => (bool) ($validated['is_default'] ?? false),
             'file_path' => $documentTemplate->file_path,
+            'file_type' => $documentTemplate->file_type ?? 'docx',
         ]);
 
         return back()->with('success', 'Đã cập nhật mẫu in.');
@@ -413,6 +421,64 @@ class DocumentTemplateController extends Controller
         }
 
         return $this->renderSalesOrder($template, $salesOrder);
+    }
+
+    public function renderPdf(DocumentTemplate $documentTemplate, Quote $quote)
+    {
+        try {
+            if (!in_array((string) $documentTemplate->type, ['pdf', 'quote', 'shared'], true)) {
+                return back()->with('error', 'Mẫu này không áp dụng cho PDF.');
+            }
+
+            $quote->load(['items.product.category']);
+            $items = $quote->items ?? collect();
+            $subTotal = (float) $items->sum(fn($i) => (float) ($i->price ?? 0) * (int) ($i->quantity ?? 0));
+            $discountPercent = (float) ($quote->discount_percent ?? 0);
+            $vatPercent = (float) ($quote->vat_percent ?? 8);
+            $afterDiscount = max(0, $subTotal * (1 - ($discountPercent / 100)));
+            $vatAmount = $afterDiscount * ($vatPercent / 100);
+            $total = $afterDiscount + $vatAmount;
+
+            $itemRows = [];
+            foreach ($items as $idx => $item) {
+                $itemRows[] = [
+                    'No' => $idx + 1,
+                    'Name' => (string) ($item->product->name ?? ''),
+                    'Quantity' => (string) ((int) ($item->quantity ?? 0)),
+                    'UnitPrice' => number_format((float) ($item->price ?? 0), 0, ',', '.'),
+                    'LineTotal' => number_format((float) ($item->price ?? 0) * (int) ($item->quantity ?? 0), 0, ',', '.'),
+                ];
+            }
+
+            $html = $this->buildPdfHtml($quote, [
+                'QuoteCode' => (string) ($quote->quote_code ?? ''),
+                'CustomerName' => (string) ($quote->invoice_company_name ?: $quote->receiver_name),
+                'Date' => optional($quote->created_at)->format('d/m/Y') ?: '',
+                'SubTotal' => number_format($subTotal, 0, ',', '.'),
+                'VatPercent' => rtrim(rtrim(number_format($vatPercent, 2, '.', ''), '0'), '.'),
+                'VatAmount' => number_format($vatAmount, 0, ',', '.'),
+                'DiscountPercent' => rtrim(rtrim(number_format($discountPercent, 2, '.', ''), '0'), '.'),
+                'TotalAmount' => number_format($total, 0, ',', '.'),
+                'TotalAmountInWords' => $this->numberToVietnameseWords((int) round($total)),
+            ], $itemRows);
+
+            $pdf = Pdf::loadHTML($html)->setPaper('a4', 'portrait');
+            $downloadName = 'bao-gia-' . ($quote->quote_code ?: $quote->id) . '.pdf';
+            return $pdf->download($downloadName);
+        } catch (\Throwable $e) {
+            Log::error('render_pdf_template_failed', ['message' => $e->getMessage()]);
+            return back()->with('error', 'Xuất PDF thất bại: ' . $e->getMessage());
+        }
+    }
+
+    private function buildPdfHtml(Quote $quote, array $data, array $items): string
+    {
+        $rows = '';
+        foreach ($items as $item) {
+            $rows .= '<tr><td>' . e($item['No'] ?? '') . '</td><td>' . e($item['Name'] ?? '') . '</td><td>' . e($item['Quantity'] ?? '') . '</td><td>' . e($item['UnitPrice'] ?? '') . '</td><td>' . e($item['LineTotal'] ?? '') . '</td></tr>';
+        }
+
+        return '<html><head><meta charset="utf-8"><style>body{font-family:DejaVu Sans, sans-serif;font-size:12px}.title{text-align:center;font-size:18px;font-weight:bold}.meta{margin:12px 0}table{width:100%;border-collapse:collapse}th,td{border:1px solid #333;padding:6px}</style></head><body><div class="title">BÁO GIÁ</div><div class="meta">Mã: ' . e($data['QuoteCode'] ?? '') . '<br>Khách hàng: ' . e($data['CustomerName'] ?? '') . '<br>Ngày: ' . e($data['Date'] ?? '') . '</div><table><thead><tr><th>#</th><th>Tên</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th></tr></thead><tbody>' . $rows . '</tbody></table><div style="margin-top:12px">Tổng: ' . e($data['TotalAmount'] ?? '') . '</div></body></html>';
     }
 
     private function renderSpreadsheetTemplateToTempFile(string $templatePath, array $data, array $items, string $ext = 'xlsx'): string

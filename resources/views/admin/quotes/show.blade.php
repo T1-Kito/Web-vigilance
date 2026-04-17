@@ -61,8 +61,11 @@
             <div class="text-muted">Khách hàng: {{ $quote->invoice_company_name ?: $quote->receiver_name }}</div>
         </div>
         <div class="d-flex gap-2 flex-wrap">
-            <a href="{{ route('orders.quote', ['orderCode' => $orderCode]) }}" target="_blank" rel="noopener" class="btn btn-outline-primary">
+            <a href="{{ route('admin.pdf-templates.render-default.quote', $quote) }}" target="_blank" rel="noopener" class="btn btn-outline-primary">
                 <i class="bi bi-eye me-1"></i>Xem báo giá
+            </a>
+            <a href="{{ route('admin.pdf-templates.render-default.quote', $quote) }}" target="_blank" rel="noopener" class="btn btn-outline-success">
+                <i class="bi bi-file-earmark-pdf me-1"></i>Xuất PDF
             </a>
             @if(($quoteTemplates ?? collect())->count() > 0)
                 <div class="dropdown">

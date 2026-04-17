@@ -4,13 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class DocumentTemplate extends Model
+class PdfTemplate extends Model
 {
     protected $fillable = [
         'name',
         'type',
-        'file_path',
-        'file_type',
+        'view_name',
+        'html_content',
+        'css_content',
         'is_active',
         'is_default',
     ];
