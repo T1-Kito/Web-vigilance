@@ -60,7 +60,7 @@ class UserController extends Controller
         }
 
         $validated = $request->validate([
-            'role' => ['required', 'in:admin,user'],
+            'role' => ['required', 'in:admin,user,agent'],
             'permissions' => ['sometimes', 'array'],
             'permissions.*' => ['string'],
         ]);

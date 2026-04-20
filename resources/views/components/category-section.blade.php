@@ -5,6 +5,7 @@
     $products = $products ?? $category->products ?? collect();
     $children = $category->children ?? collect();
     $sectionId = 'cat-section-' . $category->id;
+    $isAgentUser = auth()->check() && (string) auth()->user()->role === 'agent';
     // Lấy danh sách các hãng (brand) unique từ sản phẩm
     $brands = $products->pluck('brand')->filter()->unique()->values()->take(8);
     
@@ -118,8 +119,11 @@
                     @php
                         $star = number_format(mt_rand(48, 50) / 10, 1);
                         $discount = $product->discount_percent ?? 0;
-                        $oldPrice = $product->price;
+                        $oldPrice = (float) ($product->price ?? 0);
                         $finalPrice = $discount ? round($oldPrice * (100 - $discount) / 100, -3) : $oldPrice;
+                        $agentPrice = (float) ($product->agency_price ?? 0);
+                        $displayPrice = $isAgentUser && $agentPrice > 0 ? $agentPrice : $finalPrice;
+                        $showListedStrike = $isAgentUser && $agentPrice > 0 && $oldPrice > 0;
                         $wishlistArray = is_array($wishlistProductIds) ? $wishlistProductIds : ($wishlistProductIds ? $wishlistProductIds->toArray() : []);
                         $isFavorited = in_array($product->id, $wishlistArray);
                     @endphp
@@ -167,11 +171,13 @@
 
                                 {{-- Giá --}}
                                 <div class="mb-1">
-                                    @if($product->price == 0)
+                                    @if($displayPrice == 0)
                                         <span style="font-size:0.9rem; color:#d32f2f; font-weight:700;">Liên hệ</span>
                                     @else
-                                        <span style="font-size:0.9rem; color:#d32f2f; font-weight:700;">{{ number_format($finalPrice, 0, ',', '.') }}đ</span>
-                                        @if($discount)
+                                        <span style="font-size:0.9rem; color:#d32f2f; font-weight:700;">{{ number_format($displayPrice, 0, ',', '.') }}đ</span>
+                                        @if($showListedStrike)
+                                            <span style="font-size:0.75rem; color:#888; text-decoration:line-through; margin-left:4px;">{{ number_format($oldPrice, 0, ',', '.') }}đ</span>
+                                        @elseif($discount)
                                             <span style="font-size:0.75rem; color:#888; text-decoration:line-through; margin-left:4px;">{{ number_format($oldPrice, 0, ',', '.') }}đ</span>
                                         @endif
                                     @endif

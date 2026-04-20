@@ -38,9 +38,14 @@
     .pv-top-strip {
         position: relative;
         height: 44px;
+        min-height: 44px;
+        max-height: 44px;
         overflow: hidden;
         background: #111827;
         border-bottom: 1px solid rgba(17, 24, 39, 0.12);
+        contain: layout paint;
+        transform: translateZ(0);
+        backface-visibility: hidden;
     }
     .pv-top-strip__link {
         display: block;
@@ -48,6 +53,7 @@
         text-decoration: none;
         color: #fff;
         position: relative;
+        transform: translateZ(0);
     }
     .pv-top-strip__bg-video {
         position: absolute;
@@ -58,6 +64,7 @@
         object-position: center;
         transform: translateZ(0);
         filter: saturate(1.05) contrast(1.05);
+        will-change: transform;
     }
     .pv-top-strip__bg-overlay {
         position: absolute;
@@ -72,6 +79,7 @@
         filter: saturate(1.05) contrast(1.05);
         transform: translateZ(0);
         animation: pvTopStripPan 18s linear infinite;
+        will-change: transform, background-position;
     }
     /* lớp phủ để chữ dễ đọc (chỉ khi dùng ảnh nền) */
     .pv-top-strip__bg::after {
@@ -175,6 +183,7 @@
         white-space: nowrap;
         will-change: transform;
         animation: pvMarqueeScroll 16s linear infinite;
+        transform: translate3d(0,0,0);
     }
     .pv-marquee__item { display: inline-flex; align-items: center; gap: 6px; }
     .pv-marquee__sep { opacity: 0.7; }
@@ -188,6 +197,8 @@
 </style>
 
 <!-- Đảm bảo đã import Bootstrap Icons -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="dns-prefetch" href="//cdn.jsdelivr.net">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 
 <!-- Navbar sticky: chỉ logo (to) + menu + search + giỏ hàng + đăng nhập -->

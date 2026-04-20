@@ -3,6 +3,9 @@
 @section('title', 'Kết quả tìm kiếm')
 
 @section('content')
+@php
+    $isAgentUser = auth()->check() && (string) auth()->user()->role === 'agent';
+@endphp
 <div class="search-results-page">
     <div class="row">
         <div class="col-md-3 d-none d-md-block">
@@ -26,8 +29,12 @@
                 <div class="{{ $colClass }}">
                     <div class="card h-100 border-0 shadow product-card-modern w-100 position-relative">
                         @php
+                            $listedPrice = (float) ($product->price ?? 0);
+                            $agentPrice = (float) ($product->agency_price ?? 0);
+                            $displayPrice = $isAgentUser && $agentPrice > 0 ? $agentPrice : $listedPrice;
                             $oldPrice = $product->old_price ?? null;
-                            $discount = $oldPrice && $oldPrice > $product->price ? round(100 - $product->price/$oldPrice*100) : null;
+                            $discount = $oldPrice && $oldPrice > $listedPrice ? round(100 - $listedPrice / $oldPrice * 100) : null;
+                            $showListedStrike = $isAgentUser && $agentPrice > 0 && $listedPrice > 0;
                         @endphp
                         @if($discount)
                             <span class="badge bg-danger position-absolute top-0 start-0 m-2" style="font-size:0.95em; z-index:2;">Giảm {{ $discount }}%</span>
@@ -43,13 +50,15 @@
                             </a>
                             <div class="mb-1 text-muted" style="font-size:0.97em; min-height:18px;">{{ $product->category->name ?? '' }}</div>
                             <div class="mb-2">
-                                @if($product->price == 0)
+                                @if($displayPrice == 0)
                                     <span class="fw-bold" style="color:#d32f2f; font-size:1.18em;">
                                         <a href="https://zalo.me/0982751039" target="_blank" style="text-decoration:none; color:inherit;">Liên hệ</a>
                                     </span>
                                 @else
-                                    <span class="fw-bold" style="color:#d32f2f; font-size:1.18em;">{{ number_format($product->price, 0, ',', '.') }}đ</span>
-                                    @if($oldPrice && $oldPrice > $product->price)
+                                    <span class="fw-bold" style="color:#d32f2f; font-size:1.18em;">{{ number_format($displayPrice, 0, ',', '.') }}đ</span>
+                                    @if($showListedStrike)
+                                        <span class="text-decoration-line-through text-secondary ms-2" style="font-size:0.98em;">{{ number_format($listedPrice, 0, ',', '.') }}đ</span>
+                                    @elseif($oldPrice && $oldPrice > $listedPrice)
                                         <span class="text-decoration-line-through text-secondary ms-2" style="font-size:0.98em;">{{ number_format($oldPrice, 0, ',', '.') }}đ</span>
                                     @endif
                                 @endif

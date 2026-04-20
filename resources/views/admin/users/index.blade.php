@@ -56,8 +56,15 @@
                                 </td>
                                 <td>{{ $u->email }}</td>
                                 <td>
-                                    <span class="badge {{ $u->role === 'admin' ? 'bg-success' : 'bg-secondary' }}">
-                                        {{ $u->role === 'admin' ? 'admin' : 'user' }}
+                                    @php
+                                        $roleBadgeClass = match((string) $u->role) {
+                                            'admin' => 'bg-success',
+                                            'agent' => 'bg-warning text-dark',
+                                            default => 'bg-secondary',
+                                        };
+                                    @endphp
+                                    <span class="badge {{ $roleBadgeClass }}">
+                                        {{ $u->role ?? 'user' }}
                                     </span>
                                 </td>
                                 <td>
@@ -69,6 +76,7 @@
 
                                                 <select name="role" class="form-select form-select-sm">
                                                     <option value="user" {{ $u->role === 'user' ? 'selected' : '' }}>user</option>
+                                                    <option value="agent" {{ $u->role === 'agent' ? 'selected' : '' }}>agent (đại lý)</option>
                                                     <option value="admin" {{ $u->role === 'admin' ? 'selected' : '' }}>admin</option>
                                                 </select>
 

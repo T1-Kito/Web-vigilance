@@ -6,6 +6,7 @@ use App\Models\CartItem;
 use App\Models\Category;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ProductColor;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -78,22 +79,24 @@ class CartController extends Controller
         $colorId = $request->input('color_id');
         $colorId = $colorId !== null && $colorId !== '' ? (int) $colorId : null;
 
+        $user = Auth::user();
+        $customerType = $user && (string) $user->role === 'agent' ? 'agent' : null;
+        $baseResolvedPrice = (float) $product->resolveUnitPriceByQuantity((int) $quantity, $customerType);
+
         $colorPrice = null;
         $colorSale = null;
         if ($colorId) {
             $color = ProductColor::where('id', $colorId)->where('product_id', $productId)->first();
             if ($color && $color->price !== null) {
-                // Nếu màu có giá riêng, không áp dụng giảm giá sản phẩm gốc
-                $colorPrice = $color->price;
+                // Nếu màu có giá riêng, ưu tiên giá màu
+                $colorPrice = (float) $color->price;
                 $colorSale = null;
             } else {
-                // Nếu màu không có giá riêng, áp dụng giảm giá sản phẩm gốc
-                $colorPrice = $product->final_price;
-                $colorSale = $product->sale;
+                // Nếu màu không có giá riêng, áp dụng giá theo loại tài khoản
+                $colorPrice = $baseResolvedPrice;
+                $colorSale = null;
             }
         }
-
-        $user = Auth::user();
         if ($user) {
             // Thêm sản phẩm chính (DB cart)
             $cartItem = CartItem::where('user_id', $user->id)
@@ -102,10 +105,8 @@ class CartController extends Controller
                 ->first();
             if ($cartItem) {
                 $cartItem->quantity += $quantity;
-                if ($colorPrice !== null) {
-                    $cartItem->price = $colorPrice;
-                    $cartItem->sale = $colorSale;
-                }
+                $cartItem->price = $colorPrice !== null ? $colorPrice : (float) $product->resolveUnitPriceByQuantity((int) $cartItem->quantity, $customerType);
+                $cartItem->sale = $colorSale;
                 $cartItem->save();
             } else {
                 $cartItem = CartItem::create([
@@ -113,8 +114,8 @@ class CartController extends Controller
                     'product_id' => $productId,
                     'color_id' => $colorId,
                     'quantity' => $quantity,
-                    'price' => $colorPrice !== null ? $colorPrice : $product->price,
-                    'sale' => $colorSale !== null ? $colorSale : $product->sale,
+                    'price' => $colorPrice !== null ? $colorPrice : $baseResolvedPrice,
+                    'sale' => $colorSale,
                 ]);
             }
 
@@ -158,8 +159,8 @@ class CartController extends Controller
                     'product_id' => (int) $productId,
                     'color_id' => $colorId,
                     'quantity' => 0,
-                    'price' => $colorPrice !== null ? $colorPrice : $product->price,
-                    'sale' => $colorSale !== null ? $colorSale : $product->sale,
+                    'price' => $colorPrice !== null ? $colorPrice : $baseResolvedPrice,
+                    'sale' => $colorSale,
                     'is_addon' => false,
                     'parent_cart_item_id' => null,
                     'addon_product_id' => null,
@@ -248,6 +249,11 @@ class CartController extends Controller
             'customer_email' => 'nullable|email|max:255',
             'customer_phone' => 'nullable|string|max:50',
             'customer_contact_person' => 'nullable|string|max:100',
+            'payment_term' => 'required|in:full_advance,deposit,debt',
+            'payment_due_days' => 'nullable|integer|min:1|max:3650|required_if:payment_term,debt',
+            'deposit_percent' => 'nullable|numeric|min:0.01|max:100|required_if:payment_term,deposit',
+            'payment_note' => 'nullable|string|max:500',
+            'payment_method' => 'nullable|in:zalo,cod,bank,momo',
         ]);
 
         $receiverAddress = trim((string) ($validated['receiver_address'] ?? ''));
@@ -349,14 +355,15 @@ class CartController extends Controller
         $request->validate([
             'payment_method' => 'nullable|in:zalo,cod,bank,momo',
         ]);
-        $paymentMethod = $request->input('payment_method', 'zalo');
+
+        $checkoutInfo = session('checkout_info');
+        $paymentMethod = $checkoutInfo['payment_method'] ?? $request->input('payment_method', 'zalo');
         $user = Auth::user();
         if ($user) {
             $cartItems = CartItem::where('user_id', $user->id)->get();
         } else {
             $cartItems = $this->guestCartToCollection($this->getGuestCart());
         }
-        $checkoutInfo = session('checkout_info');
         if (!$checkoutInfo || $cartItems->isEmpty()) {
             return redirect()->route('cart.view')->with('error', 'Thông tin đơn hàng không hợp lệ.');
         }
@@ -376,6 +383,10 @@ class CartController extends Controller
             'customer_contact_person' => $checkoutInfo['customer_contact_person'] ?? null,
             'note' => $checkoutInfo['note'] ?? null,
             'payment_method' => $paymentMethod,
+            'payment_term' => $checkoutInfo['payment_term'] ?? 'full_advance',
+            'payment_due_days' => ($checkoutInfo['payment_term'] ?? 'full_advance') === 'debt' ? (int) ($checkoutInfo['payment_due_days'] ?? 0) : null,
+            'deposit_percent' => ($checkoutInfo['payment_term'] ?? 'full_advance') === 'deposit' ? (float) ($checkoutInfo['deposit_percent'] ?? 0) : null,
+            'payment_note' => $checkoutInfo['payment_note'] ?? null,
             'status' => 'pending',
             'order_code' => $orderCode,
         ]);

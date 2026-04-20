@@ -1,7 +1,8 @@
 <!-- Banner Slider (SwiperJS) -->
 @once
     @push('styles')
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+        <link rel="preload" as="style" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" onload="this.onload=null;this.rel='stylesheet'">
+        <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"></noscript>
     @endpush
     @push('scripts')
         <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js" defer></script>
@@ -16,12 +17,13 @@
         border-radius: 14px;
         overflow: hidden;
         box-shadow: 0 8px 22px rgba(0, 0, 0, 0.10);
-        margin-bottom: 8px; /* giảm khoảng trống dưới banner lớn */
+        margin-bottom: 8px;
         background: #ffffff;
+        aspect-ratio: 16 / 9;
     }
     /* Chiều cao banner desktop gần với mẫu PhongVu */
     .banner-swiper .swiper-slide {
-        height: 320px;
+        height: 100%;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -41,6 +43,7 @@
         border-radius: 14px;
         transition: transform 0.5s cubic-bezier(.22,1,.36,1), box-shadow 0.25s;
         background: transparent;
+        aspect-ratio: 16 / 9;
     }
     .banner-swiper .swiper-slide-active img {
         transform: scale(1.01);
@@ -59,34 +62,12 @@
             margin-left: 0;
             max-width: 100%;
         }
-        .banner-swiper .swiper-slide { height: 260px; }
-        .banner-swiper .swiper-slide-active img { animation: none; }
-    }
-    @media (max-width: 768px) {
-        .banner-swiper {
-            width: 100%;
-            margin-left: 0;
-            max-width: 100%;
-        }
-        .banner-swiper .swiper-slide { height: 220px; }
-        .banner-swiper .swiper-slide-active img { animation: none; }
-    }
-    @media (max-width: 600px) {
-        .banner-swiper {
-            width: 100%;
-            margin-left: 0;
-            max-width: 100%;
-        }
-        .banner-swiper .swiper-slide { height: 200px; }
         .banner-swiper .swiper-slide-active img { animation: none; }
     }
 
     @media (max-width: 575.98px) {
         .banner-swiper {
             border-radius: 16px;
-        }
-        .banner-swiper .swiper-slide {
-            height: auto;
             aspect-ratio: 16 / 9;
         }
         .banner-swiper .swiper-slide img {
@@ -118,18 +99,18 @@
                     <div class="swiper-slide">
                         @if($b->link_url)
                             <a href="{{ $b->link_url }}" target="_blank" rel="noopener">
-                                <img src="{{ $b->image_url }}" alt="{{ $b->title ?? 'Banner' }}" decoding="async" @if($i===0) fetchpriority="high" loading="eager" @else loading="lazy" @endif>
+                                <img src="{{ $b->image_url }}" alt="{{ $b->title ?? 'Banner' }}" width="1200" height="675" decoding="async" @if($i===0) fetchpriority="high" loading="eager" @else loading="lazy" @endif>
                             </a>
                         @else
-                            <img src="{{ $b->image_url }}" alt="{{ $b->title ?? 'Banner' }}" decoding="async" @if($i===0) fetchpriority="high" loading="eager" @else loading="lazy" @endif>
+                            <img src="{{ $b->image_url }}" alt="{{ $b->title ?? 'Banner' }}" width="1200" height="675" decoding="async" @if($i===0) fetchpriority="high" loading="eager" @else loading="lazy" @endif>
                         @endif
                     </div>
                 @endforeach
             @else
-                <div class="swiper-slide"><img src="{{ asset('images/banner1.jpg') }}" alt="Banner 1" decoding="async" fetchpriority="high" loading="eager"></div>
-                <div class="swiper-slide"><img src="{{ asset('images/banner2.jpg') }}" alt="Banner 2" decoding="async" loading="lazy"></div>
-                <div class="swiper-slide"><img src="{{ asset('images/banner3.jpg') }}" alt="Banner 3" decoding="async" loading="lazy"></div>
-                <div class="swiper-slide"><img src="{{ asset('images/banner4.jpg') }}" alt="Banner 4" decoding="async" loading="lazy"></div>
+                <div class="swiper-slide"><img src="{{ asset('images/banner1.jpg') }}" alt="Banner 1" width="1200" height="675" decoding="async" fetchpriority="high" loading="eager"></div>
+                <div class="swiper-slide"><img src="{{ asset('images/banner2.jpg') }}" alt="Banner 2" width="1200" height="675" decoding="async" loading="lazy"></div>
+                <div class="swiper-slide"><img src="{{ asset('images/banner3.jpg') }}" alt="Banner 3" width="1200" height="675" decoding="async" loading="lazy"></div>
+                <div class="swiper-slide"><img src="{{ asset('images/banner4.jpg') }}" alt="Banner 4" width="1200" height="675" decoding="async" loading="lazy"></div>
             @endif
         </div>
         <!-- Add Pagination -->
@@ -157,12 +138,15 @@
 
             window.__bannerSideSwiper = new Swiper(swiperEl, {
                 loop: true,
+                preloadImages: false,
+                watchSlidesProgress: true,
                 autoplay: {
                     delay: 3500,
                     disableOnInteraction: false,
                 },
                 effect: 'slide',
                 speed: 650,
+                lazyPreloadPrevNext: 1,
                 pagination: {
                     el: paginationEl,
                     clickable: true,
@@ -180,10 +164,10 @@
         var tries = 0;
         var timer = setInterval(function () {
             tries++;
-            if (initBannerSwiper() || tries > 50) {
+            if (initBannerSwiper() || tries > 12) {
                 clearInterval(timer);
             }
-        }, 100);
+        }, 150);
 
         window.addEventListener('load', function () {
             initBannerSwiper();

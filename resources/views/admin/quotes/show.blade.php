@@ -61,11 +61,11 @@
             <div class="text-muted">Khách hàng: {{ $quote->invoice_company_name ?: $quote->receiver_name }}</div>
         </div>
         <div class="d-flex gap-2 flex-wrap">
-            <a href="{{ route('admin.pdf-templates.render-default.quote', $quote) }}" target="_blank" rel="noopener" class="btn btn-outline-primary">
-                <i class="bi bi-eye me-1"></i>Xem báo giá
-            </a>
-            <a href="{{ route('admin.pdf-templates.render-default.quote', $quote) }}" target="_blank" rel="noopener" class="btn btn-outline-success">
-                <i class="bi bi-file-earmark-pdf me-1"></i>Xuất PDF
+            <button type="button" class="btn btn-outline-info" id="btnSendZaloCopy">
+                <i class="bi bi-chat-dots me-1"></i>Gửi Zalo
+            </button>
+            <a href="{{ route('admin.pdf-templates.render-default.quote', $quote) }}" target="_blank" rel="noopener" class="btn btn-outline-secondary" id="btnDownloadPdfQuote" download>
+                <i class="bi bi-download me-1"></i>Tải PDF
             </a>
             @if(($quoteTemplates ?? collect())->count() > 0)
                 <div class="dropdown">
@@ -265,7 +265,7 @@
                     <div class="mb-2">
                         <label class="form-label fw-semibold">Hạn thanh toán</label>
                         <input type="date" name="payment_due_date" class="form-control" value="{{ old('payment_due_date') }}">
-                    </div>
+                    </div>  
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Đóng</button>
@@ -278,4 +278,38 @@
     </div>
 </div>
 @endif
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const btn = document.getElementById('btnSendZaloCopy');
+    if (!btn) return;
+
+    btn.addEventListener('click', async function () {
+        const pdfUrl = @json(route('admin.pdf-templates.render-default.quote', $quote));
+        const text = `Báo giá {{ $orderCode }}\nKhách hàng: {{ $quote->invoice_company_name ?: $quote->receiver_name }}\nTổng cộng: {{ number_format($total, 0, ',', '.') }}đ\nPDF: ${pdfUrl}`;
+
+        try {
+            const downloadLink = document.createElement('a');
+            downloadLink.href = pdfUrl;
+            downloadLink.download = `bao-gia-{{ $orderCode }}.pdf`;
+            downloadLink.target = '_blank';
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            downloadLink.remove();
+
+            await navigator.clipboard.writeText(text);
+            window.open('https://chat.zalo.me/', '_blank', 'noopener');
+            btn.innerHTML = 'Đã tải PDF';
+            setTimeout(() => { btn.innerHTML = '<i class="bi bi-chat-dots me-1"></i>Gửi Zalo'; }, 1800);
+        } catch (e) {
+            console.error(e);
+            try {
+                await navigator.clipboard.writeText(text);
+            } catch (_) {}
+            window.open('https://chat.zalo.me/', '_blank', 'noopener');
+            alert('Đã mở Zalo và copy nội dung. Bạn có thể tải file PDF bằng nút Tải PDF bên cạnh.');
+        }
+    });
+});
+</script>
 @endsection

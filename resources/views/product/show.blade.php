@@ -5,6 +5,11 @@
 @php
     $productDescription = $product->description ?: ($product->information ?: ($product->specifications ?: ''));
     $productDescription = trim(strip_tags($productDescription));
+
+    $isAgentUser = auth()->check() && (string) auth()->user()->role === 'agent';
+    $listedPrice = (float) ($product->price ?? 0);
+    $agentPrice = (float) ($product->agency_price ?? 0);
+    $displayMainPrice = $isAgentUser && $agentPrice > 0 ? $agentPrice : (float) ($product->final_price ?? $listedPrice);
 @endphp
 
 @section('meta_description', $productDescription ? \Illuminate\Support\Str::limit($productDescription, 155) : ($product->name . ' chính hãng, giá tốt, tư vấn lắp đặt và bảo hành rõ ràng tại Vigilance.'))
@@ -1475,6 +1480,25 @@
     white-space: nowrap;
 }
 
+.pd-price-agent-meta {
+    font-size: 0.8rem;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.pd-price-listed-wrap {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.pd-price-listed-label {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
 .pd-price-old {
     font-size: 1.05em !important;
 }
@@ -1853,7 +1877,20 @@
                         <!-- Price Section -->
                         <div class="mb-4 price-section">
                             <div class="pd-price-label" style="font-size:0.9rem; color:#64748b; font-weight:600; margin-bottom:8px;">Giá sản phẩm</div>
-                            @if($product->has_discount)
+                            @if($isAgentUser && $agentPrice > 0)
+                                <div class="pd-price-row" style="align-items:flex-end; justify-content:space-between; gap:12px;">
+                                    <div style="min-width:0;">
+                                        <div class="pd-price-main" style="font-size:2.2em; font-weight:900; color:#e30019; line-height:1; letter-spacing:-1.5px;">{{ number_format($agentPrice, 0, ',', '.') }}đ</div>
+                                        <div class="pd-price-agent-meta mt-1">Giá đại lý • Chưa VAT</div>
+                                    </div>
+                                    @if($listedPrice > 0)
+                                        <div class="pd-price-listed-wrap">
+                                            <div class="pd-price-listed-label">Giá niêm yết</div>
+                                            <div class="pd-price-old" style="font-size:1em; color:#94a3b8; text-decoration:line-through; font-weight:600;">{{ number_format($listedPrice, 0, ',', '.') }}đ</div>
+                                        </div>
+                                    @endif
+                                </div>
+                            @elseif($product->has_discount)
                                 <span class="badge bg-danger" style="position:absolute; top:18px; right:24px; font-size:1.1em; padding:7px 18px; border-radius:1em; z-index:2;">Giảm {{ $product->discount_percent }}%</span>
                                 <div class="pd-price-row">
                                     <div class="pd-price-main" style="font-size:1.9em; font-weight:900; color:#e30019; line-height:1; letter-spacing:-2px;">{{ number_format($product->final_price, 0, ',', '.') }}đ</div>
@@ -1862,8 +1899,8 @@
                                 </div>
                             @else
                                 <div class="pd-price-row">
-                                    @if($product->price > 0)
-                                        <div class="pd-price-main" style="font-size:2.2em; font-weight:900; color:#d32f2f; line-height:1; letter-spacing:-2px;">{{ number_format($product->price, 0, ',', '.') }}đ</div>
+                                    @if($listedPrice > 0)
+                                        <div class="pd-price-main" style="font-size:2.2em; font-weight:900; color:#d32f2f; line-height:1; letter-spacing:-2px;">{{ number_format($listedPrice, 0, ',', '.') }}đ</div>
                                         <span class="pd-price-vat">(Chưa bao gồm thuế VAT)</span>
                                     @else
                                         <a href="https://zalo.me/0982751039" target="_blank" style="text-decoration:none;">
@@ -1885,7 +1922,7 @@
                         <div class="color-option-wrapper" style="position:relative;">
                             <button type="button"
                                 class="btn color-option-btn"
-                                data-price="{{ $color->price ?? $product->final_price }}"
+                                data-price="{{ $color->price ?? $displayMainPrice }}"
                                 data-quantity="{{ $color->quantity }}"
                                 data-color="{{ $color->color_code }}"
                                 data-color-name="{{ $color->color_name }}"
@@ -1900,7 +1937,7 @@
                                 
                                 <div style="flex:1; text-align:left;">
                                     <div style="font-weight:700; color:#2d3748; margin-bottom:4px;">{{ $color->color_name }}</div>
-                                    <div style="font-size:1.05em; font-weight:600; color:#e30019;">@if($color->price){{ number_format($color->price, 0, ',', '.') }}đ @else {{ number_format($product->final_price, 0, ',', '.') }}đ @endif</div>
+                                    <div style="font-size:1.05em; font-weight:600; color:#e30019;">@if($color->price){{ number_format($color->price, 0, ',', '.') }}đ @else {{ number_format($displayMainPrice, 0, ',', '.') }}đ @endif</div>
                                 </div>
                                 
                                 {{-- Stock indicator --}}
@@ -2005,15 +2042,22 @@
                                 const priceDisplay = priceBlock.querySelector('div[style*="display:flex"]');
                                 if(priceDisplay) {
                                     // Reset về giá gốc của sản phẩm
-                                    @if($product->has_discount)
+                                    @if($isAgentUser && $agentPrice > 0)
+                                        priceDisplay.innerHTML = `<div style="display:flex; align-items:baseline; gap:18px;">
+                                            <div style="font-size:2.1em; font-weight:900; color:#e30019; line-height:1; letter-spacing:-2px;">{{ number_format($agentPrice, 0, ',', '.') }}đ</div>
+                                            @if($listedPrice > 0)
+                                            <div style="font-size:1.1em; color:#b0b0b0; text-decoration:line-through; font-weight:500;">{{ number_format($listedPrice, 0, ',', '.') }}đ</div>
+                                            @endif
+                                        </div>`;
+                                    @elseif($product->has_discount)
                                         priceDisplay.innerHTML = `<div style="display:flex; align-items:baseline; gap:18px;">
                                             <div style="font-size:2.1em; font-weight:900; color:#e30019; line-height:1; letter-spacing:-2px;">{{ number_format($product->final_price, 0, ',', '.') }}đ</div>
                                             <div style="font-size:1.3em; color:#b0b0b0; text-decoration:line-through; font-weight:500;">{{ number_format($product->price, 0, ',', '.') }}đ</div>
                                         </div>`;
                                     @else
-                                        @if($product->price > 0)
+                                        @if($listedPrice > 0)
                                             priceDisplay.innerHTML = `<div style="display:flex; align-items:baseline; gap:18px;">
-                                                <div style="font-size:2.7em; font-weight:900; color:#007BFF; line-height:1; letter-spacing:-2px;">{{ number_format($product->price, 0, ',', '.') }}đ</div>
+                                                <div style="font-size:2.7em; font-weight:900; color:#007BFF; line-height:1; letter-spacing:-2px;">{{ number_format($listedPrice, 0, ',', '.') }}đ</div>
                                             </div>`;
                                         @else
                                             priceDisplay.innerHTML = `<div style="display:flex; align-items:baseline; gap:18px;">

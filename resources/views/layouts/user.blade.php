@@ -26,9 +26,14 @@
     <meta name="twitter:title" content="@yield('title', 'Vigilance Việt Nam JSC')">
     <meta name="twitter:description" content="@yield('meta_description', 'Vigilance Việt Nam JSC - Cung cấp giải pháp công nghệ và thiết bị chuyên nghiệp')">
     @stack('structured_data')
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="{{ asset('css/custom-fonts.css') }}" onerror="console.error('Failed to load custom-fonts.css')">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="dns-prefetch" href="//cdn.jsdelivr.net">
+    <link rel="preload" as="style" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"></noscript>
+    <link rel="preload" as="style" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"></noscript>
+    <link rel="preload" as="style" href="{{ asset('css/custom-fonts.css') }}" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="{{ asset('css/custom-fonts.css') }}"></noscript>
     <style>
         :root {
             /* Brand palette derived from logo */
@@ -535,7 +540,10 @@
     @if(!$isEmbed)
         @include('components.chat-widget')
     @endif
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script>
+        document.documentElement.classList.add('js-ready');
+    </script>
     <script>
         document.addEventListener('click', function (e) {
             var link = e.target && e.target.closest ? e.target.closest('.pagination a') : null;
