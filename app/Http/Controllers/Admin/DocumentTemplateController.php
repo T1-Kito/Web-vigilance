@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DocumentTemplate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Schema;
 use App\Models\Quote;
 use App\Models\SalesOrder;
 use App\Support\DocxTemplateRenderer;
@@ -21,7 +22,7 @@ class DocumentTemplateController extends Controller
         'QuoteCode','SalesOrderCode','CustomerName','TaxCode','Address','InvoiceAddress','ReceiverAddress','ContactPerson','Phone','Email','Date',
         'StaffCode','CreatedBy','Warranty','SubTotal','VatPercent','VatAmount','DiscountPercent','TotalAmount','TotalAmountInWords',
         '#Items','/Items',
-        'Item.No','Item.Name','Item.Category','ItemCategory','Category','Item.Unit','Item.Quantity','Item.UnitPrice','Item.LineTotal','Item.Image',
+        'Item.No','Item.Name','Item.Description','Item.Category','ItemCategory','Category','Item.Unit','Item.Quantity','Item.UnitPrice','Item.LineTotal','Item.Image',
         'PdfHtml',
     ];
     public function index(Request $request)
@@ -66,14 +67,18 @@ class DocumentTemplateController extends Controller
             DocumentTemplate::query()->where('type', $validated['type'])->update(['is_default' => false]);
         }
 
-        DocumentTemplate::create([
+        $payload = [
             'name' => $validated['name'],
             'type' => $validated['type'],
             'file_path' => $path,
-            'file_type' => $fileType,
             'is_active' => (bool) ($validated['is_active'] ?? true),
             'is_default' => (bool) ($validated['is_default'] ?? false),
-        ]);
+        ];
+        if (Schema::hasColumn('document_templates', 'file_type')) {
+            $payload['file_type'] = $fileType;
+        }
+
+        DocumentTemplate::create($payload);
 
         return back()->with('success', 'Đã tải mẫu in lên thành công.');
     }
@@ -106,14 +111,18 @@ class DocumentTemplateController extends Controller
             DocumentTemplate::query()->where('type', $validated['type'])->where('id', '!=', $documentTemplate->id)->update(['is_default' => false]);
         }
 
-        $documentTemplate->update([
+        $updatePayload = [
             'name' => $validated['name'],
             'type' => $validated['type'],
             'is_active' => (bool) ($validated['is_active'] ?? false),
             'is_default' => (bool) ($validated['is_default'] ?? false),
             'file_path' => $documentTemplate->file_path,
-            'file_type' => $documentTemplate->file_type ?? 'docx',
-        ]);
+        ];
+        if (Schema::hasColumn('document_templates', 'file_type')) {
+            $updatePayload['file_type'] = $documentTemplate->file_type ?? 'docx';
+        }
+
+        $documentTemplate->update($updatePayload);
 
         return back()->with('success', 'Đã cập nhật mẫu in.');
     }
@@ -199,10 +208,20 @@ class DocumentTemplateController extends Controller
             if ($firstItemName === '' && $name !== '') {
                 $firstItemName = $name;
             }
+            $description = trim((string) (
+                $item->product->description
+                ?? $item->product->information
+                ?? $item->product->specifications
+                ?? ''
+            ));
+            if ($description !== '') {
+                $description = strip_tags($description);
+            }
 
             $itemRows[] = [
                 'No' => $idx + 1,
                 'Name' => $name,
+                'Description' => $description,
                 'Category' => $cat,
                 'ItemCategory' => $cat,
                 'Unit' => (string) ($item->unit ?? ''),
@@ -224,6 +243,7 @@ class DocumentTemplateController extends Controller
             $data['Item.No'] = (string) ($firstItem['No'] ?? '');
             $data['Item.Name'] = (string) ($firstItem['Name'] ?? '');
             $data['Item.Category'] = (string) ($firstItem['Category'] ?? '');
+            $data['Item.Description'] = (string) ($firstItem['Description'] ?? '');
             $data['ItemCategory'] = (string) ($firstItem['Category'] ?? '');
             $data['Category'] = (string) ($firstItem['Category'] ?? '');
             $data['Item.Unit'] = (string) ($firstItem['Unit'] ?? '');
@@ -243,6 +263,7 @@ class DocumentTemplateController extends Controller
             $data['Item.No'] = (string) ($firstItem['No'] ?? '');
             $data['Item.Name'] = (string) ($firstItem['Name'] ?? '');
             $data['Item.Category'] = (string) ($firstItem['Category'] ?? '');
+            $data['Item.Description'] = (string) ($firstItem['Description'] ?? '');
             $data['ItemCategory'] = (string) ($firstItem['Category'] ?? '');
             $data['Category'] = (string) ($firstItem['Category'] ?? '');
             $data['Item.Unit'] = (string) ($firstItem['Unit'] ?? '');
@@ -342,9 +363,20 @@ class DocumentTemplateController extends Controller
             if ($firstCategory === '' && $cat !== '') {
                 $firstCategory = $cat;
             }
+            $description = trim((string) (
+                $item->product->description
+                ?? $item->product->information
+                ?? $item->product->specifications
+                ?? ''
+            ));
+            if ($description !== '') {
+                $description = strip_tags($description);
+            }
+
             $itemRows[] = [
                 'No' => $idx + 1,
                 'Name' => (string) ($item->product->name ?? ('SP #' . $item->product_id)),
+                'Description' => $description,
                 'Category' => $cat,
                 'ItemCategory' => $cat,
                 'Unit' => (string) ($item->unit ?? ''),
@@ -827,6 +859,7 @@ class DocumentTemplateController extends Controller
             ['field' => '{{#Items}}', 'description' => 'Bắt đầu block lặp dòng hàng'],
             ['field' => '{{Item.No}}', 'description' => 'STT dòng hàng'],
             ['field' => '{{Item.Name}}', 'description' => 'Tên sản phẩm/dịch vụ'],
+            ['field' => '{{Item.Description}}', 'description' => 'Mô tả sản phẩm (nếu có)'],
             ['field' => '{{Item.Category}}', 'description' => 'Tên danh mục của sản phẩm'],
             ['field' => '{{Item.Unit}}', 'description' => 'Đơn vị tính'],
             ['field' => '{{Item.Quantity}}', 'description' => 'Số lượng'],

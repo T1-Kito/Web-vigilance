@@ -17,13 +17,12 @@
         border-radius: 14px;
         overflow: hidden;
         box-shadow: 0 8px 22px rgba(0, 0, 0, 0.10);
-        margin-bottom: 8px;
+        margin-bottom: 8px; /* giảm khoảng trống dưới banner lớn */
         background: #ffffff;
-        aspect-ratio: 16 / 9;
     }
     /* Chiều cao banner desktop gần với mẫu PhongVu */
     .banner-swiper .swiper-slide {
-        height: 100%;
+        height: 320px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -62,12 +61,34 @@
             margin-left: 0;
             max-width: 100%;
         }
+        .banner-swiper .swiper-slide { height: 260px; }
+        .banner-swiper .swiper-slide-active img { animation: none; }
+    }
+    @media (max-width: 768px) {
+        .banner-swiper {
+            width: 100%;
+            margin-left: 0;
+            max-width: 100%;
+        }
+        .banner-swiper .swiper-slide { height: 220px; }
+        .banner-swiper .swiper-slide-active img { animation: none; }
+    }
+    @media (max-width: 600px) {
+        .banner-swiper {
+            width: 100%;
+            margin-left: 0;
+            max-width: 100%;
+        }
+        .banner-swiper .swiper-slide { height: 200px; }
         .banner-swiper .swiper-slide-active img { animation: none; }
     }
 
     @media (max-width: 575.98px) {
         .banner-swiper {
             border-radius: 16px;
+        }
+        .banner-swiper .swiper-slide {
+            height: auto;
             aspect-ratio: 16 / 9;
         }
         .banner-swiper .swiper-slide img {
@@ -164,10 +185,10 @@
         var tries = 0;
         var timer = setInterval(function () {
             tries++;
-            if (initBannerSwiper() || tries > 12) {
+            if (initBannerSwiper() || tries > 50) {
                 clearInterval(timer);
             }
-        }, 150);
+        }, 100);
 
         window.addEventListener('load', function () {
             initBannerSwiper();

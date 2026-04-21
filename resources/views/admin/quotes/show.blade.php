@@ -61,6 +61,9 @@
             <div class="text-muted">Khách hàng: {{ $quote->invoice_company_name ?: $quote->receiver_name }}</div>
         </div>
         <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ route('orders.quote', ['orderCode' => $orderCode]) }}" target="_blank" rel="noopener" class="btn btn-outline-primary">
+                <i class="bi bi-eye me-1"></i>Xem báo giá
+            </a>
             <button type="button" class="btn btn-outline-info" id="btnSendZaloCopy">
                 <i class="bi bi-chat-dots me-1"></i>Gửi Zalo
             </button>
@@ -129,6 +132,12 @@
                         <div class="col-md-6"><div class="text-muted small">SĐT liên hệ</div><div class="fw-semibold">{{ $quote->customer_phone ?: '---' }}</div></div>
                         <div class="col-md-6"><div class="text-muted small">Email</div><div class="fw-semibold">{{ $quote->customer_email ?: '---' }}</div></div>
                         <div class="col-12"><div class="text-muted small">Địa chỉ hóa đơn</div><div class="fw-semibold">{{ $quote->invoice_address ?: '---' }}</div></div>
+
+                        <div class="col-12"><hr class="my-1"></div>
+                        <div class="col-12"><div class="fw-bold">Thông tin người nhận</div></div>
+                        <div class="col-md-6"><div class="text-muted small">Người nhận</div><div class="fw-semibold">{{ $quote->receiver_name ?: ($quote->customer_contact_person ?: '---') }}</div></div>
+                        <div class="col-md-6"><div class="text-muted small">SĐT người nhận</div><div class="fw-semibold">{{ $quote->receiver_phone ?: ($quote->customer_phone ?: '---') }}</div></div>
+                        <div class="col-12"><div class="text-muted small">Địa chỉ giao hàng</div><div class="fw-semibold">{{ $quote->receiver_address ?: ($quote->invoice_address ?: '---') }}</div></div>
                     </div>
                 </div>
             </div>

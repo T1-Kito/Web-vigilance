@@ -104,7 +104,7 @@ class QuoteAdminController extends Controller
     {
         $validated = $request->validate([
             'receiver_name' => ['required', 'string', 'max:255'],
-            'receiver_phone' => ['required', 'string', 'max:50'],
+            'receiver_phone' => ['nullable', 'string', 'max:50'],
             'receiver_address' => ['required', 'string', 'max:2000'],
 
             'invoice_company_name' => ['nullable', 'string', 'max:255'],
@@ -135,11 +135,19 @@ class QuoteAdminController extends Controller
         ]);
 
         $quote = DB::transaction(function () use ($validated) {
+            $receiverPhone = trim((string) ($validated['receiver_phone'] ?? ''));
+            if ($receiverPhone === '') {
+                $receiverPhone = trim((string) ($validated['customer_phone'] ?? ''));
+            }
+            if ($receiverPhone === '') {
+                $receiverPhone = 'Chưa có SĐT';
+            }
+
             $quote = Quote::create([
                 'user_id' => auth()->id(),
                 'quote_code' => $this->nextQuoteCode(),
                 'receiver_name' => $validated['receiver_name'],
-                'receiver_phone' => $validated['receiver_phone'],
+                'receiver_phone' => $receiverPhone,
                 'receiver_address' => $validated['receiver_address'],
                 'invoice_company_name' => $validated['invoice_company_name'] ?? null,
                 'invoice_address' => $validated['invoice_address'] ?? null,
@@ -226,7 +234,7 @@ class QuoteAdminController extends Controller
 
         $validated = $request->validate([
             'receiver_name' => ['required', 'string', 'max:255'],
-            'receiver_phone' => ['required', 'string', 'max:50'],
+            'receiver_phone' => ['nullable', 'string', 'max:50'],
             'receiver_address' => ['required', 'string', 'max:2000'],
 
             'invoice_company_name' => ['nullable', 'string', 'max:255'],

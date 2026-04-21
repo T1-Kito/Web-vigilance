@@ -482,6 +482,11 @@
                             @php
                                 $name = $item->product->name ?? 'Sản phẩm';
                                 $productImage = $item->product->image ?? null;
+                                $rawDescription = $item->product->description
+                                    ?? $item->product->information
+                                    ?? $item->product->specifications
+                                    ?? '';
+                                $productDescription = trim(strip_tags((string) $rawDescription));
                                 $price = (float) ($item->price ?? 0);
                                 $qty = (int) ($item->quantity ?? 0);
                                 $unit = $item->unit ?? '';
@@ -495,7 +500,12 @@
                             @endphp
                             <tr>
                                 <td class="center">{{ $idx + 1 }}</td>
-                                <td class="left">{{ $name }}</td>
+                                <td class="left">
+                                    <div><b>{{ $name }}</b></div>
+                                    @if($productDescription !== '')
+                                        <div class="muted" style="margin-top:2px;">{{ \Illuminate\Support\Str::limit($productDescription, 220) }}</div>
+                                    @endif
+                                </td>
                                 <td class="center">
                                     @if(!empty($productImage))
                                         <img class="q-prod-img" src="{{ asset('images/products/' . $productImage) }}" alt="{{ $name }}">

@@ -154,7 +154,7 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">SĐT người nhận</label>
-                                <input type="text" id="qe-receiver-phone" name="receiver_phone" class="form-control" value="{{ old('receiver_phone', $order->receiver_phone) }}" required>
+                                <input type="text" id="qe-receiver-phone" name="receiver_phone" class="form-control" value="{{ old('receiver_phone', $order->receiver_phone) }}" placeholder="Không bắt buộc">
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Địa chỉ giao hàng</label>
@@ -262,11 +262,11 @@
                                 <div class="form-text">Đơn giá sẽ tự áp theo bảng giá số lượng + loại khách hàng.</div>
                             </div>
 
-                            <div class="col-md-6 col-xl-12">
+                            <div class="col-md-6 col-xl-12 d-none">
                                 <label class="form-label">Chiết khấu (%)</label>
                                 <input type="number" min="0" max="100" step="0.01" name="discount_percent" class="form-control" id="discount-percent" value="{{ old('discount_percent', $order->discount_percent ?? 0) }}">
                             </div>
-                            <div class="col-md-6 col-xl-12">
+                            <div class="col-md-6 col-xl-12 d-none">
                                 <label class="form-label">VAT (%)</label>
                                 <input type="number" min="0" max="100" step="0.01" name="vat_percent" class="form-control" id="vat-percent" value="{{ old('vat_percent', $order->vat_percent ?? 8) }}">
                             </div>
