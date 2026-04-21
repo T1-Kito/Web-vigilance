@@ -662,34 +662,6 @@
             }
         }, true);
     </script>
-    @if(session('showLoginModal') || session('showRegisterModal'))
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            try {
-                var isMobile = window.matchMedia && window.matchMedia('(max-width: 575.98px)').matches;
-                var hasMobileLoginModal = !!document.getElementById('mobileLoginModal');
-
-                @if(session('showLoginModal'))
-                    if (isMobile && hasMobileLoginModal && typeof window.openMobileLoginModal === 'function') {
-                        window.openMobileLoginModal();
-                    } else if (document.getElementById('loginModal')) {
-                        var loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
-                        loginModal.show();
-                    }
-                @endif
-
-                @if(session('showRegisterModal'))
-                    if (document.getElementById('registerModal')) {
-                        var registerModal = new bootstrap.Modal(document.getElementById('registerModal'));
-                        registerModal.show();
-                    }
-                @endif
-            } catch (error) {
-                console.log('Modal initialization error:', error);
-            }
-        });
-    </script>
-    @endif
     <script>
         (function () {
             var root = document.getElementById('floating-side-banners');

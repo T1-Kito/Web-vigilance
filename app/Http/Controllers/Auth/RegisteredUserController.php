@@ -26,11 +26,7 @@ class RegisteredUserController extends Controller
      */
     public function create(Request $request): View|RedirectResponse
     {
-        if ($this->isMobileRequest($request)) {
-            return view('auth.register');
-        }
-
-        return redirect()->route('home')->with('showRegisterModal', true);
+        return view('auth.register');
     }
 
     /**
@@ -66,16 +62,9 @@ class RegisteredUserController extends Controller
                 'password_confirmation' => 'Nhập lại mật khẩu',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            if ($this->isMobileRequest($request)) {
-                return redirect()->route('register')
-                    ->withErrors($e->validator)
-                    ->withInput();
-            }
-
-            return redirect()->back()
+            return redirect()->route('register')
                 ->withErrors($e->validator)
-                ->withInput()
-                ->with('showRegisterModal', true);
+                ->withInput();
         }
 
         $user = User::create([
@@ -87,13 +76,7 @@ class RegisteredUserController extends Controller
         event(new Registered($user));
         // Không tự động đăng nhập
         // Auth::login($user);
-        if ($this->isMobileRequest($request)) {
-            return redirect()->route('login')
-                ->with('status', 'Đăng ký thành công! Vui lòng đăng nhập.');
-        }
-
-        return redirect()->back()
-            ->with('status', 'Đăng ký thành công! Vui lòng đăng nhập.')
-            ->with('showLoginModal', true);
+        return redirect()->route('login')
+            ->with('status', 'Đăng ký thành công! Vui lòng đăng nhập.');
     }
 }

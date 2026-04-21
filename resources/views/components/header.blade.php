@@ -313,9 +313,9 @@
         {{-- Đã xóa hoàn toàn nút Yêu thích trên header --}}
         <!-- Đăng nhập -->
         @guest
-            <button class="btn d-flex align-items-center gap-2 ms-2 header-action-btn" style="border-radius:2em; height:48px; border:1.5px solid var(--brand-secondary); color:var(--brand-secondary); background:#fff;" data-bs-toggle="modal" data-bs-target="#loginModal">
+            <a href="{{ route('login') }}" class="btn d-flex align-items-center gap-2 ms-2 header-action-btn" style="border-radius:2em; height:48px; border:1.5px solid var(--brand-secondary); color:var(--brand-secondary); background:#fff;">
                 <i class="bi bi-person-circle"></i> Đăng nhập
-            </button>
+            </a>
         @else
             <div class="dropdown ms-2">
                 <a href="#" class="btn btn-outline-primary d-flex align-items-center gap-2 dropdown-toggle header-action-btn"
@@ -548,142 +548,6 @@
   margin: 4px 0 !important;
 }
 </style>
-
-<!-- Modal Đăng nhập -->
-<div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="border-radius:18px; box-shadow:0 8px 32px #ff750f33; background:linear-gradient(120deg,#fffbe9 0%,#ffe5b4 100%);">
-      <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="loginModalLabel" style="color:#FF750F;">
-          <i class="bi bi-person-circle me-1" style="font-size:1.5em;"></i> Đăng nhập
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body pt-0">
-        {{-- Thông báo thành công khi đăng ký xong --}}
-        @if (session('status'))
-          <div class="alert alert-success">{{ session('status') }}</div>
-        @endif
-        {{-- Hiển thị lỗi đăng nhập --}}
-        @if ($errors->any() && !session('showRegisterModal'))
-          <div class="alert alert-danger">
-            <ul class="mb-0">
-              @foreach ($errors->all() as $error)
-                <li>{{ $error }}</li>
-              @endforeach
-            </ul>
-          </div>
-        @endif
-        <form id="loginForm" method="POST" action="{{ route('login') }}">
-          @csrf
-          <div class="mb-3 input-group">
-            <span class="input-group-text bg-white border-end-0" style="color:#FF750F;"><i class="bi bi-envelope-at"></i></span>
-            <input type="email" class="form-control border-start-0" id="loginEmail" name="email" required autofocus autocomplete="username" placeholder="Email">
-          </div>
-          <div class="mb-3 input-group">
-            <span class="input-group-text bg-white border-end-0" style="color:#FF750F;"><i class="bi bi-lock"></i></span>
-            <input type="password" class="form-control border-start-0" id="loginPassword" name="password" required autocomplete="current-password" placeholder="Mật khẩu">
-          </div>
-          <div class="mb-3 form-check">
-            <input type="checkbox" class="form-check-input" id="remember" name="remember">
-            <label class="form-check-label" for="remember">Ghi nhớ đăng nhập</label>
-          </div>
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <a href="#" class="text-decoration-underline" style="color:#FF750F; font-size:14px;" data-bs-toggle="modal" data-bs-target="#forgotModal" data-bs-dismiss="modal">Quên mật khẩu?</a>
-            <a href="#" class="text-decoration-underline" style="color:#FF750F; font-size:14px;" data-bs-toggle="modal" data-bs-target="#registerModal" data-bs-dismiss="modal">Đăng ký</a>
-          </div>
-          <button type="submit" class="btn w-100 fw-bold d-flex align-items-center justify-content-center gap-2" style="background:#FF750F; color:white; border-radius:8px; font-size:1.1em; box-shadow:0 2px 8px #ff750f33;">
-            <i class="bi bi-box-arrow-in-right"></i> Đăng nhập
-          </button>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Modal Đăng ký -->
-<div class="modal fade" id="registerModal" tabindex="-1" aria-labelledby="registerModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="border-radius:18px; box-shadow:0 8px 32px #ff750f33; background:linear-gradient(120deg,#fffbe9 0%,#ffe5b4 100%);">
-      <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="registerModalLabel" style="color:#FF750F;">
-          <i class="bi bi-person-plus-fill me-1" style="font-size:1.5em;"></i> Đăng ký tài khoản
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body pt-0">
-        {{-- Hiển thị lỗi đăng ký --}}
-        @if ($errors->any() && session('showRegisterModal'))
-          <div class="alert alert-danger">
-            <ul class="mb-0">
-              @foreach ($errors->all() as $error)
-                <li>{{ $error }}</li>
-              @endforeach
-            </ul>
-          </div>
-        @endif
-        <form id="registerForm" method="POST" action="{{ route('register') }}">
-          @csrf
-          <div class="mb-3 input-group">
-            <span class="input-group-text bg-white border-end-0" style="color:#FF750F;"><i class="bi bi-person"></i></span>
-            <input type="text" class="form-control border-start-0" name="name" required placeholder="Họ tên" value="{{ old('name') }}">
-          </div>
-          <div class="mb-3 input-group">
-            <span class="input-group-text bg-white border-end-0" style="color:#FF750F;"><i class="bi bi-envelope-at"></i></span>
-            <input type="email" class="form-control border-start-0" name="email" required placeholder="Email" value="{{ old('email') }}">
-          </div>
-          <div class="mb-3 input-group">
-            <span class="input-group-text bg-white border-end-0" style="color:#FF750F;"><i class="bi bi-lock"></i></span>
-            <input type="password" class="form-control border-start-0" name="password" required placeholder="Mật khẩu">
-          </div>
-          <div class="mb-3 input-group">
-            <span class="input-group-text bg-white border-end-0" style="color:#FF750F;"><i class="bi bi-lock"></i></span>
-            <input type="password" class="form-control border-start-0" name="password_confirmation" required placeholder="Nhập lại mật khẩu">
-          </div>
-          <button type="submit" class="btn w-100 fw-bold d-flex align-items-center justify-content-center gap-2" style="background:#FF750F; color:white; border-radius:8px; font-size:1.1em; box-shadow:0 2px 8px #ff750f33;">
-            <i class="bi bi-person-plus"></i> Đăng ký
-          </button>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-  // Hiển thị lại modal đăng ký nếu có lỗi validate
-  @if ($errors->any() && session('showRegisterModal'))
-    document.addEventListener('DOMContentLoaded', function() {
-      var registerModal = new bootstrap.Modal(document.getElementById('registerModal'));
-      registerModal.show();
-    });
-  @endif
-</script>
-
-<!-- Modal Quên mật khẩu -->
-<div class="modal fade" id="forgotModal" tabindex="-1" aria-labelledby="forgotModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="border-radius:18px; box-shadow:0 8px 32px #ff750f33; background:linear-gradient(120deg,#fffbe9 0%,#ffe5b4 100%);">
-      <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="forgotModalLabel" style="color:#FF750F;">
-          <i class="bi bi-key"></i> Quên mật khẩu
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body pt-0">
-        <form id="forgotForm" method="POST" action="{{ route('password.email') }}">
-          @csrf
-          <div class="mb-3 input-group">
-            <span class="input-group-text bg-white border-end-0" style="color:#FF750F;"><i class="bi bi-envelope-at"></i></span>
-            <input type="email" class="form-control border-start-0" id="forgotEmail" name="email" required autocomplete="username" placeholder="Email">
-          </div>
-          <button type="submit" class="btn w-100 fw-bold d-flex align-items-center justify-content-center gap-2" style="background:#FF750F; color:white; border-radius:8px; font-size:1.1em; box-shadow:0 2px 8px #ff750f33;">
-            <i class="bi bi-send"></i> Gửi liên kết đặt lại mật khẩu
-          </button>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
 
 <script>
 // Hiện dropdown khi focus/gõ vào input, ẩn khi blur hoặc click ngoài

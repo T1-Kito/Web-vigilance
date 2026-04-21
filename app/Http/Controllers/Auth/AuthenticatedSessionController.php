@@ -23,11 +23,7 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(Request $request): View|RedirectResponse
     {
-        if ($this->isMobileRequest($request)) {
-            return view('auth.login');
-        }
-
-        return redirect()->route('home')->with('showLoginModal', true);
+        return view('auth.login');
     }
 
     /**
@@ -47,16 +43,9 @@ class AuthenticatedSessionController extends Controller
                 ], 422);
             }
 
-            if ($this->isMobileRequest($request)) {
-                return redirect()->route('login')
-                    ->withErrors($e->errors())
-                    ->withInput($request->only('email'));
-            }
-
-            return redirect()->back()
+            return redirect()->route('login')
                 ->withErrors($e->errors())
-                ->withInput($request->only('email'))
-                ->with('showLoginModal', true);
+                ->withInput($request->only('email'));
         }
 
         $request->session()->regenerate();
