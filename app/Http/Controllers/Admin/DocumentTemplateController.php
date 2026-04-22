@@ -20,7 +20,7 @@ class DocumentTemplateController extends Controller
 {
     private const SUPPORTED_FIELDS = [
         'QuoteCode','SalesOrderCode','CustomerName','TaxCode','Address','InvoiceAddress','ReceiverAddress','ContactPerson','Phone','Email','Date',
-        'StaffCode','CreatedBy','Warranty','SubTotal','VatPercent','VatAmount','DiscountPercent','TotalAmount','TotalAmountInWords',
+        'StaffCode','CreatedBy','Warranty','ProductInfo','SubTotal','VatPercent','VatAmount','DiscountPercent','TotalAmount','TotalAmountInWords',
         '#Items','/Items',
         'Item.No','Item.Name','Item.Description','Item.Category','ItemCategory','Category','Item.Unit','Item.Quantity','Item.UnitPrice','Item.LineTotal','Item.Image',
         'PdfHtml',
@@ -169,6 +169,7 @@ class DocumentTemplateController extends Controller
             'StaffCode' => (string) ($quote->staff_code ?? ''),
             'CreatedBy' => (string) ($quote->sales_name ?: optional($quote->user)->name ?: ''),
             'Warranty' => (string) ($quote->warranty_note ?? ''),
+            'ProductInfo' => '',
             'SubTotal' => number_format($subTotal, 0, ',', '.'),
             'VatPercent' => rtrim(rtrim(number_format($vatPercent, 2, '.', ''), '0'), '.'),
             'VatAmount' => number_format($vatAmount, 0, ',', '.'),
@@ -180,6 +181,7 @@ class DocumentTemplateController extends Controller
         $itemRows = [];
         $firstCategory = '';
         $firstItemName = '';
+        $productInfoParts = [];
         foreach ($items as $idx => $item) {
             $line = (float) ($item->price ?? 0) * (int) ($item->quantity ?? 0);
             $img = null;
@@ -218,6 +220,21 @@ class DocumentTemplateController extends Controller
                 $description = strip_tags($description);
             }
 
+            $productInformation = trim((string) ($item->product->information ?? ''));
+            if ($productInformation !== '') {
+                $productInformation = strip_tags($productInformation);
+            }
+
+            $productInfoParts[] = sprintf(
+                '%d. %s%s | SL: %d | Đơn giá: %s | Thành tiền: %s',
+                $idx + 1,
+                $name,
+                $productInformation !== '' ? (' - ' . $productInformation) : '',
+                (int) ($item->quantity ?? 0),
+                number_format((float) ($item->price ?? 0), 0, ',', '.'),
+                number_format($line, 0, ',', '.')
+            );
+
             $itemRows[] = [
                 'No' => $idx + 1,
                 'Name' => $name,
@@ -232,6 +249,8 @@ class DocumentTemplateController extends Controller
             ];
         }
 
+        $data['ProductInfo'] = implode("\n", $productInfoParts);
+
         if (($data['CreatedBy'] ?? '') === '') {
             $data['CreatedBy'] = (string) (auth()->user()->name ?? '');
         }
@@ -271,6 +290,8 @@ class DocumentTemplateController extends Controller
             $data['Item.UnitPrice'] = (string) ($firstItem['UnitPrice'] ?? '');
             $data['Item.LineTotal'] = (string) ($firstItem['LineTotal'] ?? '');
         }
+
+        $data['ProductInfo'] = implode("\n", $productInfoParts);
 
         $templateAbsPath = Storage::path((string) $documentTemplate->file_path);
         if (!is_file($templateAbsPath)) {
@@ -329,6 +350,7 @@ class DocumentTemplateController extends Controller
             'StaffCode' => (string) ($salesOrder->staff_code ?? ''),
             'CreatedBy' => (string) ($salesOrder->sales_name ?? ''),
             'Warranty' => (string) ($salesOrder->warranty_note ?? optional($salesOrder->quote)->warranty_note ?? ''),
+            'ProductInfo' => '',
             'SubTotal' => number_format($subTotal, 0, ',', '.'),
             'VatPercent' => rtrim(rtrim(number_format($vatPercent, 2, '.', ''), '0'), '.'),
             'VatAmount' => number_format($vatAmount, 0, ',', '.'),
@@ -339,6 +361,7 @@ class DocumentTemplateController extends Controller
 
         $itemRows = [];
         $firstCategory = '';
+        $productInfoParts = [];
         foreach ($items as $idx => $item) {
             $line = (float) ($item->unit_price ?? 0) * (int) ($item->quantity ?? 0);
             $img = null;
@@ -372,6 +395,21 @@ class DocumentTemplateController extends Controller
             if ($description !== '') {
                 $description = strip_tags($description);
             }
+
+            $productInformation = trim((string) ($item->product->information ?? ''));
+            if ($productInformation !== '') {
+                $productInformation = strip_tags($productInformation);
+            }
+
+            $productInfoParts[] = sprintf(
+                '%d. %s%s | SL: %d | Đơn giá: %s | Thành tiền: %s',
+                $idx + 1,
+                (string) ($item->product->name ?? ('SP #' . $item->product_id)),
+                $productInformation !== '' ? (' - ' . $productInformation) : '',
+                (int) ($item->quantity ?? 0),
+                number_format((float) ($item->unit_price ?? 0), 0, ',', '.'),
+                number_format($line, 0, ',', '.')
+            );
 
             $itemRows[] = [
                 'No' => $idx + 1,
@@ -836,6 +874,7 @@ class DocumentTemplateController extends Controller
             ['field' => '{{StaffCode}}', 'description' => 'Mã nhân viên (staff code)'],
             ['field' => '{{CreatedBy}}', 'description' => 'Báo giá/đơn hàng được lập bởi'],
             ['field' => '{{Warranty}}', 'description' => 'Thông tin bảo hành'],
+            ['field' => '{{ProductInfo}}', 'description' => 'Thông tin sản phẩm (lấy từ ô "Thông tin sản phẩm" của sản phẩm) + số lượng, đơn giá, thành tiền theo từng dòng'],
 
             // Khách hàng
             ['field' => '{{CustomerName}}', 'description' => 'Tên công ty/khách hàng'],

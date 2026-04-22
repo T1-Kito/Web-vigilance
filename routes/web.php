@@ -790,6 +790,16 @@ Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::patch('quotes/{quote}/status', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'updateStatus'])->name('quotes.update-status')->middleware('permission:quotation.approve');
     Route::post('quotes/{quote}/convert-to-order', [\App\Http\Controllers\Admin\QuoteAdminController::class, 'convertToOrder'])->name('quotes.convert-to-order')->middleware('permission:quotation.convert');
 
+    // Web order intake (luồng đơn khách đặt từ web, form tách riêng tương tự báo giá)
+    Route::get('web-orders', [\App\Http\Controllers\Admin\WebOrderIntakeController::class, 'index'])->name('web-orders.index')->middleware('permission:orders.view');
+    Route::get('web-orders/{order}', [\App\Http\Controllers\Admin\WebOrderIntakeController::class, 'show'])->name('web-orders.show')->middleware('permission:orders.view');
+    Route::get('web-orders/{order}/edit', [\App\Http\Controllers\Admin\WebOrderIntakeController::class, 'edit'])->name('web-orders.edit')->middleware('permission:orders.edit');
+    Route::patch('web-orders/{order}', [\App\Http\Controllers\Admin\WebOrderIntakeController::class, 'update'])->name('web-orders.update')->middleware('permission:orders.edit');
+    Route::patch('web-orders/{order}/status', [\App\Http\Controllers\Admin\WebOrderIntakeController::class, 'updateStatus'])->name('web-orders.update-status')->middleware('permission:orders.edit');
+    Route::post('web-orders/{order}/approve', [\App\Http\Controllers\Admin\WebOrderIntakeController::class, 'approve'])->name('web-orders.approve')->middleware('permission:orders.edit');
+    Route::get('web-orders/{order}/pdf', [\App\Http\Controllers\Admin\WebOrderIntakeController::class, 'pdf'])->name('web-orders.pdf')->middleware('permission:orders.view');
+    Route::post('web-orders/{order}/convert-to-order', [\App\Http\Controllers\Admin\WebOrderIntakeController::class, 'convertToSalesOrder'])->name('web-orders.convert-to-order')->middleware('permission:orders.edit');
+
     // Sales order management (đơn bán ngoài từ báo giá)
     Route::get('sales-orders', [\App\Http\Controllers\Admin\SalesOrderAdminController::class, 'index'])->name('sales-orders.index');
     Route::get('sales-orders/{salesOrder}', [\App\Http\Controllers\Admin\SalesOrderAdminController::class, 'show'])->name('sales-orders.show');
@@ -934,6 +944,7 @@ Route::get('/checkout', [\App\Http\Controllers\CartController::class, 'showCheck
 Route::post('/checkout/info', [\App\Http\Controllers\CartController::class, 'postCheckoutInfo'])->name('checkout.info');
 Route::get('/checkout/payment', [\App\Http\Controllers\CartController::class, 'showCheckoutPayment'])->name('checkout.payment');
 Route::post('/checkout/confirm', [\App\Http\Controllers\CartController::class, 'confirmOrder'])->name('checkout.confirm');
+Route::get('/checkout/success/{orderCode}', [\App\Http\Controllers\CartController::class, 'checkoutSuccess'])->name('checkout.success');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/orders', [\App\Http\Controllers\OrderController::class, 'index'])->name('orders.index');
@@ -945,7 +956,13 @@ Route::middleware(['auth'])->group(function () {
 });
 
 Route::get('/dashboard', function () {
-    return view('welcome'); // hoặc trả về view dashboard riêng nếu có
-})->name('dashboard');
+    $user = auth()->user();
+
+    if ($user && ($user->role ?? null) === 'admin') {
+        return redirect()->route('admin.dashboard');
+    }
+
+    return redirect()->route('home');
+})->middleware('auth')->name('dashboard');
 
 require __DIR__.'/auth.php';

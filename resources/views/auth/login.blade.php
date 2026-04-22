@@ -28,7 +28,13 @@
     .auth-brand-panel {
         position: relative;
         min-height: 600px;
-        background-image: url('{{ asset('Gemini_Generated_Image_17ykzn17ykzn17yk.png') }}');
+        background-color: #2f5fca;
+        background-image:
+            linear-gradient(135deg, rgba(47,95,202,.22) 0%, rgba(78,123,230,.16) 52%, rgba(147,180,255,.12) 100%),
+            image-set(
+                url('{{ asset('images/auth/login-hero.webp') }}') type('image/webp'),
+                url('{{ asset('Gemini_Generated_Image_17ykzn17ykzn17yk.png') }}') type('image/png')
+            );
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
@@ -37,13 +43,11 @@
         align-items: center;
         justify-content: center;
         padding: 46px 36px;
+        overflow: hidden;
     }
 
     .auth-brand-inner {
-        position: relative;
-        z-index: 1;
-        max-width: 380px;
-        text-align: center;
+        display: none;
     }
 
     .auth-brand-btn {
@@ -200,6 +204,12 @@
         <div class="card-body p-4">
             <h4 class="fw-bold mb-3">Đăng nhập</h4>
 
+            @if(request()->boolean('expired'))
+                <div class="alert alert-warning" style="border-radius: 12px;">
+                    Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.
+                </div>
+            @endif
+
             @if ($errors->any())
                 <div class="alert alert-danger" style="border-radius: 12px;">
                     <ul class="mb-0 ps-3">
@@ -244,7 +254,11 @@
         <div class="row g-0">
             <div class="col-lg-6 auth-brand-panel">
                 <div class="auth-brand-inner">
-                   
+                    <div style="display:inline-flex;align-items:center;justify-content:center;width:58px;height:58px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);margin-bottom:16px;">
+                        <i class="bi bi-person" style="font-size:1.45rem;"></i>
+                    </div>
+                    <h2 class="fw-bold mb-2" style="font-size:2rem; line-height:1.15; text-shadow:0 2px 8px rgba(0,0,0,.35);">Chào mừng đến với Vigilance</h2>
+                    <p class="mb-4" style="color:rgba(255,255,255,.96); text-shadow:0 1px 6px rgba(0,0,0,.35);">Đăng nhập để khám phá hàng ngàn sản phẩm công nghệ</p>
                     <a href="{{ route('register') }}" class="auth-brand-btn">Đăng ký</a>
                 </div>
             </div>
@@ -255,6 +269,12 @@
                         <h3 class="fw-bold mb-0">Đăng nhập</h3>
                         <a href="{{ route('home') }}" class="text-decoration-none">Về trang chủ</a>
                     </div>
+
+                    @if(request()->boolean('expired'))
+                        <div class="alert alert-warning" style="border-radius: 12px;">
+                            Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.
+                        </div>
+                    @endif
 
                     @if ($errors->any())
                         <div class="alert alert-danger" style="border-radius: 12px;">

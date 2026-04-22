@@ -21,6 +21,16 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, $request) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Unauthenticated.',
+                ], 401);
+            }
+
+            return redirect()->guest(route('login', ['expired' => 1]));
+        });
+
         $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpExceptionInterface $e, $request) {
             if ((int) $e->getStatusCode() === 419) {
                 $message = 'Phiên làm việc đã hết hạn. Vui lòng tải lại trang và thử lại.';

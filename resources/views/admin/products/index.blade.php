@@ -4,100 +4,86 @@
 
 @section('content')
 <div class="content-card">
-    <!-- Action Bar -->
-    <div style="padding: 25px 30px; border-bottom: 1px solid #e5e7eb;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <div style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; padding: 12px 20px; border-radius: 12px; font-weight: 600; font-size: 1.1em;">
-                    <i class="bi bi-tags me-2"></i>Tổng: {{ $products->total() }} sản phẩm
-    </div>
-    @if(session('status'))
-                    <div style="background: #dbeafe; color: #1e40af; padding: 10px 15px; border-radius: 8px; font-weight: 500;">
-                        <i class="bi bi-check-circle me-2"></i>{{ session('status') }}
-                    </div>
-    @endif
-            </div>
-            @if(\App\Support\Permission::allows(auth()->user(), 'products.create'))
-            <a href="{{ route('admin.products.create') }}" style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 12px 24px; border-radius: 12px; text-decoration: none; font-weight: 600; font-size: 1.1em; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); transition: all 0.3s ease;">
-                <i class="bi bi-plus-circle"></i>Thêm sản phẩm
-            </a>
-            @endif
-        </div>
-        
-        <!-- Search Section -->
-        <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
-            <h6 style="margin: 0 0 15px 0; color: #374151; font-weight: 600;">
-                <i class="bi bi-search me-2"></i>Tìm kiếm sản phẩm
-            </h6>
-            
-            @php
-                $selectedCategory = null;
-                if (request('search_category')) {
-                    $selectedCategory = $categories->firstWhere('id', request('search_category'));
-                }
-            @endphp
-            @if(request('search_name') || request('search_serial') || request('search_category'))
-                <div style="background: #dbeafe; color: #1e40af; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; font-weight: 500;">
-                    <i class="bi bi-info-circle me-2"></i>
-                    Kết quả tìm kiếm: 
-                    @if(request('search_name')) <strong>Tên: "{{ request('search_name') }}"</strong> @endif
-                    @if(request('search_serial')) <strong>Số seri: "{{ request('search_serial') }}"</strong> @endif
-                    @if($selectedCategory) <strong>Danh mục: "{{ $selectedCategory->name }}"</strong> @endif
-                    - Tìm thấy {{ $products->total() }} sản phẩm
-                </div>
-            @endif
-            <form method="GET" action="{{ route('admin.products.index') }}" style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
-                <div style="position: relative;">
-                    <input type="text" 
-                           name="search_name" 
-                           value="{{ request('search_name') }}"
-                           placeholder="Tìm theo tên sản phẩm..." 
-                           style="padding: 10px 15px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1em; min-width: 200px;">
-                </div>
-                <div style="position: relative;">
-                    <select name="search_category" style="padding: 10px 15px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1em; min-width: 200px;">
-                        <option value="">Tất cả danh mục</option>
-                        @foreach($categories as $category)
-                            <option value="{{ $category->id }}" {{ (string)request('search_category') === (string)$category->id ? 'selected' : '' }}>
-                                {{ $category->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-                <button type="submit" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 1em;">
-                    <i class="bi bi-search me-2"></i>Tìm kiếm
-                </button>
-                @if(request('search_name') || request('search_serial') || request('search_category'))
-                    <a href="{{ route('admin.products.index') }}" style="background: linear-gradient(135deg, #6b7280, #4b5563); color: white; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 1em;">
-                        <i class="bi bi-x-circle me-2"></i>Xóa tìm kiếm
-                    </a>
-                @endif
-            </form>
-        </div>
+    <!-- Header + Actions -->
+    <div style="padding: 22px 30px 16px; border-bottom: 1px solid #e5e7eb;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:14px;">
+            <h4 style="margin:0; font-weight:700; color:#0f172a;">Quản lý sản phẩm</h4>
 
-        <!-- Import/Export Section -->
-        <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
-            <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                 @if(\App\Support\Permission::allows(auth()->user(), 'products.import'))
-                <form action="{{ route('admin.products.importExcel') }}" method="POST" enctype="multipart/form-data" style="display: flex; align-items: center; gap: 10px;">
-        @csrf
-                    <div style="position: relative;">
-                        <input type="file" name="file" accept=".xlsx,.xls" required style="padding: 10px 15px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1em; min-width: 200px;">
-                    </div>
-                    <button type="submit" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 1em;">
-                        <i class="bi bi-upload me-2"></i>Import Excel
+                <form action="{{ route('admin.products.importExcel') }}" method="POST" enctype="multipart/form-data" style="display:flex; align-items:center; gap:8px; margin:0;">
+                    @csrf
+                    <input type="file" name="file" accept=".xlsx,.xls" required style="max-width:220px; padding:8px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:.92em; background:#fff;">
+                    <button type="submit" style="background:#fff; color:#111827; border:1px solid #d1d5db; padding:9px 14px; border-radius:10px; font-weight:600; font-size:.95em; text-decoration:none;">
+                        <i class="bi bi-upload me-1"></i>Import Excel
                     </button>
                 </form>
                 @endif
+
                 @if(\App\Support\Permission::allows(auth()->user(), 'products.export'))
-                <a href="{{ route('admin.products.exportExcel') }}" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 1em;">
-                    <i class="bi bi-file-earmark-excel me-2"></i>Export Excel
+                <a href="{{ route('admin.products.exportExcel') }}" style="background:#fff; color:#111827; border:1px solid #d1d5db; padding:9px 14px; border-radius:10px; font-weight:600; font-size:.95em; text-decoration:none; display:inline-flex; align-items:center;">
+                    <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
+                </a>
+                @endif
+
+                @if(\App\Support\Permission::allows(auth()->user(), 'products.create'))
+                <a href="{{ route('admin.products.create') }}" style="background:#16a34a; color:white; border:1px solid #16a34a; padding:9px 16px; border-radius:10px; font-weight:700; font-size:.95em; text-decoration:none; display:inline-flex; align-items:center;">
+                    <i class="bi bi-plus-circle me-1"></i>Thêm sản phẩm
                 </a>
                 @endif
             </div>
         </div>
+
+        @if(session('status'))
+        <div style="background:#ecfeff; color:#0f766e; border:1px solid #a5f3fc; padding:10px 12px; border-radius:8px; font-weight:500; margin-bottom:12px;">
+            <i class="bi bi-check-circle me-2"></i>{{ session('status') }}
+        </div>
+        @endif
+
+        @php
+            $selectedCategory = null;
+            if (request('search_category')) {
+                $selectedCategory = $categories->firstWhere('id', request('search_category'));
+            }
+        @endphp
+
+        <form method="GET" action="{{ route('admin.products.index') }}" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0;">
+            <select name="search_category" style="padding:9px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:.95em; min-width:200px; background:#fff;">
+                <option value="">Lọc theo danh mục</option>
+                @foreach($categories as $category)
+                    <option value="{{ $category->id }}" {{ (string)request('search_category') === (string)$category->id ? 'selected' : '' }}>
+                        {{ $category->name }}
+                    </option>
+                @endforeach
+            </select>
+
+            <input type="text"
+                   name="search_name"
+                   value="{{ request('search_name') }}"
+                   placeholder="Tìm kiếm theo mã, tên SP..."
+                   style="padding:9px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:.95em; min-width:320px; background:#fff;">
+
+            <button type="submit" style="background:#2563eb; color:white; border:1px solid #2563eb; padding:9px 14px; border-radius:8px; font-weight:600; font-size:.95em;">
+                <i class="bi bi-search me-1"></i>Tìm
+            </button>
+
+            @if(request('search_name') || request('search_serial') || request('search_category'))
+                <a href="{{ route('admin.products.index') }}" style="background:#fff; color:#374151; border:1px solid #d1d5db; text-decoration:none; padding:9px 14px; border-radius:8px; font-weight:600; font-size:.95em;">
+                    Xóa lọc
+                </a>
+            @endif
+        </form>
+
+        @if(request('search_name') || request('search_serial') || request('search_category'))
+            <div style="color:#475569; margin-top:10px; font-size:.92em;">
+                Kết quả:
+                @if(request('search_name')) <strong>Tên: "{{ request('search_name') }}"</strong> @endif
+                @if(request('search_serial')) <strong>Số seri: "{{ request('search_serial') }}"</strong> @endif
+                @if($selectedCategory) <strong>Danh mục: "{{ $selectedCategory->name }}"</strong> @endif
+            </div>
+        @endif
     </div>
-    
+
     <!-- Table -->
     <div style="overflow-x: auto;">
         <table style="width: 100%; border-collapse: collapse; font-size: 1.05em;">
@@ -219,9 +205,12 @@
                 </table>
             </div>
     
-    <!-- Pagination -->
-    <div style="padding: 25px 30px; border-top: 1px solid #e5e7eb; display: flex; justify-content: center;">
-        {{ $products->appends(request()->query())->links('pagination::bootstrap-4') }}
+    <!-- Pagination + Total -->
+    <div style="padding: 18px 30px 22px; border-top: 1px solid #e5e7eb; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+        <div style="color:#374151; font-weight:600;">Tổng: {{ $products->total() }} sản phẩm</div>
+        <div>
+            {{ $products->appends(request()->query())->links('pagination::bootstrap-4') }}
+        </div>
     </div>
 </div>
 
@@ -253,10 +242,11 @@
     box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3) !important;
 }
 
-/* Hover effects for buttons */
-a:hover, button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+/* Hover effects for action buttons in header */
+.content-card > div:first-child a:hover,
+.content-card > div:first-child button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(15, 23, 42, 0.12);
 }
 
 button.product-activity-hist:hover {

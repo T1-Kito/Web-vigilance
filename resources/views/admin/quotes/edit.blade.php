@@ -1,9 +1,15 @@
 @extends('layouts.admin')
 
-@section('title', 'Sửa báo giá')
+@section('title', ($pageTitle ?? ((($pageMode ?? 'quote') === 'quote') ? 'Sửa báo giá' : 'Xử lý đơn từ Web')))
 
 @section('content')
 @php
+    $pageMode = $pageMode ?? 'quote';
+    $isQuoteMode = $pageMode === 'quote';
+    $backRoute = $backRoute ?? 'admin.quotes.index';
+    $formAction = $formAction ?? ($isQuoteMode ? (isset($isCreate) && $isCreate ? route('admin.quotes.store') : route('admin.quotes.update', $order)) : route('admin.web-orders.update', $order));
+    $submitLabel = $submitLabel ?? ((isset($isCreate) && $isCreate) ? 'Tạo báo giá' : ($isQuoteMode ? 'Lưu báo giá' : 'Lưu xử lý đơn web'));
+    $pageHeading = $pageHeading ?? ((isset($isCreate) && $isCreate) ? 'Tạo báo giá mới' : ($isQuoteMode ? ('Sửa báo giá: ' . ($order->quote_code ?? ('VK' . str_pad($order->id, 6, '0', STR_PAD_LEFT)))) : ('Sửa đơn web: ' . ($order->order_code ?? ('OD' . str_pad($order->id, 6, '0', STR_PAD_LEFT))))));
     $orderCode = $order->quote_code ?? $order->order_code ?? ('VK' . str_pad($order->id, 6, '0', STR_PAD_LEFT));
 
     $oldItems = old('items');
@@ -60,11 +66,11 @@
 <div class="container-fluid py-4 quote-edit-page">
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
         <div>
-            <h1 class="h3 fw-bold mb-1">{{ isset($isCreate) && $isCreate ? 'Tạo báo giá mới' : ('Sửa báo giá: ' . $orderCode) }}</h1>
-            <div class="text-muted">Form mới chuyên nghiệp: thêm, xóa, đổi sản phẩm và cập nhật giá/SL trực tiếp.</div>
+            <h1 class="h3 fw-bold mb-1">{{ $pageHeading }}</h1>
+            <div class="text-muted">Form chuẩn: thêm, xóa, đổi sản phẩm và cập nhật giá/SL trực tiếp.</div>
         </div>
         <div class="d-flex gap-2">
-            @if(!(isset($isCreate) && $isCreate))
+            @if($isQuoteMode && !(isset($isCreate) && $isCreate))
                 <a href="{{ route('orders.quote', ['orderCode' => $orderCode]) }}" target="_blank" rel="noopener" class="btn btn-outline-primary">
                     <i class="bi bi-eye me-1"></i>Xem báo giá
                 </a>
@@ -77,7 +83,7 @@
                     </form>
                 @endif
             @endif
-            <a href="{{ route('admin.quotes.index') }}" class="btn btn-outline-secondary">
+            <a href="{{ route($backRoute) }}" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left me-1"></i>Quay lại
             </a>
         </div>
@@ -101,7 +107,7 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ isset($isCreate) && $isCreate ? route('admin.quotes.store') : route('admin.quotes.update', $order) }}" id="quote-edit-form">
+    <form method="POST" action="{{ $formAction }}" id="quote-edit-form">
         @csrf
         @if(!(isset($isCreate) && $isCreate))
             @method('PATCH')
@@ -339,10 +345,10 @@
                         </div>
 
                         <div class="d-grid gap-2 mt-3">
-                            <button type="submit" class="btn btn-primary" @if(!(isset($isCreate) && $isCreate) && (((($order->status ?? '') === 'won') || optional($order->convertedSalesOrder)->id))) disabled @endif>
-                                <i class="bi bi-check2-circle me-1"></i>{{ isset($isCreate) && $isCreate ? 'Tạo báo giá' : 'Lưu báo giá' }}
+                            <button type="submit" class="btn btn-primary" @if($isQuoteMode && !(isset($isCreate) && $isCreate) && (((($order->status ?? '') === 'won') || optional($order->convertedSalesOrder)->id))) disabled @endif>
+                                <i class="bi bi-check2-circle me-1"></i>{{ $submitLabel }}
                             </button>
-                            <a href="{{ route('admin.quotes.index') }}" class="btn btn-light border">Hủy</a>
+                            <a href="{{ route($backRoute) }}" class="btn btn-light border">Hủy</a>
                         </div>
                     </div>
                 </div>

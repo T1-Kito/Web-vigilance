@@ -19,7 +19,17 @@ class RepairFormController extends Controller
 
         if ($request->filled('serial_search')) {
             $serialSearch = trim($request->serial_search);
-            $query->where('serial_numbers', 'LIKE', "%{$serialSearch}%");
+            $query->where(function ($q) use ($serialSearch) {
+                $q->where('serial_numbers', 'LIKE', "%{$serialSearch}%")
+                    ->orWhere('customer_company', 'LIKE', "%{$serialSearch}%")
+                    ->orWhere('contact_person', 'LIKE', "%{$serialSearch}%");
+            });
+        }
+
+        if ($request->filled('status_filter')) {
+            if (in_array($request->status_filter, ['not_returned', 'returned'], true)) {
+                $query->where('status', $request->status_filter);
+            }
         }
 
         $statsQuery = clone $query;

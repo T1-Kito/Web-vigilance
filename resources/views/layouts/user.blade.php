@@ -31,6 +31,9 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <link rel="stylesheet" href="{{ asset('css/custom-fonts.css') }}">
+    @if(request()->routeIs('login'))
+        <link rel="preload" as="image" href="{{ asset('images/auth/login-hero.webp') }}" fetchpriority="high" type="image/webp">
+    @endif
     <style>
         :root {
             /* Brand palette derived from logo */

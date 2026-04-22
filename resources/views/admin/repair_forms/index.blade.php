@@ -51,25 +51,32 @@
     .rf-page .btn-group .btn {
         min-width: 36px;
     }
+    .rf-toolbar-btn {
+        border-radius: 10px !important;
+        padding: 10px 14px !important;
+        font-weight: 600 !important;
+    }
+    .rf-filter .form-control,
+    .rf-filter .form-select {
+        border-radius: 10px !important;
+        border: 1px solid #dbe2ea !important;
+        min-height: 42px;
+    }
+    .rf-filter .form-control:focus,
+    .rf-filter .form-select:focus {
+        border-color: #93c5fd !important;
+        box-shadow: 0 0 0 0.2rem rgba(59,130,246,.12) !important;
+    }
 </style>
 <div class="container-fluid py-2 rf-page">
     <!-- Header -->
-    <div class="d-flex justify-content-between align-items-start align-items-md-center mb-4 flex-column flex-md-row gap-2">
-        <div>
-            <div class="text-muted small mb-1">Phiếu bảo hành</div>
-            <h1 class="h4 mb-0 text-gray-800">Quản lý phiếu bảo hành</h1>
-        </div>
-        <div class="d-flex gap-2">
-            <a href="{{ route('admin.repair-forms.create') }}" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i>
-                Tạo phiếu mới
-            </a>
-        </div>
+    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+        <h1 class="h4 mb-0 text-gray-800">Quản lý phiếu bảo hành</h1>
     </div>
 
-    <!-- Stats Cards -->
-    <div class="row g-3 mb-4">
-        <div class="col-xl-4 col-md-6">
+    <!-- Stats Cards + CTA -->
+    <div class="row g-3 mb-3 align-items-stretch">
+        <div class="col-xl-3 col-md-6">
             <div class="card shadow-sm border-0 rounded-4 h-100">
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between">
@@ -85,7 +92,7 @@
             </div>
         </div>
 
-        <div class="col-xl-4 col-md-6">
+        <div class="col-xl-3 col-md-6">
             <div class="card shadow-sm border-0 rounded-4 h-100">
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between">
@@ -101,7 +108,7 @@
             </div>
         </div>
 
-        <div class="col-xl-4 col-md-12">
+        <div class="col-xl-3 col-md-6">
             <div class="card shadow-sm border-0 rounded-4 h-100">
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between">
@@ -116,33 +123,34 @@
                 </div>
             </div>
         </div>
+
+        <div class="col-xl-3 col-md-6 d-flex align-items-center justify-content-xl-end">
+            <a href="{{ route('admin.repair-forms.create') }}" class="btn btn-primary rf-toolbar-btn w-100 w-xl-auto">
+                <i class="bi bi-plus-circle me-1"></i>
+                Tạo phiếu mới
+            </a>
+        </div>
     </div>
 
     <!-- Main Content -->
     <div class="card shadow-sm border-0 rounded-4 mb-4">
         <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center flex-column flex-md-row gap-2 mb-3">
-                <div>
-                    <div class="fw-semibold">Danh sách phiếu</div>
-                    <div class="text-muted small">Tìm kiếm và quản lý phiếu bảo hành</div>
+            <form method="GET" class="row g-2 align-items-end mb-3 rf-filter">
+                <div class="col-lg-6">
+                    <input type="text" class="form-control" id="serial_search" name="serial_search" value="{{ request('serial_search') }}" placeholder="🔍 Tìm theo số seri, tên khách hàng...">
                 </div>
-            </div>
-
-            <form method="GET" class="row g-2 align-items-end mb-3">
-                <div class="col-md-6">
-                    <label for="serial_search" class="form-label fw-semibold">Tìm theo số seri</label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input type="text" class="form-control" id="serial_search" name="serial_search" value="{{ request('serial_search') }}" placeholder="Ví dụ: SN123...">
-                    </div>
+                <div class="col-lg-2 col-md-4">
+                    <select name="status_filter" class="form-select">
+                        <option value="">Trạng thái: Tất cả</option>
+                        <option value="not_returned" {{ request('status_filter') === 'not_returned' ? 'selected' : '' }}>Chưa gửi trả</option>
+                        <option value="returned" {{ request('status_filter') === 'returned' ? 'selected' : '' }}>Đã gửi trả</option>
+                    </select>
                 </div>
-                <div class="col-md-6 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary">
-                        Tìm
-                    </button>
-                    <a href="{{ route('admin.repair-forms.index') }}" class="btn btn-outline-secondary">
-                        Làm mới
-                    </a>
+                <div class="col-lg-2 col-md-4">
+                    <button type="submit" class="btn btn-primary rf-toolbar-btn w-100">Tìm kiếm</button>
+                </div>
+                <div class="col-lg-2 col-md-4">
+                    <a href="{{ route('admin.repair-forms.index') }}" class="btn btn-outline-secondary rf-toolbar-btn w-100">Làm mới</a>
                 </div>
             </form>
 
@@ -194,23 +202,37 @@
                                 </span>
                             </td>
                             <td>
-                                <div class="btn-group" role="group">
-                                    <a href="{{ route('admin.repair-forms.show', $repairForm) }}" class="btn btn-sm btn-info" title="Xem chi tiết">
+                                <div class="d-flex align-items-center gap-2">
+                                    <a href="{{ route('admin.repair-forms.show', $repairForm) }}" class="btn btn-sm btn-outline-secondary" title="Xem chi tiết">
                                         <i class="bi bi-eye"></i>
                                     </a>
-                                    <a href="{{ route('admin.repair-forms.exportWord', $repairForm) }}" class="btn btn-sm btn-primary" title="In Phiếu" target="_blank">
-                                        <i class="bi bi-printer"></i>
-                                    </a>
-                                    <a href="{{ route('admin.repair-forms.edit', $repairForm) }}" class="btn btn-sm btn-warning" title="Sửa">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <form action="{{ route('admin.repair-forms.destroy', $repairForm) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa phiếu này?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-danger" title="Xóa">
-                                            <i class="bi bi-trash"></i>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="bi bi-three-dots-vertical"></i>
                                         </button>
-                                    </form>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li>
+                                                <a class="dropdown-item" href="{{ route('admin.repair-forms.exportWord', $repairForm) }}" target="_blank">
+                                                    <i class="bi bi-printer me-2"></i>In
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="{{ route('admin.repair-forms.edit', $repairForm) }}">
+                                                    <i class="bi bi-pencil me-2"></i>Sửa
+                                                </a>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <form action="{{ route('admin.repair-forms.destroy', $repairForm) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa phiếu này?')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="dropdown-item text-danger">
+                                                        <i class="bi bi-trash me-2"></i>Xóa
+                                                    </button>
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </td>
                         </tr>

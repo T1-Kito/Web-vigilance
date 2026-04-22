@@ -505,9 +505,24 @@ class OrderController extends Controller
 
         $this->authorizeOrderView($order);
 
-        $pdf = Pdf::loadView('orders.quote_pdf', [
-            'order' => $order,
-        ])->setPaper('a4', 'portrait');
+        $activeTemplate = PdfTemplate::query()
+            ->where('type', 'quote')
+            ->where('is_active', true)
+            ->orderByDesc('is_default')
+            ->orderByDesc('created_at')
+            ->first();
+
+        if ($activeTemplate) {
+            $data = $this->buildPublicOrderTemplateData($order);
+            $templateView = 'admin.pdf_templates.' . ($activeTemplate->view_name ?: 'preview');
+            $html = view($templateView, $data)->render();
+
+            $pdf = Pdf::loadHTML($html)->setPaper('a4', 'portrait');
+        } else {
+            $pdf = Pdf::loadView('orders.quote_pdf', [
+                'order' => $order,
+            ])->setPaper('a4', 'portrait');
+        }
 
         $filename = 'bao-gia-' . ($order->order_code ?: ('order-' . $order->id)) . '-' . now()->format('YmdHis') . '.pdf';
 

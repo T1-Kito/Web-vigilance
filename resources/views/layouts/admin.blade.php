@@ -411,7 +411,7 @@
             @if($groups['web_sales'])
             <div class="nav-group-title">Bán hàng web</div>
             @if($can('orders.view') || $can('orders.create') || $can('orders.edit') || $can('orders.delete'))
-            <div class="nav-item"><a href="{{ route('admin.orders.index') }}" class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-cart-check"></i></div>Đơn hàng</a></div>
+            <div class="nav-item"><a href="{{ route('admin.web-orders.index') }}" class="nav-link {{ request()->routeIs('admin.web-orders.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-globe2"></i></div>Đơn hàng web</a></div>
             @endif
             @if($can('customers.view') || $can('customers.create') || $can('customers.edit') || $can('customers.delete'))
             <div class="nav-item"><a href="{{ route('admin.customers.index') }}" class="nav-link {{ request()->routeIs('admin.customers.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-person-badge"></i></div>Quản lý khách hàng</a></div>

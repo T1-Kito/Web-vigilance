@@ -441,7 +441,40 @@ class CartController extends Controller
             session()->put('guest_order_codes', $codes);
         }
 
-        return redirect()->route('orders.quote', ['orderCode' => $order->order_code])
+        return redirect()->route('checkout.success', ['orderCode' => $order->order_code])
             ->with('success', 'Đặt hàng thành công! Admin sẽ liên hệ xác nhận đơn hàng của bạn trong 3-4 phút tới.');
+    }
+
+    public function checkoutSuccess(string $orderCode)
+    {
+        $order = Order::with(['items.product'])->where('order_code', $orderCode)->first();
+
+        if (!$order) {
+            return redirect()->route('cart.view')->with('error', 'Đơn hàng không tồn tại hoặc đã bị xóa.');
+        }
+
+        $user = Auth::user();
+        if ($user) {
+            if ($order->user_id && (int) $order->user_id !== (int) $user->id) {
+                abort(403);
+            }
+        } else {
+            if ($order->user_id) {
+                abort(403);
+            }
+
+            $codes = (array) session()->get('guest_order_codes', []);
+            $codes = array_values(array_unique(array_filter(array_map('trim', $codes))));
+            if (!in_array((string) $order->order_code, $codes, true)) {
+                abort(403);
+            }
+        }
+
+        $categories = Category::with(['children' => function($q) { $q->with('children'); }])
+            ->whereNull('parent_id')
+            ->ordered()
+            ->get();
+
+        return view('checkout.success', compact('order', 'categories'));
     }
 }
