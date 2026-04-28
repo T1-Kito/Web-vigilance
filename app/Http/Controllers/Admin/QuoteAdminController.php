@@ -189,7 +189,7 @@ class QuoteAdminController extends Controller
 
     public function show(Quote $quote)
     {
-        $quote->load(['items.product', 'user', 'convertedSalesOrder']);
+        $quote->load(['items.product', 'user', 'convertedSalesOrder.items.product']);
 
         $quoteTemplates = \App\Models\DocumentTemplate::query()
             ->where('type', 'quote')
@@ -198,9 +198,12 @@ class QuoteAdminController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
+        $nameWarnings = $this->buildNameMismatchWarningsForQuote($quote);
+
         return view('admin.quotes.show', [
             'quote' => $quote,
             'quoteTemplates' => $quoteTemplates,
+            'nameWarnings' => $nameWarnings,
         ]);
     }
 
@@ -428,11 +431,19 @@ class QuoteAdminController extends Controller
         }
 
         $salesOrder = DB::transaction(function () use ($quote, $validated) {
+            $sourceOrderId = (int) ($quote->source_order_id ?? 0);
+            if ($sourceOrderId <= 0) {
+                $sourceOrder = $this->createInternalOrderFromQuote($quote);
+                $sourceOrderId = (int) $sourceOrder->id;
+                $quote->update(['source_order_id' => $sourceOrderId]);
+            }
+
             $salesOrderCode = DocumentCodeGenerator::next(SalesOrder::query(), 'sales_order_code', 'SO');
 
             $salesOrder = SalesOrder::create([
                 'user_id' => $quote->user_id,
                 'source_quote_id' => $quote->id,
+                'source_order_id' => $sourceOrderId,
                 'sales_order_code' => $salesOrderCode,
                 'receiver_name' => $quote->receiver_name,
                 'receiver_phone' => $quote->receiver_phone,
@@ -568,5 +579,124 @@ class QuoteAdminController extends Controller
     private function nextQuoteCode(): string
     {
         return DocumentCodeGenerator::next(Quote::query(), 'quote_code', 'BG');
+    }
+
+    private function createInternalOrderFromQuote(Quote $quote): Order
+    {
+        $order = Order::create([
+            'user_id' => $quote->user_id,
+            'source_quote_id' => $quote->id,
+            'order_code' => DocumentCodeGenerator::next(Order::query(), 'order_code', 'DH'),
+            'receiver_name' => $quote->receiver_name,
+            'receiver_phone' => $quote->receiver_phone,
+            'receiver_address' => $quote->receiver_address,
+            'invoice_company_name' => $quote->invoice_company_name,
+            'invoice_address' => $quote->invoice_address,
+            'customer_tax_code' => $quote->customer_tax_code,
+            'customer_phone' => $quote->customer_phone,
+            'customer_email' => $quote->customer_email,
+            'customer_contact_person' => $quote->customer_contact_person,
+            'customer_type' => $quote->customer_type,
+            'staff_code' => $quote->staff_code,
+            'sales_name' => $quote->sales_name,
+            'discount_percent' => $quote->discount_percent,
+            'vat_percent' => $quote->vat_percent,
+            'payment_term' => $quote->payment_term,
+            'payment_due_days' => $quote->payment_due_days,
+            'deposit_percent' => $quote->deposit_percent,
+            'payment_note' => $quote->payment_note,
+            'note' => trim(((string) $quote->note) . ' | Tạo tự động từ báo giá để đảm bảo liên kết pháp lý hóa đơn.'),
+            'payment_method' => 'cash',
+            'status' => 'pending',
+        ]);
+
+        foreach ($quote->items as $qi) {
+            OrderItem::create([
+                'order_id' => $order->id,
+                'product_id' => $qi->product_id,
+                'quantity' => $qi->quantity,
+                'price' => $qi->price,
+                'sale' => 0,
+                'color_id' => null,
+                'parent_order_item_id' => null,
+                'unit' => $qi->unit,
+            ]);
+        }
+
+        return $order;
+    }
+
+    private function buildNameMismatchWarningsForQuote(Quote $quote): array
+    {
+        $warnings = [];
+        $quoteItems = $quote->items ?? collect();
+        $salesOrderItems = $quote->convertedSalesOrder?->items ?? collect();
+
+        if ($salesOrderItems->isNotEmpty()) {
+            $warnings = array_merge($warnings, $this->compareDocumentItemsByName(
+                $quoteItems,
+                $salesOrderItems,
+                'Báo giá',
+                'đơn bán',
+                'quote_to_sales_order'
+            ));
+        }
+
+        return $warnings;
+    }
+
+    private function compareDocumentItemsByName($leftItems, $rightItems, string $leftLabel, string $rightLabel, string $scope): array
+    {
+        $warnings = [];
+        $leftItems = collect($leftItems)->values();
+        $rightItems = collect($rightItems)->values();
+        $maxCount = max($leftItems->count(), $rightItems->count());
+
+        for ($i = 0; $i < $maxCount; $i++) {
+            $leftItem = $leftItems->get($i);
+            $rightItem = $rightItems->get($i);
+
+            if (!$leftItem || !$rightItem) {
+                continue;
+            }
+
+            $leftName = $this->normalizeCompareText((string) ($leftItem->product->name ?? $leftItem->item_name ?? ''));
+            $rightName = $this->normalizeCompareText((string) ($rightItem->product->name ?? $rightItem->item_name ?? ''));
+
+            if ($leftName === '' || $rightName === '') {
+                continue;
+            }
+
+            if ($leftName !== $rightName) {
+                $warnings[] = [
+                    'scope' => $scope,
+                    'type' => 'name_mismatch',
+                    'severity' => $this->isLikelySimilarName($leftName, $rightName) ? 'warning' : 'danger',
+                    'left_label' => $leftLabel,
+                    'right_label' => $rightLabel,
+                    'left_name' => (string) ($leftItem->product->name ?? $leftItem->item_name ?? ''),
+                    'right_name' => (string) ($rightItem->product->name ?? $rightItem->item_name ?? ''),
+                    'message' => 'Tên hàng không khớp giữa ' . $leftLabel . ' và ' . $rightLabel . ' ở dòng #' . ($i + 1) . '.',
+                ];
+            }
+        }
+
+        return $warnings;
+    }
+
+    private function normalizeCompareText(string $value): string
+    {
+        $value = mb_strtolower(trim($value), 'UTF-8');
+        $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
+        $value = preg_replace('/[^\p{L}\p{N}\s]+/u', '', $value) ?? $value;
+
+        return trim($value);
+    }
+
+    private function isLikelySimilarName(string $left, string $right): bool
+    {
+        similar_text($left, $right, $percent);
+
+        return $percent >= 70;
     }
 }

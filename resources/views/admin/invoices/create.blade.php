@@ -13,7 +13,10 @@
             <h1 class="h4 fw-bold mb-1">Phát hành hóa đơn</h1>
             <div class="text-muted">Đơn hàng nguồn: <span class="fw-semibold">{{ $order->order_code }}</span></div>
         </div>
-        <a href="{{ route('admin.orders.show', $order) }}" class="btn btn-outline-secondary">Quay lại đơn hàng</a>
+        <div class="d-flex gap-2 flex-wrap justify-content-end">
+            <a href="{{ route('admin.orders.show', $order) }}" class="btn btn-outline-secondary">Quay lại đơn hàng</a>
+            <a href="{{ route('admin.invoices.index') }}" class="btn btn-outline-primary">Danh sách hóa đơn</a>
+        </div>
     </div>
 
     @if(session('error'))
@@ -34,6 +37,20 @@
         @csrf
         <div class="row g-4">
             <div class="col-lg-8">
+                @if(!empty($nameWarnings ?? []))
+                    <div class="alert alert-warning border-0 shadow-sm">
+                        <div class="fw-bold mb-1"><i class="bi bi-exclamation-triangle me-1"></i>Cảnh báo đối chiếu trước khi phát hành</div>
+                        <div class="small mb-0">Tên hàng trên đơn bán đang khác với nguồn tham chiếu. Sếp có thể kiểm tra nhanh trước khi bấm phát hành.</div>
+                        <hr>
+                        @foreach($nameWarnings as $warning)
+                            <div class="mb-2">
+                                <div class="fw-semibold">{{ $warning['message'] }}</div>
+                                <div class="small">{{ $warning['left_label'] }}: {{ $warning['left_name'] }} → {{ $warning['right_label'] }}: {{ $warning['right_name'] }}</div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-white fw-bold">Dòng hàng hóa đơn</div>
                     <div class="card-body p-0">
@@ -102,6 +119,10 @@
                         <div class="d-flex justify-content-between mb-1">
                             <span>Tạm tính:</span>
                             <strong>{{ number_format($subTotal, 0, ',', '.') }}đ</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Kiểm tra đối chiếu:</span>
+                            <strong class="text-{{ !empty($nameWarnings ?? []) ? 'warning' : 'success' }}">{{ !empty($nameWarnings ?? []) ? count($nameWarnings) . ' cảnh báo' : 'Ổn' }}</strong>
                         </div>
 
                         <div class="d-grid gap-2 mt-3">

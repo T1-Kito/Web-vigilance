@@ -234,9 +234,25 @@ class PdfTemplateController extends Controller
             $line = (float) ($item->price ?? 0) * (int) ($item->quantity ?? 0);
             $img = (string) ($item->product->image ?? '');
             $imgPath = $img !== '' ? public_path('images/products/' . ltrim($img, '/')) : '';
+
+            $productName = (string) ($item->product->name ?? ('SP #' . $item->product_id));
+            $productInfo = trim((string) (
+                $item->product->information
+                ?? $item->product->description
+                ?? ''
+            ));
+            if ($productInfo !== '') {
+                $productInfo = strip_tags($productInfo);
+            }
+
+            $nameCell = '<b>' . e($productName) . '</b>';
+            if ($productInfo !== '') {
+                $nameCell .= '<div style="margin-top:3px; font-weight:400; font-size:10px; line-height:1.35;">' . e($productInfo) . '</div>';
+            }
+
             $itemRows .= '<tr>'
                 . '<td class="t-center">' . ($idx + 1) . '</td>'
-                . '<td><b>' . e((string) ($item->product->name ?? ('SP #' . $item->product_id))) . '</b></td>'
+                . '<td>' . $nameCell . '</td>'
                 . '<td class="t-center">' . e((string) ($item->quantity ?? 0)) . '</td>'
                 . '<td class="t-center">' . ($imgPath !== '' && file_exists($imgPath) ? '<img src="' . e($imgPath) . '" alt="" style="max-width:60px; max-height:60px; object-fit:contain;">' : '') . '</td>'
                 . '<td class="t-right">' . number_format((float) ($item->price ?? 0), 0, ',', '.') . '</td>'

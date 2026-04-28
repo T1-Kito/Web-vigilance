@@ -133,7 +133,12 @@ class PurchaseOrderController extends Controller
     public function show(PurchaseOrder $purchaseOrder)
     {
         $purchaseOrder->load('items');
-        return view('admin.purchase_orders.show', ['order' => $purchaseOrder]);
+
+        return view('admin.purchase_orders.show', [
+            'order' => $purchaseOrder,
+            'inboundWarnings' => session('inbound_warnings', []),
+            'receivedInvoice' => session('received_invoice', []),
+        ]);
     }
 
     public function edit(PurchaseOrder $purchaseOrder)
@@ -207,6 +212,28 @@ class PurchaseOrderController extends Controller
         return redirect()->route('admin.purchase-orders.index')->with('success', 'Đã xóa đơn.');
     }
 
+    public function markInboundInvoice(Request $request, PurchaseOrder $purchaseOrder)
+    {
+        $validated = $request->validate([
+            'invoice_number' => ['required', 'string', 'max:255'],
+            'invoice_date' => ['nullable', 'date'],
+            'supplier_tax_code' => ['nullable', 'string', 'max:100'],
+            'supplier_name' => ['required', 'string', 'max:255'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.item_name' => ['required', 'string', 'max:255'],
+            'items.*.quantity' => ['nullable', 'numeric', 'min:0.01'],
+        ]);
+
+        $purchaseOrder->load('items');
+        $warnings = $this->buildInboundMismatchWarnings($purchaseOrder, $validated);
+
+        return redirect()->route('admin.purchase-orders.show', $purchaseOrder)->with([
+            'success' => 'Đã ghi nhận hóa đơn đầu vào (demo).',
+            'received_invoice' => $validated,
+            'inbound_warnings' => $warnings,
+        ]);
+    }
+
     private function validatePayload(Request $request): array
     {
         return $request->validate([
@@ -236,5 +263,43 @@ class PurchaseOrderController extends Controller
             'items.*.tax_percent' => 'nullable|numeric|min:0|max:100',
             'items.*.note' => 'nullable|string|max:255',
         ]);
+    }
+
+    private function buildInboundMismatchWarnings(PurchaseOrder $purchaseOrder, array $invoiceData): array
+    {
+        $warnings = [];
+        $invoiceItems = collect($invoiceData['items'] ?? []);
+
+        foreach ($purchaseOrder->items->values() as $index => $poItem) {
+            $invoiceItem = $invoiceItems->get($index);
+            if (!$invoiceItem) {
+                continue;
+            }
+
+            $poName = $this->normalizeCompareText((string) ($poItem->item_name ?? ''));
+            $invoiceName = $this->normalizeCompareText((string) ($invoiceItem['item_name'] ?? ''));
+
+            if ($poName !== '' && $invoiceName !== '' && $poName !== $invoiceName) {
+                similar_text($poName, $invoiceName, $percent);
+                $warnings[] = [
+                    'severity' => $percent >= 70 ? 'warning' : 'danger',
+                    'message' => 'Tên hàng đầu vào không khớp đơn mua hàng ở dòng #' . ($index + 1) . '.',
+                    'left_label' => 'Đơn mua hàng',
+                    'right_label' => 'Hóa đơn đầu vào',
+                    'left_name' => $poItem->item_name,
+                    'right_name' => (string) ($invoiceItem['item_name'] ?? ''),
+                ];
+            }
+        }
+
+        return $warnings;
+    }
+
+    private function normalizeCompareText(string $value): string
+    {
+        $value = mb_strtolower(trim($value), 'UTF-8');
+        $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
+        $value = preg_replace('/[^\p{L}\p{N}\s]+/u', '', $value) ?? $value;
+        return trim($value);
     }
 }

@@ -47,4 +47,15 @@ return [
         'redirect' => env('FACEBOOK_REDIRECT_URI'),
     ],
 
+    'meinvoice' => [
+        'base_url' => env('MEINVOICE_BASE_URL', 'https://testapi.meinvoice.vn/api/integration'),
+        'app_id' => env('MEINVOICE_APP_ID'),
+        'tax_code' => env('MEINVOICE_TAX_CODE'),
+        'username' => env('MEINVOICE_USERNAME'),
+        'password' => env('MEINVOICE_PASSWORD'),
+        'sign_type' => env('MEINVOICE_SIGN_TYPE', 2),
+        'certificate_sn' => env('MEINVOICE_CERTIFICATE_SN'),
+        'timeout' => env('MEINVOICE_TIMEOUT', 30),
+    ],
+
 ];

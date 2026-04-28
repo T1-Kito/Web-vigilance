@@ -67,7 +67,7 @@
             <button type="button" class="btn btn-outline-info" id="btnSendZaloCopy">
                 <i class="bi bi-chat-dots me-1"></i>Gửi Zalo
             </button>
-            <a href="{{ route('admin.pdf-templates.render-default.quote', $quote) }}" target="_blank" rel="noopener" class="btn btn-outline-secondary" id="btnDownloadPdfQuote" download>
+            <a href="{{ route('admin.pdf-templates.render-default.quote', $quote) }}" class="btn btn-outline-secondary" id="btnDownloadPdfQuote">
                 <i class="bi bi-download me-1"></i>Tải PDF
             </a>
             @if(($quoteTemplates ?? collect())->count() > 0)
@@ -119,6 +119,22 @@
             </div>
         </div>
     </div>
+
+    @if(!empty($nameWarnings ?? []))
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white fw-bold text-danger">
+                <i class="bi bi-exclamation-triangle me-1"></i>Cảnh báo đối chiếu tên hàng
+            </div>
+            <div class="card-body">
+                @foreach($nameWarnings as $warning)
+                    <div class="alert alert-{{ $warning['severity'] === 'danger' ? 'danger' : 'warning' }} mb-2">
+                        <div class="fw-semibold">{{ $warning['message'] }}</div>
+                        <div class="small mt-1">{{ $warning['left_label'] }}: {{ $warning['left_name'] }} → {{ $warning['right_label'] }}: {{ $warning['right_name'] }}</div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
 
     <div class="row g-4">
         <div class="col-lg-8">
@@ -255,7 +271,7 @@
 <div class="modal fade" id="autoCreateOrderModal" tabindex="-1" aria-labelledby="autoCreateOrderModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-sm">
-            <form method="POST" action="{{ route('admin.quotes.convert-to-order', $quote) }}" onsubmit="return confirm('Xác nhận sinh đơn hàng tự động từ báo giá đã duyệt?');">
+            <form method="POST" action="{{ route('admin.quotes.convert-to-order', $quote) }}" onsubmit="return confirm('Xác nhận sinh đơn hàng từ báo giá đã duyệt?');">
                 @csrf
                 <div class="modal-header">
                     <h5 class="modal-title" id="autoCreateOrderModalLabel">Sinh đơn hàng tự động</h5>
@@ -263,7 +279,7 @@
                 </div>
                 <div class="modal-body">
                     <div class="alert alert-info py-2 small mb-3">
-                        Hệ thống sẽ tự sinh đơn hàng từ báo giá đã duyệt, bạn chỉ cần nhập các mốc thời gian nghiệp vụ.
+                        Hệ thống sẽ tự sinh đơn hàng từ báo giá đã duyệt. Bước phát hành hóa đơn MISA thực hiện riêng tại màn chi tiết đơn bán sau khi đã xuất kho.
                     </div>
 
                     <div class="mb-3">
@@ -298,13 +314,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const text = `Báo giá {{ $orderCode }}\nKhách hàng: {{ $quote->invoice_company_name ?: $quote->receiver_name }}\nTổng cộng: {{ number_format($total, 0, ',', '.') }}đ\nPDF: ${pdfUrl}`;
 
         try {
-            const downloadLink = document.createElement('a');
-            downloadLink.href = pdfUrl;
-            downloadLink.download = `bao-gia-{{ $orderCode }}.pdf`;
-            downloadLink.target = '_blank';
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            downloadLink.remove();
+            window.location.href = pdfUrl;
 
             await navigator.clipboard.writeText(text);
             window.open('https://chat.zalo.me/', '_blank', 'noopener');

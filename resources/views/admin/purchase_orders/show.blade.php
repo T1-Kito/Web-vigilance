@@ -4,10 +4,24 @@
 
 @section('content')
 <div class="content-card" style="padding:8px; background:#fff; border:none; box-shadow:none;">
+    @if(session('success'))
+        <div class="alert alert-success no-print">{{ session('success') }}</div>
+    @endif
+    @if(session('error'))
+        <div class="alert alert-danger no-print">{{ session('error') }}</div>
+    @endif
     <div class="d-flex justify-content-end gap-2 mb-3 no-print">
         <button class="btn btn-outline-dark" onclick="window.print()">In</button>
+        <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#inboundInvoiceModal">Nhận hóa đơn đầu vào</button>
         <a class="btn btn-secondary" href="{{ route('admin.purchase-orders.index') }}">Quay lại</a>
     </div>
+
+    @if(!empty($receivedInvoice ?? []))
+        <div class="alert alert-success no-print">
+            <div class="fw-bold mb-1"><i class="bi bi-check2-circle me-1"></i>Đã ghi nhận hóa đơn đầu vào</div>
+            <div class="small">Số hóa đơn: {{ $receivedInvoice['invoice_number'] ?? '---' }} | Nhà cung cấp: {{ $receivedInvoice['supplier_name'] ?? '---' }}</div>
+        </div>
+    @endif
 
     <style>
         /* Chế độ xem phiếu sạch: ẩn sidebar/header admin cho riêng trang này */
@@ -258,6 +272,15 @@
                 });
                 $poItemsTotal = (float) $poDisplayItems->sum('amount');
             @endphp
+            @if(!empty($inboundWarnings ?? []))
+                <div class="alert alert-warning mt-3">
+                    <div class="fw-bold mb-1"><i class="bi bi-exclamation-triangle me-1"></i>Cảnh báo nhận hóa đơn đầu vào</div>
+                    @foreach($inboundWarnings as $warning)
+                        <div class="small mb-1">{{ $warning['message'] }} — {{ $warning['left_label'] }}: {{ $warning['left_name'] }} | {{ $warning['right_label'] }}: {{ $warning['right_name'] }}</div>
+                    @endforeach
+                </div>
+            @endif
+
             <table class="br-table">
                 <thead>
                     <tr>
@@ -330,6 +353,61 @@
                 <div>Địa chỉ: Phòng B15.09 Tầng 15, Tháp B Tòa nhà Rivergate, 151-155 Bến Vân Đồn, Phường Khánh Hội, TP.HCM</div>
                 <div>MST: 0318231312 | Hotline: 02887617015 | Email: vigilancevn@gmail.com | Website: https://vigilance.com.vn</div>
             </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="inboundInvoiceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-sm">
+            <form method="POST" action="{{ route('admin.purchase-orders.inbound-invoices.mark', $order) }}">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title">Ghi nhận hóa đơn đầu vào</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info small">Demo quy trình: ghi nhận hóa đơn đã nhận trước, sau đó mới đối chiếu và gán vào đơn mua hàng.</div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Số hóa đơn</label>
+                            <input type="text" name="invoice_number" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Ngày hóa đơn</label>
+                            <input type="date" name="invoice_date" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Tên nhà cung cấp trên hóa đơn</label>
+                            <input type="text" name="supplier_name" class="form-control" value="{{ $order->supplier_name }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Mã số thuế nhà cung cấp</label>
+                            <input type="text" name="supplier_tax_code" class="form-control" value="{{ $order->supplier_tax_code }}">
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="fw-semibold mb-2">Dòng hàng trên hóa đơn đầu vào</div>
+                    @foreach($order->items as $item)
+                        <div class="row g-2 mb-2 align-items-center">
+                            <div class="col-md-7">
+                                <input type="text" class="form-control" name="items[{{ $loop->index }}][item_name]" value="{{ $item->item_name }}" placeholder="Tên hàng">
+                            </div>
+                            <div class="col-md-2">
+                                <input type="number" min="0.01" step="0.01" class="form-control" name="items[{{ $loop->index }}][quantity]" value="{{ $item->quantity }}" placeholder="SL">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" value="{{ $item->unit ?: '---' }}" disabled>
+                            </div>
+                        </div>
+                    @endforeach
+                    <div class="alert alert-warning small mt-3 mb-0">Nếu tên hàng nhập vào khác tên trên đơn mua hàng, hệ thống sẽ cảnh báo ngay để sếp đối chiếu.</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-warning">Ghi nhận hóa đơn</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

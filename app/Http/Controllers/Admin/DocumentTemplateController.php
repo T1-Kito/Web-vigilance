@@ -22,7 +22,7 @@ class DocumentTemplateController extends Controller
         'QuoteCode','SalesOrderCode','CustomerName','TaxCode','Address','InvoiceAddress','ReceiverAddress','ContactPerson','Phone','Email','Date',
         'StaffCode','CreatedBy','Warranty','ProductInfo','SubTotal','VatPercent','VatAmount','DiscountPercent','TotalAmount','TotalAmountInWords',
         '#Items','/Items',
-        'Item.No','Item.Name','Item.Description','Item.Category','ItemCategory','Category','Item.Unit','Item.Quantity','Item.UnitPrice','Item.LineTotal','Item.Image',
+        'Item.No','Item.Name','Item.ProductInfo','Item.Description','Item.Category','ItemCategory','Category','Item.Unit','Item.Quantity','Item.UnitPrice','Item.LineTotal','Item.Image',
         'PdfHtml',
     ];
     public function index(Request $request)
@@ -211,8 +211,8 @@ class DocumentTemplateController extends Controller
                 $firstItemName = $name;
             }
             $description = trim((string) (
-                $item->product->description
-                ?? $item->product->information
+                $item->product->information
+                ?? $item->product->description
                 ?? $item->product->specifications
                 ?? ''
             ));
@@ -220,24 +220,23 @@ class DocumentTemplateController extends Controller
                 $description = strip_tags($description);
             }
 
-            $productInformation = trim((string) ($item->product->information ?? ''));
+            $productInformation = trim((string) (
+                $item->product->information
+                ?? $item->product->description
+                ?? ''
+            ));
             if ($productInformation !== '') {
                 $productInformation = strip_tags($productInformation);
             }
 
-            $productInfoParts[] = sprintf(
-                '%d. %s%s | SL: %d | Đơn giá: %s | Thành tiền: %s',
-                $idx + 1,
-                $name,
-                $productInformation !== '' ? (' - ' . $productInformation) : '',
-                (int) ($item->quantity ?? 0),
-                number_format((float) ($item->price ?? 0), 0, ',', '.'),
-                number_format($line, 0, ',', '.')
-            );
+            if ($productInformation !== '') {
+                $productInfoParts[] = $productInformation;
+            }
 
             $itemRows[] = [
                 'No' => $idx + 1,
                 'Name' => $name,
+                'ProductInfo' => $productInformation,
                 'Description' => $description,
                 'Category' => $cat,
                 'ItemCategory' => $cat,
@@ -261,6 +260,7 @@ class DocumentTemplateController extends Controller
             $firstItem = $itemRows[0];
             $data['Item.No'] = (string) ($firstItem['No'] ?? '');
             $data['Item.Name'] = (string) ($firstItem['Name'] ?? '');
+            $data['Item.ProductInfo'] = (string) ($firstItem['ProductInfo'] ?? '');
             $data['Item.Category'] = (string) ($firstItem['Category'] ?? '');
             $data['Item.Description'] = (string) ($firstItem['Description'] ?? '');
             $data['ItemCategory'] = (string) ($firstItem['Category'] ?? '');
@@ -387,8 +387,8 @@ class DocumentTemplateController extends Controller
                 $firstCategory = $cat;
             }
             $description = trim((string) (
-                $item->product->description
-                ?? $item->product->information
+                $item->product->information
+                ?? $item->product->description
                 ?? $item->product->specifications
                 ?? ''
             ));
@@ -396,24 +396,23 @@ class DocumentTemplateController extends Controller
                 $description = strip_tags($description);
             }
 
-            $productInformation = trim((string) ($item->product->information ?? ''));
+            $productInformation = trim((string) (
+                $item->product->information
+                ?? $item->product->description
+                ?? ''
+            ));
             if ($productInformation !== '') {
                 $productInformation = strip_tags($productInformation);
             }
 
-            $productInfoParts[] = sprintf(
-                '%d. %s%s | SL: %d | Đơn giá: %s | Thành tiền: %s',
-                $idx + 1,
-                (string) ($item->product->name ?? ('SP #' . $item->product_id)),
-                $productInformation !== '' ? (' - ' . $productInformation) : '',
-                (int) ($item->quantity ?? 0),
-                number_format((float) ($item->unit_price ?? 0), 0, ',', '.'),
-                number_format($line, 0, ',', '.')
-            );
+            if ($productInformation !== '') {
+                $productInfoParts[] = $productInformation;
+            }
 
             $itemRows[] = [
                 'No' => $idx + 1,
                 'Name' => (string) ($item->product->name ?? ('SP #' . $item->product_id)),
+                'ProductInfo' => $productInformation,
                 'Description' => $description,
                 'Category' => $cat,
                 'ItemCategory' => $cat,
@@ -423,6 +422,13 @@ class DocumentTemplateController extends Controller
                 'LineTotal' => number_format($line, 0, ',', '.'),
                 'Image' => $img,
             ];
+        }
+
+        $data['ProductInfo'] = implode("\n", $productInfoParts);
+
+        if (!empty($itemRows)) {
+            $firstItem = $itemRows[0];
+            $data['Item.ProductInfo'] = (string) ($firstItem['ProductInfo'] ?? '');
         }
 
         $templateAbsPath = Storage::path((string) $documentTemplate->file_path);
@@ -510,10 +516,22 @@ class DocumentTemplateController extends Controller
             $total = $afterDiscount + $vatAmount;
 
             $itemRows = [];
+            $productInfoParts = [];
             foreach ($items as $idx => $item) {
+                $productInformation = trim((string) (
+                    $item->product->information
+                    ?? $item->product->description
+                    ?? ''
+                ));
+                if ($productInformation !== '') {
+                    $productInformation = strip_tags($productInformation);
+                    $productInfoParts[] = $productInformation;
+                }
+
                 $itemRows[] = [
                     'No' => $idx + 1,
                     'Name' => (string) ($item->product->name ?? ''),
+                    'ProductInfo' => $productInformation,
                     'Quantity' => (string) ((int) ($item->quantity ?? 0)),
                     'UnitPrice' => number_format((float) ($item->price ?? 0), 0, ',', '.'),
                     'LineTotal' => number_format((float) ($item->price ?? 0) * (int) ($item->quantity ?? 0), 0, ',', '.'),
@@ -530,6 +548,7 @@ class DocumentTemplateController extends Controller
                 'DiscountPercent' => rtrim(rtrim(number_format($discountPercent, 2, '.', ''), '0'), '.'),
                 'TotalAmount' => number_format($total, 0, ',', '.'),
                 'TotalAmountInWords' => $this->numberToVietnameseWords((int) round($total)),
+                'ProductInfo' => implode("\n", $productInfoParts),
             ], $itemRows);
 
             $pdf = Pdf::loadHTML($html)->setPaper('a4', 'portrait');
@@ -545,10 +564,10 @@ class DocumentTemplateController extends Controller
     {
         $rows = '';
         foreach ($items as $item) {
-            $rows .= '<tr><td>' . e($item['No'] ?? '') . '</td><td>' . e($item['Name'] ?? '') . '</td><td>' . e($item['Quantity'] ?? '') . '</td><td>' . e($item['UnitPrice'] ?? '') . '</td><td>' . e($item['LineTotal'] ?? '') . '</td></tr>';
+            $rows .= '<tr><td>' . e($item['No'] ?? '') . '</td><td>' . e($item['Name'] ?? '') . '</td><td>' . e($item['ProductInfo'] ?? '') . '</td><td>' . e($item['Quantity'] ?? '') . '</td><td>' . e($item['UnitPrice'] ?? '') . '</td><td>' . e($item['LineTotal'] ?? '') . '</td></tr>';
         }
 
-        return '<html><head><meta charset="utf-8"><style>body{font-family:DejaVu Sans, sans-serif;font-size:12px}.title{text-align:center;font-size:18px;font-weight:bold}.meta{margin:12px 0}table{width:100%;border-collapse:collapse}th,td{border:1px solid #333;padding:6px}</style></head><body><div class="title">BÁO GIÁ</div><div class="meta">Mã: ' . e($data['QuoteCode'] ?? '') . '<br>Khách hàng: ' . e($data['CustomerName'] ?? '') . '<br>Ngày: ' . e($data['Date'] ?? '') . '</div><table><thead><tr><th>#</th><th>Tên</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th></tr></thead><tbody>' . $rows . '</tbody></table><div style="margin-top:12px">Tổng: ' . e($data['TotalAmount'] ?? '') . '</div></body></html>';
+        return '<html><head><meta charset="utf-8"><style>body{font-family:DejaVu Sans, sans-serif;font-size:12px}.title{text-align:center;font-size:18px;font-weight:bold}.meta{margin:12px 0}.product-info{margin:8px 0 12px 0;white-space:pre-line}table{width:100%;border-collapse:collapse}th,td{border:1px solid #333;padding:6px;vertical-align:top}</style></head><body><div class="title">BÁO GIÁ</div><div class="meta">Mã: ' . e($data['QuoteCode'] ?? '') . '<br>Khách hàng: ' . e($data['CustomerName'] ?? '') . '<br>Ngày: ' . e($data['Date'] ?? '') . '</div><div class="product-info"><strong>Thông tin sản phẩm:</strong><br>' . e($data['ProductInfo'] ?? '') . '</div><table><thead><tr><th>#</th><th>Tên</th><th>Thông tin sản phẩm</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th></tr></thead><tbody>' . $rows . '</tbody></table><div style="margin-top:12px">Tổng: ' . e($data['TotalAmount'] ?? '') . '</div></body></html>';
     }
 
     private function renderSpreadsheetTemplateToTempFile(string $templatePath, array $data, array $items, string $ext = 'xlsx'): string
@@ -874,7 +893,8 @@ class DocumentTemplateController extends Controller
             ['field' => '{{StaffCode}}', 'description' => 'Mã nhân viên (staff code)'],
             ['field' => '{{CreatedBy}}', 'description' => 'Báo giá/đơn hàng được lập bởi'],
             ['field' => '{{Warranty}}', 'description' => 'Thông tin bảo hành'],
-            ['field' => '{{ProductInfo}}', 'description' => 'Thông tin sản phẩm (lấy từ ô "Thông tin sản phẩm" của sản phẩm) + số lượng, đơn giá, thành tiền theo từng dòng'],
+            ['field' => '{{ProductInfo}}', 'description' => 'Thông tin sản phẩm dạng text (gom từ các dòng item, lấy từ ô "Thông tin sản phẩm" của sản phẩm)'],
+            ['field' => '{{Item.ProductInfo}}', 'description' => 'Thông tin sản phẩm theo từng dòng item (nên dùng trong block {{#Items}}...{{/Items}})'],
 
             // Khách hàng
             ['field' => '{{CustomerName}}', 'description' => 'Tên công ty/khách hàng'],

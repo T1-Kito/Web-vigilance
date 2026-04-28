@@ -109,19 +109,21 @@
         </div>
 
         <div class="col-xl-3 col-md-6">
-            <div class="card shadow-sm border-0 rounded-4 h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div>
-                            <div class="text-muted small">Đã gửi trả</div>
-                            <div class="h4 mb-0">{{ $returnedCount ?? 0 }}</div>
-                        </div>
-                        <div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width:44px;height:44px;">
-                            <i class="bi bi-check2-circle"></i>
+            <a href="{{ route('admin.repair-forms.returns') }}" class="text-decoration-none text-reset d-block h-100">
+                <div class="card shadow-sm border-0 rounded-4 h-100" style="cursor:pointer;">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <div class="text-muted small">Đã gửi trả</div>
+                                <div class="h4 mb-0">{{ $returnedCount ?? 0 }}</div>
+                            </div>
+                            <div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width:44px;height:44px;">
+                                <i class="bi bi-check2-circle"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
 
         <div class="col-xl-3 col-md-6 d-flex align-items-center justify-content-xl-end">
@@ -182,7 +184,7 @@
                     </thead>
                     <tbody>
                         @foreach($repairForms as $repairForm)
-                        <tr class="rf-clickable-row" data-href="{{ route('admin.repair-forms.show', $repairForm) }}">
+                        <tr class="rf-clickable-row" data-href="{{ route('admin.repair-forms.show', $repairForm) }}" onclick="if(!event.target.closest('a,button,form,input,select,textarea,label,.dropdown-menu')){window.location.href='{{ route('admin.repair-forms.show', $repairForm) }}';}">
                             <td>
                                 <div class="fw-semibold">{{ $repairForm->serial_numbers }}</div>
                                 <div class="text-muted small">{{ $repairForm->created_at->format('d/m/Y H:i') }}</div>
@@ -259,15 +261,7 @@ $(document).ready(function() {
         "order": [[0, "desc"]]
     });
 
-    $('#dataTable').on('click', '.rf-clickable-row', function(e) {
-        if ($(e.target).closest('a,button,form,input,select,textarea,label').length) {
-            return;
-        }
-        const href = $(this).data('href');
-        if (href) {
-            window.location.href = href;
-        }
-    });
+    // row click handled inline on <tr> for better compatibility with DataTables redraw
 });
 </script>
 @endsection 

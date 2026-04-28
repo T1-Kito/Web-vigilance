@@ -43,7 +43,10 @@ class RepairForm extends Model
         'handover_check_info',
         'received_date',
         'notes',
-        'status'
+        'status',
+        'return_file_path',
+        'return_file_original_name',
+        'return_file_uploaded_at'
     ];
 
     protected $casts = [
@@ -52,7 +55,8 @@ class RepairForm extends Model
         'actual_return_date' => 'date',
         'received_date' => 'date',
         'employee_count' => 'integer',
-        'includes_adapter' => 'boolean'
+        'includes_adapter' => 'boolean',
+        'return_file_uploaded_at' => 'datetime'
     ];
 
     // Relationships

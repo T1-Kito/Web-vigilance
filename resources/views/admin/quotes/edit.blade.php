@@ -113,6 +113,11 @@
             @method('PATCH')
         @endif
 
+        <div id="workflow-warning-panel" class="alert alert-warning border-0 shadow-sm d-none mb-4">
+            <div class="fw-bold mb-1"><i class="bi bi-exclamation-triangle me-1"></i>Cảnh báo đối chiếu dữ liệu</div>
+            <div class="small mb-0" id="workflow-warning-text">Hệ thống sẽ cảnh báo ngay khi tên hàng trên chứng từ không khớp.</div>
+        </div>
+
         <div class="row g-4">
             <div class="col-xl-8">
                 <div class="card border-0 shadow-sm mb-4">
@@ -468,6 +473,8 @@
     const receiverNameInput = document.getElementById('qe-receiver-name');
     const receiverPhoneInput = document.getElementById('qe-receiver-phone');
     const receiverAddressInput = document.getElementById('qe-receiver-address');
+    const workflowWarningPanel = document.getElementById('workflow-warning-panel');
+    const workflowWarningText = document.getElementById('workflow-warning-text');
 
     let suggestEl = null;
     let activeInput = null;
@@ -552,6 +559,35 @@
         return { ok: res.ok, json };
     }
 
+    function setWorkflowWarning(message, show = true) {
+        if (!workflowWarningPanel || !workflowWarningText) return;
+        workflowWarningText.textContent = message || '';
+        workflowWarningPanel.classList.toggle('d-none', !show);
+    }
+
+    function normalizeName(s) {
+        return String(s || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/đ/g, 'd')
+            .replace(/[^a-z0-9\s]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function similarText(a, b) {
+        const aa = normalizeName(a);
+        const bb = normalizeName(b);
+        if (!aa || !bb) return 1;
+        if (aa === bb) return 0;
+        const aParts = aa.split(' ');
+        const bParts = bb.split(' ');
+        const overlap = aParts.filter(function (x) { return bParts.includes(x); }).length;
+        const maxLen = Math.max(aParts.length, bParts.length, 1);
+        return 1 - (overlap / maxLen);
+    }
+
     function applyTaxPayload(d) {
         if (!d) return;
         const v = function (x) { return (x != null && String(x).trim() !== '') ? String(x).trim() : ''; };
@@ -602,6 +638,8 @@
         taxInput.addEventListener('input', function () {
             const code = normalizeTaxCode(taxInput.value);
             if (taxTimer) clearTimeout(taxTimer);
+
+            validateWorkflowWarnings();
 
             if (!isTaxLike(code)) {
                 setTaxHint('Nhập MST (ít nhất 8 ký tự)', 'text-muted');
@@ -689,6 +727,39 @@
         afterDiscountEl.textContent = money(afterDiscount);
         vatEl.textContent = money(vatAmount);
         totalEl.textContent = money(total);
+        validateWorkflowWarnings();
+    }
+
+    function getRowsItemNames() {
+        return Array.from(tbody.querySelectorAll('tr[data-row]')).map(function (row) {
+            return String(row.querySelector('.item-product-search')?.value || '').trim();
+        }).filter(Boolean);
+    }
+
+    function validateWorkflowWarnings() {
+        const quoteCompany = String(invoiceCompanyInput?.value || receiverNameInput?.value || '').trim();
+        const rowNames = getRowsItemNames();
+        const warningParts = [];
+        const orderName = String(receiverNameInput?.value || '').trim();
+
+        if (quoteCompany && rowNames.length) {
+            const mismatched = rowNames.filter(function (name) {
+                return similarText(name, quoteCompany) > 0.5;
+            });
+            if (mismatched.length) {
+                warningParts.push('Tên hàng trên báo giá có thể không khớp với tên công ty/khách hàng đã nhập.');
+            }
+        }
+
+        if (orderName && quoteCompany && normalizeName(orderName) !== normalizeName(quoteCompany)) {
+            warningParts.push('Thông tin người nhận và tên công ty đang khác nhau, vui lòng kiểm tra lại trước khi phát hành.');
+        }
+
+        if (warningParts.length > 0) {
+            setWorkflowWarning(warningParts.join(' '), true);
+        } else {
+            setWorkflowWarning('', false);
+        }
     }
 
     function ensureSuggest() {
@@ -977,6 +1048,10 @@
 
     tbody.querySelectorAll('tr[data-row]').forEach(bindRow);
 
+    [invoiceCompanyInput, receiverNameInput, receiverPhoneInput, receiverAddressInput, taxInput, salesNameInput].forEach(function (node) {
+        node?.addEventListener('input', validateWorkflowWarnings);
+        node?.addEventListener('change', validateWorkflowWarnings);
+    });
 
     document.addEventListener('click', function (e) {
         if (!suggestEl) return;
@@ -1013,8 +1088,13 @@
         if (invalid) {
             e.preventDefault();
             alert('Có dòng sản phẩm chưa chọn đúng sản phẩm. Vui lòng kiểm tra lại.');
+            return;
         }
+
+        validateWorkflowWarnings();
     });
+
+    validateWorkflowWarnings();
 
     // Giữ nguyên đơn giá đã lưu khi mở lại màn hình sửa báo giá.
     // Chỉ tự áp giá khi user thao tác (đổi loại KH / đổi SL / chọn sản phẩm mới).

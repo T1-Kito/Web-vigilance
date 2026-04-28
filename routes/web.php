@@ -759,10 +759,14 @@ Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(
             'update' => 'permission:warranties.edit',
             'destroy' => 'permission:warranties.delete',
         ]);
+    Route::get('repair-forms/returns/list', [App\Http\Controllers\Admin\RepairFormController::class, 'returnIndex'])->name('repair-forms.returns')->middleware('permission:warranties.view');
     Route::get('repair-forms/{repairForm}/export-word', [App\Http\Controllers\Admin\RepairFormController::class, 'exportWord'])->name('repair-forms.exportWord')->middleware('permission:warranties.view');
     Route::get('repair-forms/{repairForm}/print-modern', [App\Http\Controllers\Admin\RepairFormController::class, 'printModern'])->name('repair-forms.printModern')->middleware('permission:warranties.view');
     Route::get('repair-forms/{repairForm}/print-return', [App\Http\Controllers\Admin\RepairFormController::class, 'printReturn'])->name('repair-forms.printReturn')->middleware('permission:warranties.view');
     Route::post('repair-forms/{repairForm}/print-return/save', [App\Http\Controllers\Admin\RepairFormController::class, 'savePrintReturnInfo'])->name('repair-forms.savePrintReturnInfo')->middleware('permission:warranties.edit');
+    Route::post('repair-forms/{repairForm}/return-file', [App\Http\Controllers\Admin\RepairFormController::class, 'uploadReturnFile'])->name('repair-forms.uploadReturnFile')->middleware('permission:warranties.edit');
+    Route::get('repair-forms/{repairForm}/return-file/download', [App\Http\Controllers\Admin\RepairFormController::class, 'downloadReturnFile'])->name('repair-forms.downloadReturnFile')->middleware('permission:warranties.view');
+    Route::delete('repair-forms/{repairForm}/return-file', [App\Http\Controllers\Admin\RepairFormController::class, 'deleteReturnFile'])->name('repair-forms.deleteReturnFile')->middleware('permission:warranties.edit');
     Route::get('warranties/{warranty}/create-repair-form', [App\Http\Controllers\Admin\RepairFormController::class, 'createFromWarranty'])->name('repair-forms.createFromWarranty')->middleware('permission:warranties.create');
     Route::get('warranty-claims/{warrantyClaim}/create-repair-form', [App\Http\Controllers\Admin\RepairFormController::class, 'createFromClaim'])->name('repair-forms.createFromClaim')->middleware('permission:warranties.create');
 
@@ -808,6 +812,8 @@ Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::post('sales-orders/{salesOrder}/deliveries', [\App\Http\Controllers\Admin\SalesOrderAdminController::class, 'storeDelivery'])->name('sales-orders.deliveries.store');
     Route::get('sales-orders/{salesOrder}/invoices/create', [\App\Http\Controllers\Admin\SalesOrderAdminController::class, 'createInvoice'])->name('sales-orders.invoices.create');
     Route::post('sales-orders/{salesOrder}/invoices', [\App\Http\Controllers\Admin\SalesOrderAdminController::class, 'storeInvoice'])->name('sales-orders.invoices.store');
+    Route::post('sales-orders/{salesOrder}/invoices/misa/publish', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'publishMisaForSalesOrder'])->name('sales-orders.invoices.misa.publish');
+    Route::post('sales-orders/{salesOrder}/invoices/issue-misa', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'publishMisaForSalesOrder'])->name('sales-orders.invoices.issue-misa');
     Route::patch('sales-orders/{salesOrder}/payment', [\App\Http\Controllers\Admin\SalesOrderAdminController::class, 'updatePayment'])->name('sales-orders.payment.update');
     Route::delete('sales-orders/{salesOrder}', [\App\Http\Controllers\Admin\SalesOrderAdminController::class, 'destroy'])->name('sales-orders.destroy');
 
@@ -846,11 +852,23 @@ Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::get('deliveries/{delivery}/print', [\App\Http\Controllers\Admin\DeliveryAdminController::class, 'print'])->name('deliveries.print')->middleware('permission:deliveries.view');
     Route::delete('deliveries/{delivery}', [\App\Http\Controllers\Admin\DeliveryAdminController::class, 'destroy'])->name('deliveries.destroy')->middleware('permission:deliveries.delete');
 
+    // MISA meInvoice settings
+    Route::get('misa-meinvoice', [\App\Http\Controllers\Admin\MisaMeInvoiceSettingsController::class, 'edit'])->name('misa-meinvoice.settings.edit');
+    Route::patch('misa-meinvoice', [\App\Http\Controllers\Admin\MisaMeInvoiceSettingsController::class, 'update'])->name('misa-meinvoice.settings.update');
+    Route::post('misa-meinvoice/test', [\App\Http\Controllers\Admin\MisaMeInvoiceSettingsController::class, 'testConnection'])->name('misa-meinvoice.settings.test');
+    Route::post('misa-meinvoice/certificates', [\App\Http\Controllers\Admin\MisaMeInvoiceSettingsController::class, 'fetchCertificates'])->name('misa-meinvoice.settings.certificates');
+    Route::post('misa-meinvoice/webapp-templates', [\App\Http\Controllers\Admin\MisaMeInvoiceSettingsController::class, 'fetchWebappTemplates'])->name('misa-meinvoice.settings.webapp-templates');
+
     // Invoice management (hóa đơn)
     Route::get('invoices', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'index'])->name('invoices.index')->middleware('permission:invoices.view');
+    Route::get('invoices/inbound', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'createInbound'])->name('invoices.inbound.index')->middleware('permission:invoices.view');
+    Route::post('invoices/inbound', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'storeInbound'])->name('invoices.inbound.store')->middleware('permission:invoices.create');
+    Route::post('invoices/inbound/assign', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'assignInboundToPurchaseOrder'])->name('invoices.inbound.assign')->middleware('permission:invoices.edit');
     Route::get('orders/{order}/invoices/create', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'createFromOrder'])->name('invoices.create-from-order')->middleware('permission:invoices.create');
     Route::post('orders/{order}/invoices', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'store'])->name('invoices.store')->middleware('permission:invoices.create');
     Route::get('invoices/{invoice}', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'show'])->name('invoices.show')->middleware('permission:invoices.view');
+    Route::get('invoices/{invoice}/open-misa', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'openMisa'])->name('invoices.open-misa')->middleware('permission:invoices.view');
+    Route::post('invoices/{invoice}/verify-misa', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'verifyMisa'])->name('invoices.verify-misa')->middleware('permission:invoices.view');
     Route::delete('invoices/{invoice}', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'destroy'])->name('invoices.destroy')->middleware('permission:invoices.delete');
 
     // Purchase management
@@ -867,6 +885,8 @@ Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(
             'update' => 'permission:purchase-orders.edit',
             'destroy' => 'permission:purchase-orders.delete',
         ]);
+    Route::post('purchase-orders/{purchaseOrder}/inbound-invoices/mark', [\App\Http\Controllers\Admin\PurchaseOrderController::class, 'markInboundInvoice'])
+        ->name('purchase-orders.inbound-invoices.mark')->middleware('permission:purchase-orders.edit');
 
     // Banners management
     Route::resource('banners', \App\Http\Controllers\Admin\BannerController::class)

@@ -63,22 +63,28 @@
                             <td>{{ optional($so->created_at)->format('d/m/Y H:i') }}</td>
                             <td>
                                 @php
-                                    $badge = $so->status === 'completed' ? 'success' : ($so->status === 'cancelled' ? 'danger' : ($so->status === 'processing' ? 'warning' : 'secondary'));
+                                    $statusMeta = [
+                                        'pending' => ['label' => 'Chờ xử lý', 'class' => 'state-chip state-chip--amber', 'icon' => 'bi-hourglass-split'],
+                                        'processing' => ['label' => 'Đang xử lý', 'class' => 'state-chip state-chip--blue', 'icon' => 'bi-gear'],
+                                        'completed' => ['label' => 'Hoàn thành', 'class' => 'state-chip state-chip--green', 'icon' => 'bi-check2-circle'],
+                                        'cancelled' => ['label' => 'Đã hủy', 'class' => 'state-chip state-chip--red', 'icon' => 'bi-x-circle'],
+                                    ];
+                                    $s = $statusMeta[$so->status] ?? ['label' => ucfirst((string) $so->status), 'class' => 'state-chip state-chip--gray', 'icon' => 'bi-dot'];
                                 @endphp
-                                <span class="badge bg-{{ $badge }}">{{ $so->status }}</span>
+                                <span class="{{ $s['class'] }}"><i class="bi {{ $s['icon'] }}"></i>{{ $s['label'] }}</span>
                             </td>
                             <td>
                                 @php
                                     $paymentStatus = (string) optional($so->debt)->status ?: (string) ($so->payment_status ?? 'unpaid');
-                                    $pBadge = $paymentStatus === 'paid' ? 'success' : (($paymentStatus === 'partial') ? 'warning' : (($paymentStatus === 'overdue') ? 'danger' : 'secondary'));
-                                    $pLabel = [
-                                        'unpaid' => 'Chưa thanh toán',
-                                        'partial' => 'Thanh toán một phần',
-                                        'paid' => 'Đã thanh toán',
-                                        'overdue' => 'Quá hạn',
-                                    ][$paymentStatus] ?? $paymentStatus;
+                                    $paymentMeta = [
+                                        'unpaid' => ['label' => 'Chưa thanh toán', 'class' => 'state-chip state-chip--slate', 'icon' => 'bi-wallet2'],
+                                        'partial' => ['label' => 'Thanh toán một phần', 'class' => 'state-chip state-chip--amber', 'icon' => 'bi-pie-chart'],
+                                        'paid' => ['label' => 'Đã thanh toán', 'class' => 'state-chip state-chip--green', 'icon' => 'bi-check-circle'],
+                                        'overdue' => ['label' => 'Quá hạn', 'class' => 'state-chip state-chip--red', 'icon' => 'bi-exclamation-triangle'],
+                                    ];
+                                    $p = $paymentMeta[$paymentStatus] ?? ['label' => $paymentStatus, 'class' => 'state-chip state-chip--gray', 'icon' => 'bi-dot'];
                                 @endphp
-                                <span class="badge bg-{{ $pBadge }}">{{ $pLabel }}</span>
+                                <span class="{{ $p['class'] }}"><i class="bi {{ $p['icon'] }}"></i>{{ $p['label'] }}</span>
                             </td>
                             <td class="text-end pe-3" onclick="event.stopPropagation();">
                                 <div class="dropdown d-inline-block">
@@ -137,6 +143,47 @@
     .so-row { transition: background-color .16s ease; cursor: pointer; }
     .so-row:hover { background: #eaf3ff; }
     .so-row:hover td { background: #eaf3ff; }
+
+    .state-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        border-radius: 999px;
+        font-size: .76rem;
+        font-weight: 700;
+        line-height: 1;
+        border: 1px solid transparent;
+        white-space: nowrap;
+    }
+    .state-chip i { font-size: .78rem; line-height: 1; }
+
+    .state-chip--green {
+        color: #065f46;
+        background: linear-gradient(135deg, rgba(16,185,129,.18), rgba(52,211,153,.22));
+        border-color: rgba(16,185,129,.35);
+    }
+    .state-chip--blue {
+        color: #1e40af;
+        background: linear-gradient(135deg, rgba(59,130,246,.15), rgba(99,102,241,.2));
+        border-color: rgba(59,130,246,.35);
+    }
+    .state-chip--amber {
+        color: #92400e;
+        background: linear-gradient(135deg, rgba(245,158,11,.2), rgba(251,191,36,.22));
+        border-color: rgba(245,158,11,.38);
+    }
+    .state-chip--red {
+        color: #991b1b;
+        background: linear-gradient(135deg, rgba(239,68,68,.16), rgba(248,113,113,.2));
+        border-color: rgba(239,68,68,.35);
+    }
+    .state-chip--slate,
+    .state-chip--gray {
+        color: #334155;
+        background: linear-gradient(135deg, rgba(148,163,184,.2), rgba(203,213,225,.26));
+        border-color: rgba(148,163,184,.4);
+    }
 
     .sales-order-table-wrap td,
     .sales-order-table-wrap th {

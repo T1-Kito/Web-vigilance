@@ -10,6 +10,7 @@ use App\Services\PrintService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use App\Support\ActivityLogger;
+use Illuminate\Support\Str;
 
 class RepairFormController extends Controller
 {
@@ -45,6 +46,41 @@ class RepairFormController extends Controller
             ->withQueryString();
 
         return view('admin.repair_forms.index', compact('repairForms', 'totalForms', 'notReturnedCount', 'returnedCount'));
+    }
+
+    public function returnIndex(Request $request)
+    {
+        $query = RepairForm::with(['warranty.product', 'warrantyClaim'])
+            ->where('status', 'returned');
+
+        if ($request->filled('keyword')) {
+            $keyword = trim((string) $request->keyword);
+            $query->where(function ($q) use ($keyword) {
+                $q->where('form_number', 'LIKE', "%{$keyword}%")
+                    ->orWhere('serial_numbers', 'LIKE', "%{$keyword}%")
+                    ->orWhere('customer_company', 'LIKE', "%{$keyword}%")
+                    ->orWhere('contact_person', 'LIKE', "%{$keyword}%");
+            });
+        }
+
+        if ($request->filled('has_file')) {
+            if ($request->has_file === 'yes') {
+                $query->whereNotNull('return_file_path');
+            } elseif ($request->has_file === 'no') {
+                $query->whereNull('return_file_path');
+            }
+        }
+
+        $returnForms = $query
+            ->orderByDesc('actual_return_date')
+            ->orderByDesc('updated_at')
+            ->paginate(20)
+            ->withQueryString();
+
+        $totalReturned = (clone $query)->count();
+        $withFileCount = (clone $query)->whereNotNull('return_file_path')->count();
+
+        return view('admin.repair_forms.returns', compact('returnForms', 'totalReturned', 'withFileCount'));
     }
 
     public function create()
@@ -447,6 +483,58 @@ class RepairFormController extends Controller
         return redirect()
             ->route('admin.repair-forms.printReturn', $repairForm)
             ->with('success', 'Đã lưu thông tin phiếu trả. Bạn có thể in ngay.');
+    }
+
+    public function uploadReturnFile(Request $request, RepairForm $repairForm)
+    {
+        $validated = $request->validate([
+            'return_file' => 'required|file|mimes:pdf|max:10240',
+        ]);
+
+        if (!empty($repairForm->return_file_path) && Storage::disk('local')->exists($repairForm->return_file_path)) {
+            Storage::disk('local')->delete($repairForm->return_file_path);
+        }
+
+        $file = $validated['return_file'];
+        $safeName = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME));
+        $safeName = $safeName !== '' ? $safeName : 'phieu-tra';
+        $fileName = now()->format('YmdHis') . '-' . $safeName . '.pdf';
+        $storedPath = $file->storeAs('private/repair_returns/' . $repairForm->id, $fileName, 'local');
+
+        $repairForm->update([
+            'return_file_path' => $storedPath,
+            'return_file_original_name' => $file->getClientOriginalName(),
+            'return_file_uploaded_at' => now(),
+            'status' => 'returned',
+        ]);
+
+        return back()->with('success', 'Đã tải lên file phiếu trả (PDF).');
+    }
+
+    public function downloadReturnFile(RepairForm $repairForm)
+    {
+        if (empty($repairForm->return_file_path) || !Storage::disk('local')->exists($repairForm->return_file_path)) {
+            return back()->with('error', 'Không tìm thấy file phiếu trả.');
+        }
+
+        $downloadName = $repairForm->return_file_original_name ?: ('phieu-tra-' . ($repairForm->form_number ?: $repairForm->id) . '.pdf');
+
+        return Storage::disk('local')->download($repairForm->return_file_path, $downloadName);
+    }
+
+    public function deleteReturnFile(RepairForm $repairForm)
+    {
+        if (!empty($repairForm->return_file_path) && Storage::disk('local')->exists($repairForm->return_file_path)) {
+            Storage::disk('local')->delete($repairForm->return_file_path);
+        }
+
+        $repairForm->update([
+            'return_file_path' => null,
+            'return_file_original_name' => null,
+            'return_file_uploaded_at' => null,
+        ]);
+
+        return back()->with('success', 'Đã xóa file phiếu trả.');
     }
 
     public function printBack(RepairForm $repairForm)

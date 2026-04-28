@@ -17,7 +17,7 @@ class DeliveryAdminController extends Controller
     public function index(Request $request)
     {
         $deliveriesQuery = Delivery::query()
-            ->with(['order', 'salesOrder'])
+            ->with(['order', 'salesOrder.invoices'])
             ->orderByDesc('created_at');
 
         $orderCode = trim((string) $request->query('order_code', ''));
