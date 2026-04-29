@@ -259,8 +259,6 @@ class PdfTemplateController extends Controller
                 . '<td class="t-center">' . e((string) ($item->quantity ?? 0)) . '</td>'
                 . '<td class="t-center">' . ($imgPath !== '' && file_exists($imgPath) ? '<img src="' . e($imgPath) . '" alt="" style="max-width:60px; max-height:60px; object-fit:contain;">' : '') . '</td>'
                 . '<td class="t-right">' . number_format((float) ($item->price ?? 0), 0, ',', '.') . '</td>'
-                . '<td class="t-center">' . e(LineVatCalculator::vatLabel($lineVatPercent)) . '</td>'
-                . '<td class="t-right">' . number_format($lineVatAmount, 0, ',', '.') . '</td>'
                 . '<td class="t-right">' . number_format($lineAfterVat, 0, ',', '.') . '</td>'
                 . '</tr>';
         }
