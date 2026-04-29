@@ -69,7 +69,7 @@
                                 <td class="fw-semibold">{{ $remain }}</td>
                                 <td>
                                     <input type="hidden" name="items[{{ $loop->index }}][sales_order_item_id]" value="{{ $item->id }}">
-                                    <input type="number" class="form-control" min="0" max="{{ $remain }}" name="items[{{ $loop->index }}][quantity]" value="{{ old('items.'.$loop->index.'.quantity', 0) }}">
+                                    <input type="number" class="form-control" min="0" max="{{ $remain }}" name="items[{{ $loop->index }}][quantity]" value="{{ old('items.'.$loop->index.'.quantity', $remain) }}">
                                 </td>
                             </tr>
                         @endforeach

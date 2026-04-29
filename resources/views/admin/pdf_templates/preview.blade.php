@@ -171,8 +171,10 @@
                 <th>Tên hàng hóa / DV và chi tiết sản phẩm</th>
                 <th style="width: 76px;">Số lượng</th>
                 <th style="width: 100px;">Hình ảnh sản phẩm</th>
-                <th style="width: 94px;">Đơn giá</th>
-                <th style="width: 110px;">Thành Tiền</th>
+                <th style="width: 82px;">Đơn giá</th>
+                <th style="width: 56px;">VAT</th>
+                <th style="width: 82px;">Tiền thuế</th>
+                <th style="width: 92px;">Sau thuế</th>
             </tr>
         </thead>
         <tbody>
@@ -201,7 +203,7 @@
         <div class="content-right">
             <table class="summary">
                 <tr><td class="sum-label">CỘNG THÀNH TIỀN</td><td class="sum-value">{{ $subTotal }}</td></tr>
-                <tr><td class="sum-label">THUẾ GTGT</td><td class="sum-value">{{ $vatAmount }}</td></tr>
+                <tr><td class="sum-label">THUẾ GTGT (THEO DÒNG)</td><td class="sum-value">{{ $vatAmount }}</td></tr>
                 <tr><td class="sum-label">TỔNG ĐƠN HÀNG</td><td class="sum-value">{{ $total }}</td></tr>
                 <tr><td colspan="2" class="amount-words">Bằng chữ: <b><i>{{ $totalInWords }}</i></b></td></tr>
             </table>

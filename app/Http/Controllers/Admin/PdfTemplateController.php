@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\PdfTemplate;
 use App\Models\Quote;
+use App\Support\LineVatCalculator;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
@@ -222,16 +223,18 @@ class PdfTemplateController extends Controller
     private function buildQuoteData(Quote $quote): array
     {
         $items = $quote->items ?? collect();
-        $subTotal = (float) $items->sum(fn($i) => (float) ($i->price ?? 0) * (int) ($i->quantity ?? 0));
         $discountPercent = (float) ($quote->discount_percent ?? 0);
-        $vatPercent = (float) ($quote->vat_percent ?? 8);
-        $afterDiscount = max(0, $subTotal * (1 - ($discountPercent / 100)));
-        $vatAmount = $afterDiscount * ($vatPercent / 100);
-        $total = $afterDiscount + $vatAmount;
+        $totals = LineVatCalculator::totals($items, 'price', $discountPercent, (float) ($quote->vat_percent ?? 8));
+        $subTotal = (float) $totals['sub_total'];
+        $vatAmount = (float) $totals['vat_amount'];
+        $total = (float) $totals['total'];
 
         $itemRows = '';
         foreach ($items as $idx => $item) {
             $line = (float) ($item->price ?? 0) * (int) ($item->quantity ?? 0);
+            $lineVatPercent = (float) ($item->vat_percent ?? $quote->vat_percent ?? 8);
+            $lineVatAmount = $line * ($lineVatPercent / 100);
+            $lineAfterVat = $line + $lineVatAmount;
             $img = (string) ($item->product->image ?? '');
             $imgPath = $img !== '' ? public_path('images/products/' . ltrim($img, '/')) : '';
 
@@ -256,7 +259,9 @@ class PdfTemplateController extends Controller
                 . '<td class="t-center">' . e((string) ($item->quantity ?? 0)) . '</td>'
                 . '<td class="t-center">' . ($imgPath !== '' && file_exists($imgPath) ? '<img src="' . e($imgPath) . '" alt="" style="max-width:60px; max-height:60px; object-fit:contain;">' : '') . '</td>'
                 . '<td class="t-right">' . number_format((float) ($item->price ?? 0), 0, ',', '.') . '</td>'
-                . '<td class="t-right">' . number_format($line, 0, ',', '.') . '</td>'
+                . '<td class="t-center">' . e(LineVatCalculator::vatLabel($lineVatPercent)) . '</td>'
+                . '<td class="t-right">' . number_format($lineVatAmount, 0, ',', '.') . '</td>'
+                . '<td class="t-right">' . number_format($lineAfterVat, 0, ',', '.') . '</td>'
                 . '</tr>';
         }
 
@@ -291,7 +296,7 @@ class PdfTemplateController extends Controller
             'DepositPercent' => rtrim(rtrim(number_format((float) ($quote->deposit_percent ?? 0), 2, '.', ''), '0'), '.'),
             'PaymentNote' => $paymentNote,
             'SubTotal' => number_format($subTotal, 0, ',', '.'),
-            'VatPercent' => rtrim(rtrim(number_format($vatPercent, 2, '.', ''), '0'), '.'),
+            'VatPercent' => 'theo từng dòng',
             'VatAmount' => number_format($vatAmount, 0, ',', '.'),
             'DiscountPercent' => rtrim(rtrim(number_format($discountPercent, 2, '.', ''), '0'), '.'),
             'TotalAmount' => number_format($total, 0, ',', '.'),

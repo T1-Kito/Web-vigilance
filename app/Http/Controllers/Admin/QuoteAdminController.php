@@ -13,6 +13,7 @@ use App\Models\SalesOrder;
 use App\Models\SalesOrderItem;
 use App\Support\ActivityLogger;
 use App\Support\DocumentCodeGenerator;
+use App\Support\LineVatCalculator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -132,6 +133,8 @@ class QuoteAdminController extends Controller
             'items.*.unit' => ['nullable', 'string', 'max:50'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:99999'],
             'items.*.unit_price' => ['required', 'numeric', 'min:0'],
+            'items.*.vat_percent' => ['nullable', 'string', 'max:10'],
+            'items.*.vat_percent' => ['nullable', 'string', 'max:10'],
         ]);
 
         $quote = DB::transaction(function () use ($validated) {
@@ -172,12 +175,16 @@ class QuoteAdminController extends Controller
             ]);
 
             foreach ($validated['items'] as $row) {
+                $vatRaw = strtoupper(trim((string) ($row['vat_percent'] ?? '')));
+                $vat = $vatRaw === 'KCT' ? 0 : (float) ($vatRaw === '' ? 8 : $vatRaw);
+
                 QuoteItem::create([
                     'quote_id' => $quote->id,
                     'product_id' => (int) $row['product_id'],
                     'quantity' => (int) $row['quantity'],
                     'price' => (float) $row['unit_price'],
                     'unit' => $row['unit'] ?? null,
+                    'vat_percent' => $vat,
                 ]);
             }
 
@@ -329,16 +336,23 @@ class QuoteAdminController extends Controller
                 if ($itemId > 0) {
                     $item = $existingItems->get($itemId);
                     if ($item) {
+                        $vatRaw = strtoupper(trim((string) ($row['vat_percent'] ?? '')));
+                        $vat = $vatRaw === 'KCT' ? 0 : (float) ($vatRaw === '' ? 8 : $vatRaw);
+
                         $item->update([
                             'product_id' => (int) $row['product_id'],
                             'quantity' => (int) $row['quantity'],
                             'price' => (float) $row['unit_price'],
                             'unit' => $row['unit'] ?? null,
+                            'vat_percent' => $vat,
                         ]);
                         $keptItemIds[] = $item->id;
                     }
                     continue;
                 }
+
+                $vatRaw = strtoupper(trim((string) ($row['vat_percent'] ?? '')));
+                $vat = $vatRaw === 'KCT' ? 0 : (float) ($vatRaw === '' ? 8 : $vatRaw);
 
                 $created = QuoteItem::create([
                     'quote_id' => $quote->id,
@@ -346,6 +360,7 @@ class QuoteAdminController extends Controller
                     'quantity' => (int) $row['quantity'],
                     'price' => (float) $row['unit_price'],
                     'unit' => $row['unit'] ?? null,
+                    'vat_percent' => $vat,
                 ]);
                 $keptItemIds[] = $created->id;
             }
@@ -475,17 +490,12 @@ class QuoteAdminController extends Controller
                     'quantity' => $qi->quantity,
                     'unit_price' => $qi->price,
                     'unit' => $qi->unit,
+                    'vat_percent' => (float) ($qi->vat_percent ?? $quote->vat_percent ?? 8),
                 ]);
             }
 
-            $subTotal = (float) $quote->items->sum(function ($i) {
-                return (float) ($i->price ?? 0) * (int) ($i->quantity ?? 0);
-            });
-            $discountPercent = (float) ($quote->discount_percent ?? 0);
-            $vatPercent = (float) ($quote->vat_percent ?? 8);
-            $afterDiscount = max(0, $subTotal * (1 - ($discountPercent / 100)));
-            $vatAmount = $afterDiscount * ($vatPercent / 100);
-            $totalAmount = $afterDiscount + $vatAmount;
+            $totals = LineVatCalculator::totals($quote->items, 'price', (float) ($quote->discount_percent ?? 0), (float) ($quote->vat_percent ?? 8));
+            $totalAmount = (float) $totals['total'];
 
             if (Schema::hasTable('debts')) {
                 Debt::create([

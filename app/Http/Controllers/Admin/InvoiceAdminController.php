@@ -11,6 +11,7 @@ use App\Models\SalesOrder;
 use App\Services\MisaMeInvoiceService;
 use App\Support\ActivityLogger;
 use App\Support\DocumentCodeGenerator;
+use App\Support\LineVatCalculator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -97,16 +98,12 @@ class InvoiceAdminController extends Controller
         }
 
         $invoice = DB::transaction(function () use ($request, $order, $validated) {
-            $subTotal = (float) $order->items->sum(function ($item) {
-                return (float) ($item->price ?? 0) * (int) ($item->quantity ?? 0);
-            });
-
             $discountPercent = (float) ($validated['discount_percent'] ?? 0);
             $vatPercent = (float) ($validated['vat_percent'] ?? 8);
-
-            $afterDiscount = max(0, $subTotal * (1 - ($discountPercent / 100)));
-            $vatAmount = $afterDiscount * ($vatPercent / 100);
-            $total = $afterDiscount + $vatAmount;
+            $totals = LineVatCalculator::totals($order->items, 'price', $discountPercent, $vatPercent);
+            $subTotal = (float) $totals['sub_total'];
+            $vatAmount = (float) $totals['vat_amount'];
+            $total = (float) $totals['total'];
 
             $invoice = Invoice::create([
                 'order_id' => $order->id,
@@ -271,9 +268,10 @@ class InvoiceAdminController extends Controller
                 $request
             );
 
-            return redirect()->route('admin.invoices.index')->with([
+            return back()->with([
                 'success' => $this->buildMisaFlashMessage($invoice),
                 'misa_invoice_result' => $result,
+                'issued_invoice_id' => $invoice->id,
             ]);
         } catch (\Throwable $e) {
             report($e);

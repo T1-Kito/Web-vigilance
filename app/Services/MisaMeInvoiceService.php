@@ -635,7 +635,6 @@ class MisaMeInvoiceService
         $items = $salesOrder->items->values();
         $exchangeRate = 1;
         $discountPercent = max(0, (float) ($salesOrder->discount_percent ?? ($quote->discount_percent ?? 0)));
-        $vatPercent = max(0, (float) ($salesOrder->vat_percent ?? ($quote->vat_percent ?? 8)));
 
         $roundMoney = static fn (float $value): float => (float) round($value, 0);
 
@@ -685,7 +684,8 @@ class MisaMeInvoiceService
 
             $lineDiscount = min(max($lineDiscount, 0), $amountOC);
             $amountWithoutVat = max(0, $amountOC - $lineDiscount);
-            $vatAmount = $roundMoney($amountWithoutVat * ($vatPercent / 100));
+            $lineVatPercent = max(0, (float) ($items->get($idx)?->vat_percent ?? $salesOrder->vat_percent ?? ($quote->vat_percent ?? 8)));
+            $vatAmount = $roundMoney($amountWithoutVat * ($lineVatPercent / 100));
 
             $lineItems[] = [
                 'ItemType' => 1,
@@ -704,7 +704,7 @@ class MisaMeInvoiceService
                 'DiscountAmount' => (float) $lineDiscount,
                 'AmountWithoutVATOC' => (float) $amountWithoutVat,
                 'AmountWithoutVAT' => (float) $amountWithoutVat,
-                'VATRateName' => ((int) round($vatPercent)) . '%',
+                'VATRateName' => ($lineVatPercent == 0.0 ? 'KCT' : (rtrim(rtrim(number_format($lineVatPercent, 2, '.', ''), '0'), '.') . '%')),
                 'VATAmountOC' => (float) $vatAmount,
                 'VATAmount' => (float) $vatAmount,
             ];
@@ -780,11 +780,7 @@ class MisaMeInvoiceService
             'BuyerFullName' => (string) ($salesOrder->receiver_name ?? ''),
             'BuyerEmail' => (string) ($salesOrder->customer_email ?? ''),
             'OriginalInvoiceDetail' => $lineItems,
-            'TaxRateInfo' => [[
-                'VATRateName' => ((int) round($vatPercent)) . '%',
-                'AmountWithoutVATOC' => $totalAmountWithoutVatOC,
-                'VATAmountOC' => $totalVatAmountOC,
-            ]],
+            'TaxRateInfo' => $this->buildTaxRateInfoFromLineItems($lineItems),
         ];
 
         if ($receiverEmail !== '') {
@@ -792,6 +788,30 @@ class MisaMeInvoiceService
         }
 
         return $payload;
+    }
+
+    protected function buildTaxRateInfoFromLineItems(array $lineItems): array
+    {
+        $groups = [];
+
+        foreach ($lineItems as $row) {
+            $rateName = (string) ($row['VATRateName'] ?? '0%');
+            $amountWithoutVat = (float) ($row['AmountWithoutVATOC'] ?? 0);
+            $vatAmount = (float) ($row['VATAmountOC'] ?? 0);
+
+            if (!isset($groups[$rateName])) {
+                $groups[$rateName] = [
+                    'VATRateName' => $rateName,
+                    'AmountWithoutVATOC' => 0.0,
+                    'VATAmountOC' => 0.0,
+                ];
+            }
+
+            $groups[$rateName]['AmountWithoutVATOC'] += $amountWithoutVat;
+            $groups[$rateName]['VATAmountOC'] += $vatAmount;
+        }
+
+        return array_values($groups);
     }
 
     protected function baseUrl(): string

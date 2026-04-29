@@ -12,6 +12,7 @@ class QuoteItem extends Model
         'quantity',
         'price',
         'unit',
+        'vat_percent',
     ];
 
     public function quote()

@@ -8,9 +8,13 @@
     $items = $quote->items ?? collect();
     $subTotal = (float) $items->sum(fn($i) => (float) ($i->price ?? 0) * (int) ($i->quantity ?? 0));
     $discount = (float) ($quote->discount_percent ?? 0);
-    $vat = (float) ($quote->vat_percent ?? 8);
     $afterDiscount = max(0, $subTotal * (1 - $discount / 100));
-    $vatAmount = $afterDiscount * ($vat / 100);
+    $vatAmount = (float) $items->sum(function ($i) use ($discount, $quote) {
+        $lineTotal = (float) ($i->price ?? 0) * (int) ($i->quantity ?? 0);
+        $lineAfterDiscount = $lineTotal * (1 - ($discount / 100));
+        $lineVatRate = (float) ($i->vat_percent ?? $quote->vat_percent ?? 8);
+        return $lineAfterDiscount * ($lineVatRate / 100);
+    });
     $total = $afterDiscount + $vatAmount;
 
     $statusMap = [
@@ -61,9 +65,6 @@
             <div class="text-muted">Khách hàng: {{ $quote->invoice_company_name ?: $quote->receiver_name }}</div>
         </div>
         <div class="d-flex gap-2 flex-wrap">
-            <a href="{{ route('orders.quote', ['orderCode' => $orderCode]) }}" target="_blank" rel="noopener" class="btn btn-outline-primary">
-                <i class="bi bi-eye me-1"></i>Xem báo giá
-            </a>
             <button type="button" class="btn btn-outline-info" id="btnSendZaloCopy">
                 <i class="bi bi-chat-dots me-1"></i>Gửi Zalo
             </button>
@@ -192,28 +193,39 @@
                 <div class="card-header bg-white fw-bold">Danh sách sản phẩm</div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table mb-0 align-middle">
+                        <table class="table mb-0 align-middle quote-lines-table">
                             <thead>
                                 <tr>
                                     <th class="ps-3">Sản phẩm</th>
-                                    <th style="width:120px;">Đơn vị</th>
-                                    <th style="width:100px;">SL</th>
-                                    <th style="width:160px;">Đơn giá</th>
-                                    <th style="width:170px;">Thành tiền</th>
+                                    <th class="text-nowrap" style="width:90px;">Đơn vị</th>
+                                    <th class="text-nowrap text-center" style="width:70px;">SL</th>
+                                    <th class="text-nowrap text-end" style="width:140px;">Đơn giá</th>
+                                    <th class="text-nowrap text-center" style="width:90px;">Thuế suất</th>
+                                    <th class="text-nowrap text-end" style="width:130px;">Tiền thuế</th>
+                                    <th class="text-nowrap text-end" style="width:150px;">Thành tiền</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse($items as $item)
-                                    @php $lineTotal = (float) $item->price * (int) $item->quantity; @endphp
+                                    @php
+                                        $lineTotal = (float) $item->price * (int) $item->quantity;
+                                        $lineVatRate = (float) ($item->vat_percent ?? $quote->vat_percent ?? 8);
+                                        $lineAfterDiscount = $lineTotal * (1 - ((float) ($quote->discount_percent ?? 0) / 100));
+                                        $lineVatAmount = $lineAfterDiscount * ($lineVatRate / 100);
+                                    @endphp
                                     <tr>
-                                        <td class="ps-3"><div class="fw-semibold">{{ $item->product->name ?? ('Sản phẩm #' . $item->product_id) }}</div></td>
-                                        <td>{{ $item->unit ?: '---' }}</td>
-                                        <td>{{ (int) $item->quantity }}</td>
-                                        <td>{{ number_format((float) $item->price, 0, ',', '.') }}đ</td>
-                                        <td class="fw-semibold">{{ number_format($lineTotal, 0, ',', '.') }}đ</td>
+                                        <td class="ps-3">
+                                            <div class="fw-semibold product-name-wrap">{{ $item->product->name ?? ('Sản phẩm #' . $item->product_id) }}</div>
+                                        </td>
+                                        <td class="text-nowrap">{{ $item->unit ?: '---' }}</td>
+                                        <td class="text-center">{{ (int) $item->quantity }}</td>
+                                        <td class="text-end text-nowrap">{{ number_format((float) $item->price, 0, ',', '.') }}đ</td>
+                                        <td class="text-center text-nowrap">{{ $lineVatRate == 0 ? 'KCT/0%' : (rtrim(rtrim(number_format($lineVatRate, 2, '.', ''), '0'), '.') . '%') }}</td>
+                                        <td class="text-end text-nowrap">{{ number_format($lineVatAmount, 0, ',', '.') }}đ</td>
+                                        <td class="text-end text-nowrap fw-semibold">{{ number_format($lineTotal, 0, ',', '.') }}đ</td>
                                     </tr>
                                 @empty
-                                    <tr><td colspan="5" class="text-center text-muted py-4">Không có sản phẩm.</td></tr>
+                                    <tr><td colspan="7" class="text-center text-muted py-4">Không có sản phẩm.</td></tr>
                                 @endforelse
                             </tbody>
                         </table>
@@ -256,7 +268,7 @@
                     <hr>
                     <div class="d-flex justify-content-between mb-1"><span>Tạm tính</span><strong>{{ number_format($subTotal, 0, ',', '.') }}đ</strong></div>
                     <div class="d-flex justify-content-between mb-1"><span>Chiết khấu ({{ rtrim(rtrim(number_format($discount, 2, '.', ''), '0'), '.') }}%)</span><strong>{{ number_format($subTotal - $afterDiscount, 0, ',', '.') }}đ</strong></div>
-                    <div class="d-flex justify-content-between mb-1"><span>VAT ({{ rtrim(rtrim(number_format($vat, 2, '.', ''), '0'), '.') }}%)</span><strong>{{ number_format($vatAmount, 0, ',', '.') }}đ</strong></div>
+                    <div class="d-flex justify-content-between mb-1"><span>VAT</span><strong>{{ number_format($vatAmount, 0, ',', '.') }}đ</strong></div>
                     <div class="d-flex justify-content-between pt-2 border-top"><span class="fw-semibold">Tổng cộng</span><strong class="text-danger">{{ number_format($total, 0, ',', '.') }}đ</strong></div>
                     <hr>
                     <div class="text-muted small mb-1">Ghi chú</div>

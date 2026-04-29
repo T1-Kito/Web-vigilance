@@ -3,6 +3,33 @@
 @section('title', 'Chi tiết phiếu xuất kho')
 
 @section('content')
+<style>
+    .delivery-items-table th,
+    .delivery-items-table td {
+        vertical-align: middle;
+        font-size: .9rem;
+    }
+    .delivery-items-table thead th {
+        white-space: nowrap;
+        background: #f8fafc;
+    }
+    .delivery-items-table .col-product {
+        min-width: 260px;
+        max-width: 320px;
+    }
+    .delivery-items-table .product-name {
+        font-weight: 600;
+        line-height: 1.3;
+    }
+    .delivery-items-table .money,
+    .delivery-items-table .qty,
+    .delivery-items-table .tax {
+        white-space: nowrap;
+    }
+    .delivery-items-table .money { text-align: right; }
+    .delivery-items-table .qty,
+    .delivery-items-table .tax { text-align: center; }
+</style>
 @php
     $order = $delivery->order;
     $salesOrder = $delivery->salesOrder;
@@ -10,14 +37,54 @@
     $quoteCode = $salesOrder?->quote?->quote_code;
     $items = $delivery->items ?? collect();
     $totalQty = (int) $items->sum('quantity');
-    $totalAmount = (float) $items->sum(function ($line) {
+    $discountPercent = (float) ($salesOrder->discount_percent ?? $order->discount_percent ?? 0);
+    $totalAmount = (float) $items->sum(function ($line) use ($salesOrder, $discountPercent) {
         $soItem = $line->salesOrderItem;
         $orderItem = $line->orderItem;
         $unitPrice = (float) ($soItem->unit_price ?? ($orderItem->unit_price ?? 0));
+        $lineAmount = ((int) ($line->quantity ?? 0)) * $unitPrice;
+        $lineAfterDiscount = $lineAmount * (1 - (max(0, min(100, $discountPercent)) / 100));
+        $lineVatRate = (float) ($soItem->vat_percent ?? ($salesOrder->vat_percent ?? 0));
+        $lineVatAmount = $lineAfterDiscount * max(0, $lineVatRate) / 100;
 
-        return ((int) ($line->quantity ?? 0)) * $unitPrice;
+        return $lineAfterDiscount + $lineVatAmount;
     });
 @endphp
+
+<style>
+    .delivery-items-table {
+        table-layout: fixed;
+        width: 100%;
+    }
+    .delivery-items-table th,
+    .delivery-items-table td {
+        font-size: .86rem;
+        vertical-align: middle;
+        padding-top: .55rem;
+        padding-bottom: .55rem;
+    }
+    .delivery-items-table .col-product {
+        width: 28%;
+    }
+    .delivery-items-table .product-name {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        line-height: 1.28;
+        max-height: 2.56em;
+    }
+    .delivery-items-table .money {
+        text-align: right;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+    .delivery-items-table .qty,
+    .delivery-items-table .tax {
+        text-align: center;
+        white-space: nowrap;
+    }
+</style>
 
 <div class="container-fluid py-4">
     @if(session('success'))
@@ -43,18 +110,32 @@
                 <i class="bi bi-printer me-1"></i>In phiếu xuất
             </a>
             @if($salesOrder)
-                <form id="issueMisaFromDeliveryForm" method="POST" action="{{ route('admin.sales-orders.invoices.issue-misa', $salesOrder) }}" class="d-inline">
-                    @csrf
-                    <button
-                        type="button"
-                        class="btn btn-success"
-                        @disabled($delivery->status !== 'confirmed')
-                        data-bs-toggle="modal"
-                        data-bs-target="#issueMisaDeliveryConfirmModal"
-                    >
-                        <i class="bi bi-receipt me-1"></i>Phát hành hóa đơn MISA
-                    </button>
-                </form>
+                @php
+                    $hasIssuedInvoice = (bool) $salesOrder->invoices()->where('status', 'issued')->exists();
+                    $latestIssuedInvoice = $hasIssuedInvoice
+                        ? $salesOrder->invoices()->where('status', 'issued')->latest('id')->first()
+                        : null;
+                @endphp
+
+                @if($hasIssuedInvoice)
+                    <a href="{{ route('admin.invoices.show', $latestIssuedInvoice) }}" class="btn btn-outline-success">
+                        <i class="bi bi-check2-circle me-1"></i>Đã xuất hóa đơn
+                    </a>
+                @else
+                    <form id="issueMisaFromDeliveryForm" method="POST" action="{{ route('admin.sales-orders.invoices.issue-misa', $salesOrder) }}" class="d-inline">
+                        @csrf
+                        <button
+                            type="button"
+                            class="btn btn-success"
+                            @disabled($delivery->status !== 'confirmed')
+                            data-bs-toggle="modal"
+                            data-bs-target="#issueMisaDeliveryConfirmModal"
+                        >
+                            <i class="bi bi-receipt me-1"></i>Phát hành hóa đơn MISA
+                        </button>
+                    </form>
+                @endif
+
                 <a href="{{ route('admin.sales-orders.show', $salesOrder) }}" class="btn btn-outline-primary">Về đơn bán ngoài</a>
             @elseif($order)
                 <a href="{{ route('admin.orders.show', $order) }}" class="btn btn-outline-primary">Về đơn hàng</a>
@@ -101,15 +182,18 @@
                 <div class="card-header bg-white fw-bold">Chi tiết hàng đã xuất</div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table mb-0 align-middle">
+                        <table class="table mb-0 align-middle delivery-items-table">
                             <thead>
                                 <tr>
-                                    <th class="ps-3">Sản phẩm</th>
-                                    <th style="width:120px;">Đơn vị</th>
-                                    <th style="width:100px;">SL đặt</th>
-                                    <th style="width:100px;">SL xuất</th>
-                                    <th style="width:150px;" class="text-end">Đơn giá</th>
-                                    <th style="width:170px;" class="text-end">Thành tiền</th>
+                                    <th class="ps-3 col-product">Sản phẩm</th>
+                                    <th class="qty" style="width:72px;">Đơn vị</th>
+                                    <th class="qty" style="width:64px;">SL đặt</th>
+                                    <th class="qty" style="width:64px;">SL xuất</th>
+                                    <th class="money" style="width:118px;">Đơn giá</th>
+                                    <th class="tax" style="width:74px;">Thuế suất</th>
+                                    <th class="money" style="width:106px;">Tiền thuế</th>
+                                    <th class="money" style="width:118px;">Tiền hàng</th>
+                                    <th class="money" style="width:124px;">Sau thuế</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -121,21 +205,27 @@
                                     $orderedQty = (int) ($soItem->quantity ?? ($orderItem->quantity ?? 0));
                                     $unitPrice = (float) ($soItem->unit_price ?? ($orderItem->unit_price ?? 0));
                                     $lineTotal = $unitPrice * (int) ($line->quantity ?? 0);
+                                    $lineVatRate = (float) ($soItem->vat_percent ?? ($salesOrder->vat_percent ?? 0));
+                                    $lineVatAmount = $lineTotal * max(0, $lineVatRate) / 100;
+                                    $lineAfterTax = $lineTotal + $lineVatAmount;
                                 @endphp
                                 <tr>
                                     <td class="ps-3">
                                         <div class="fw-semibold">{{ $line->product->name ?? ('Sản phẩm #' . $line->product_id) }}</div>
                                         <div class="small text-muted">Mã SP: {{ $line->product_id }}</div>
                                     </td>
-                                    <td>{{ $unit }}</td>
-                                    <td>{{ $orderedQty }}</td>
-                                    <td><span class="fw-bold text-primary">{{ (int) $line->quantity }}</span></td>
+                                    <td class="text-center">{{ $unit }}</td>
+                                    <td class="text-center">{{ $orderedQty }}</td>
+                                    <td class="text-center"><span class="fw-bold text-primary">{{ (int) $line->quantity }}</span></td>
                                     <td class="text-end">{{ number_format($unitPrice, 0, ',', '.') }}đ</td>
+                                    <td class="text-center">{{ $lineVatRate == 0 ? 'KCT/0%' : (rtrim(rtrim(number_format($lineVatRate, 2, '.', ''), '0'), '.') . '%') }}</td>
+                                    <td class="text-end">{{ number_format($lineVatAmount, 0, ',', '.') }}đ</td>
                                     <td class="text-end fw-semibold">{{ number_format($lineTotal, 0, ',', '.') }}đ</td>
+                                    <td class="text-end fw-bold text-danger">{{ number_format($lineAfterTax, 0, ',', '.') }}đ</td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="text-center text-muted py-4">Không có dòng xuất kho.</td>
+                                    <td colspan="9" class="text-center text-muted py-4">Không có dòng xuất kho.</td>
                                 </tr>
                             @endforelse
                             </tbody>
@@ -192,7 +282,7 @@
     </div>
 </div>
 
-@if($salesOrder)
+@if($salesOrder && empty($hasIssuedInvoice))
 <div class="modal fade" id="issueMisaDeliveryConfirmModal" tabindex="-1" aria-labelledby="issueMisaDeliveryConfirmModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 shadow">

@@ -4,7 +4,13 @@
 
 @section('content')
 @php
-    $total = (float) $salesOrder->items->sum(fn($i) => (float) ($i->unit_price ?? 0) * (int) ($i->quantity ?? 0));
+    $subTotal = (float) $salesOrder->items->sum(fn($i) => (float) ($i->unit_price ?? 0) * (int) ($i->quantity ?? 0));
+    $lineVatTotal = (float) $salesOrder->items->sum(function ($i) {
+        $line = (float) ($i->unit_price ?? 0) * (int) ($i->quantity ?? 0);
+        $vatRate = (float) ($i->vat_percent ?? $salesOrder->vat_percent ?? 0);
+        return $line * max(0, $vatRate) / 100;
+    });
+    $total = $subTotal + $lineVatTotal;
     $completionRate = $totalOrdered > 0 ? min(100, round(($totalDelivered / $totalOrdered) * 100)) : 0;
 @endphp
 
@@ -107,6 +113,33 @@
         font-size: 0.92rem;
         border-top: 1px solid #eef2f7;
         color: #0f172a;
+        vertical-align: middle;
+    }
+
+    .so-page .soft-table th,
+    .so-page .soft-table td {
+        white-space: nowrap;
+    }
+
+    .so-page .soft-table .col-product {
+        width: 30%;
+        min-width: 260px;
+        white-space: normal;
+    }
+
+    .so-page .product-name {
+        font-weight: 600;
+        line-height: 1.35;
+        word-break: break-word;
+    }
+
+    .so-page .col-center {
+        text-align: center;
+    }
+
+    .so-page .col-money {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
     }
 
     .so-page .so-metric-grid {
@@ -228,21 +261,32 @@
                         <table class="soft-table">
                             <thead>
                                 <tr>
-                                    <th>Tên sản phẩm</th>
-                                    <th style="width:120px;">Đơn vị</th>
-                                    <th style="width:100px;">SL</th>
-                                    <th style="width:150px;">Đơn giá</th>
-                                    <th style="width:170px;">Thành tiền</th>
+                                    <th class="col-product">Tên sản phẩm</th>
+                                    <th class="col-center" style="width:100px;">Đơn vị</th>
+                                    <th class="col-center" style="width:70px;">SL</th>
+                                    <th class="col-money" style="width:140px;">Đơn giá</th>
+                                    <th class="col-center" style="width:90px;">Thuế suất</th>
+                                    <th class="col-money" style="width:130px;">Tiền thuế</th>
+                                    <th class="col-money" style="width:160px;">Tiền hàng</th>
+                                    <th class="col-money" style="width:170px;">Sau thuế</th>
                                 </tr>
                             </thead>
                             <tbody>
                             @foreach($salesOrder->items as $item)
+                                @php
+                                    $lineAmount = (float) $item->unit_price * (int) $item->quantity;
+                                    $lineVatRate = (float) ($item->vat_percent ?? $salesOrder->vat_percent ?? 0);
+                                    $lineVatAmount = $lineAmount * max(0, $lineVatRate) / 100;
+                                @endphp
                                 <tr>
-                                    <td>{{ $item->product->name ?? ('SP #' . $item->product_id) }}</td>
-                                    <td>{{ $item->unit ?: '---' }}</td>
-                                    <td>{{ (int) $item->quantity }}</td>
-                                    <td>{{ number_format((float) $item->unit_price, 0, ',', '.') }}đ</td>
-                                    <td><strong>{{ number_format((float) $item->unit_price * (int) $item->quantity, 0, ',', '.') }}đ</strong></td>
+                                    <td class="col-product"><div class="product-name">{{ $item->product->name ?? ('SP #' . $item->product_id) }}</div></td>
+                                    <td class="col-center">{{ $item->unit ?: '---' }}</td>
+                                    <td class="col-center">{{ (int) $item->quantity }}</td>
+                                    <td class="col-money">{{ number_format((float) $item->unit_price, 0, ',', '.') }}đ</td>
+                                    <td class="col-center">{{ $lineVatRate == 0 ? 'KCT/0%' : (rtrim(rtrim(number_format($lineVatRate, 2, '.', ''), '0'), '.') . '%') }}</td>
+                                    <td class="col-money">{{ number_format($lineVatAmount, 0, ',', '.') }}đ</td>
+                                    <td class="col-money"><strong>{{ number_format($lineAmount, 0, ',', '.') }}đ</strong></td>
+                                    <td class="col-money"><strong class="text-danger">{{ number_format($lineAmount + $lineVatAmount, 0, ',', '.') }}đ</strong></td>
                                 </tr>
                             @endforeach
                             </tbody>

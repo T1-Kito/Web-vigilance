@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Schema;
 use App\Models\Quote;
 use App\Models\SalesOrder;
 use App\Support\DocxTemplateRenderer;
+use App\Support\LineVatCalculator;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Log;
@@ -22,7 +23,7 @@ class DocumentTemplateController extends Controller
         'QuoteCode','SalesOrderCode','CustomerName','TaxCode','Address','InvoiceAddress','ReceiverAddress','ContactPerson','Phone','Email','Date',
         'StaffCode','CreatedBy','Warranty','ProductInfo','SubTotal','VatPercent','VatAmount','DiscountPercent','TotalAmount','TotalAmountInWords',
         '#Items','/Items',
-        'Item.No','Item.Name','Item.ProductInfo','Item.Description','Item.Category','ItemCategory','Category','Item.Unit','Item.Quantity','Item.UnitPrice','Item.LineTotal','Item.Image',
+        'Item.No','Item.Name','Item.ProductInfo','Item.Description','Item.Category','ItemCategory','Category','Item.Unit','Item.Quantity','Item.UnitPrice','Item.LineTotal','Item.VatPercent','Item.VatAmount','Item.LineTotalAfterVat','Item.Image',
         'PdfHtml',
     ];
     public function index(Request $request)
@@ -148,12 +149,11 @@ class DocumentTemplateController extends Controller
         $quote->load(['items.product.category']);
         $items = $quote->items ?? collect();
 
-        $subTotal = (float) $items->sum(fn($i) => (float) ($i->price ?? 0) * (int) ($i->quantity ?? 0));
         $discountPercent = (float) ($quote->discount_percent ?? 0);
-        $vatPercent = (float) ($quote->vat_percent ?? 8);
-        $afterDiscount = max(0, $subTotal * (1 - ($discountPercent / 100)));
-        $vatAmount = $afterDiscount * ($vatPercent / 100);
-        $total = $afterDiscount + $vatAmount;
+        $totals = LineVatCalculator::totals($items, 'price', $discountPercent, (float) ($quote->vat_percent ?? 8));
+        $subTotal = (float) $totals['sub_total'];
+        $vatAmount = (float) $totals['vat_amount'];
+        $total = (float) $totals['total'];
 
         $data = [
             'QuoteCode' => (string) ($quote->quote_code ?? ''),
@@ -171,7 +171,7 @@ class DocumentTemplateController extends Controller
             'Warranty' => (string) ($quote->warranty_note ?? ''),
             'ProductInfo' => '',
             'SubTotal' => number_format($subTotal, 0, ',', '.'),
-            'VatPercent' => rtrim(rtrim(number_format($vatPercent, 2, '.', ''), '0'), '.'),
+            'VatPercent' => 'theo từng dòng',
             'VatAmount' => number_format($vatAmount, 0, ',', '.'),
             'DiscountPercent' => rtrim(rtrim(number_format($discountPercent, 2, '.', ''), '0'), '.'),
             'TotalAmount' => number_format($total, 0, ',', '.'),
@@ -184,6 +184,9 @@ class DocumentTemplateController extends Controller
         $productInfoParts = [];
         foreach ($items as $idx => $item) {
             $line = (float) ($item->price ?? 0) * (int) ($item->quantity ?? 0);
+            $lineVatPercent = (float) ($item->vat_percent ?? $quote->vat_percent ?? 8);
+            $lineVatAmount = $line * ($lineVatPercent / 100);
+            $lineAfterVat = $line + $lineVatAmount;
             $img = null;
             $imgName = (string) ($item->product->image ?? '');
             if ($imgName !== '') {
@@ -244,6 +247,9 @@ class DocumentTemplateController extends Controller
                 'Quantity' => (string) ((int) ($item->quantity ?? 0)),
                 'UnitPrice' => number_format((float) ($item->price ?? 0), 0, ',', '.'),
                 'LineTotal' => number_format($line, 0, ',', '.'),
+                'VatPercent' => LineVatCalculator::vatLabel($lineVatPercent),
+                'VatAmount' => number_format($lineVatAmount, 0, ',', '.'),
+                'LineTotalAfterVat' => number_format($lineAfterVat, 0, ',', '.'),
                 'Image' => $img,
             ];
         }
@@ -269,6 +275,9 @@ class DocumentTemplateController extends Controller
             $data['Item.Quantity'] = (string) ($firstItem['Quantity'] ?? '');
             $data['Item.UnitPrice'] = (string) ($firstItem['UnitPrice'] ?? '');
             $data['Item.LineTotal'] = (string) ($firstItem['LineTotal'] ?? '');
+            $data['Item.VatPercent'] = (string) ($firstItem['VatPercent'] ?? '');
+            $data['Item.VatAmount'] = (string) ($firstItem['VatAmount'] ?? '');
+            $data['Item.LineTotalAfterVat'] = (string) ($firstItem['LineTotalAfterVat'] ?? '');
         }
 
         if (($data['CreatedBy'] ?? '') === '') {
@@ -328,12 +337,11 @@ class DocumentTemplateController extends Controller
         $salesOrder->load(['items.product.category', 'quote']);
         $items = $salesOrder->items ?? collect();
 
-        $subTotal = (float) $items->sum(fn($i) => (float) ($i->unit_price ?? 0) * (int) ($i->quantity ?? 0));
         $discountPercent = (float) ($salesOrder->discount_percent ?? 0);
-        $vatPercent = (float) ($salesOrder->vat_percent ?? 8);
-        $afterDiscount = max(0, $subTotal * (1 - ($discountPercent / 100)));
-        $vatAmount = $afterDiscount * ($vatPercent / 100);
-        $total = $afterDiscount + $vatAmount;
+        $totals = LineVatCalculator::totals($items, 'unit_price', $discountPercent, (float) ($salesOrder->vat_percent ?? 8));
+        $subTotal = (float) $totals['sub_total'];
+        $vatAmount = (float) $totals['vat_amount'];
+        $total = (float) $totals['total'];
 
         $data = [
             'SalesOrderCode' => (string) ($salesOrder->sales_order_code ?? ''),
@@ -352,7 +360,7 @@ class DocumentTemplateController extends Controller
             'Warranty' => (string) ($salesOrder->warranty_note ?? optional($salesOrder->quote)->warranty_note ?? ''),
             'ProductInfo' => '',
             'SubTotal' => number_format($subTotal, 0, ',', '.'),
-            'VatPercent' => rtrim(rtrim(number_format($vatPercent, 2, '.', ''), '0'), '.'),
+            'VatPercent' => 'theo từng dòng',
             'VatAmount' => number_format($vatAmount, 0, ',', '.'),
             'DiscountPercent' => rtrim(rtrim(number_format($discountPercent, 2, '.', ''), '0'), '.'),
             'TotalAmount' => number_format($total, 0, ',', '.'),
@@ -364,6 +372,9 @@ class DocumentTemplateController extends Controller
         $productInfoParts = [];
         foreach ($items as $idx => $item) {
             $line = (float) ($item->unit_price ?? 0) * (int) ($item->quantity ?? 0);
+            $lineVatPercent = (float) ($item->vat_percent ?? $salesOrder->vat_percent ?? 8);
+            $lineVatAmount = $line * ($lineVatPercent / 100);
+            $lineAfterVat = $line + $lineVatAmount;
             $img = null;
             $imgName = (string) ($item->product->image ?? '');
             if ($imgName !== '') {
@@ -420,6 +431,9 @@ class DocumentTemplateController extends Controller
                 'Quantity' => (string) ((int) ($item->quantity ?? 0)),
                 'UnitPrice' => number_format((float) ($item->unit_price ?? 0), 0, ',', '.'),
                 'LineTotal' => number_format($line, 0, ',', '.'),
+                'VatPercent' => LineVatCalculator::vatLabel($lineVatPercent),
+                'VatAmount' => number_format($lineVatAmount, 0, ',', '.'),
+                'LineTotalAfterVat' => number_format($lineAfterVat, 0, ',', '.'),
                 'Image' => $img,
             ];
         }
@@ -508,12 +522,11 @@ class DocumentTemplateController extends Controller
 
             $quote->load(['items.product.category']);
             $items = $quote->items ?? collect();
-            $subTotal = (float) $items->sum(fn($i) => (float) ($i->price ?? 0) * (int) ($i->quantity ?? 0));
             $discountPercent = (float) ($quote->discount_percent ?? 0);
-            $vatPercent = (float) ($quote->vat_percent ?? 8);
-            $afterDiscount = max(0, $subTotal * (1 - ($discountPercent / 100)));
-            $vatAmount = $afterDiscount * ($vatPercent / 100);
-            $total = $afterDiscount + $vatAmount;
+            $totals = LineVatCalculator::totals($items, 'price', $discountPercent, (float) ($quote->vat_percent ?? 8));
+            $subTotal = (float) $totals['sub_total'];
+            $vatAmount = (float) $totals['vat_amount'];
+            $total = (float) $totals['total'];
 
             $itemRows = [];
             $productInfoParts = [];
@@ -535,6 +548,9 @@ class DocumentTemplateController extends Controller
                     'Quantity' => (string) ((int) ($item->quantity ?? 0)),
                     'UnitPrice' => number_format((float) ($item->price ?? 0), 0, ',', '.'),
                     'LineTotal' => number_format((float) ($item->price ?? 0) * (int) ($item->quantity ?? 0), 0, ',', '.'),
+                    'VatPercent' => LineVatCalculator::vatLabel((float) ($item->vat_percent ?? $quote->vat_percent ?? 8)),
+                    'VatAmount' => number_format(((float) ($item->price ?? 0) * (int) ($item->quantity ?? 0)) * ((float) ($item->vat_percent ?? $quote->vat_percent ?? 8) / 100), 0, ',', '.'),
+                    'LineTotalAfterVat' => number_format(((float) ($item->price ?? 0) * (int) ($item->quantity ?? 0)) * (1 + ((float) ($item->vat_percent ?? $quote->vat_percent ?? 8) / 100)), 0, ',', '.'),
                 ];
             }
 
@@ -543,7 +559,7 @@ class DocumentTemplateController extends Controller
                 'CustomerName' => (string) ($quote->invoice_company_name ?: $quote->receiver_name),
                 'Date' => optional($quote->created_at)->format('d/m/Y') ?: '',
                 'SubTotal' => number_format($subTotal, 0, ',', '.'),
-                'VatPercent' => rtrim(rtrim(number_format($vatPercent, 2, '.', ''), '0'), '.'),
+                'VatPercent' => 'theo từng dòng',
                 'VatAmount' => number_format($vatAmount, 0, ',', '.'),
                 'DiscountPercent' => rtrim(rtrim(number_format($discountPercent, 2, '.', ''), '0'), '.'),
                 'TotalAmount' => number_format($total, 0, ',', '.'),
@@ -564,10 +580,10 @@ class DocumentTemplateController extends Controller
     {
         $rows = '';
         foreach ($items as $item) {
-            $rows .= '<tr><td>' . e($item['No'] ?? '') . '</td><td>' . e($item['Name'] ?? '') . '</td><td>' . e($item['ProductInfo'] ?? '') . '</td><td>' . e($item['Quantity'] ?? '') . '</td><td>' . e($item['UnitPrice'] ?? '') . '</td><td>' . e($item['LineTotal'] ?? '') . '</td></tr>';
+            $rows .= '<tr><td>' . e($item['No'] ?? '') . '</td><td>' . e($item['Name'] ?? '') . '</td><td>' . e($item['ProductInfo'] ?? '') . '</td><td>' . e($item['Quantity'] ?? '') . '</td><td>' . e($item['UnitPrice'] ?? '') . '</td><td>' . e($item['VatPercent'] ?? '') . '</td><td>' . e($item['VatAmount'] ?? '') . '</td><td>' . e($item['LineTotalAfterVat'] ?? '') . '</td></tr>';
         }
 
-        return '<html><head><meta charset="utf-8"><style>body{font-family:DejaVu Sans, sans-serif;font-size:12px}.title{text-align:center;font-size:18px;font-weight:bold}.meta{margin:12px 0}.product-info{margin:8px 0 12px 0;white-space:pre-line}table{width:100%;border-collapse:collapse}th,td{border:1px solid #333;padding:6px;vertical-align:top}</style></head><body><div class="title">BÁO GIÁ</div><div class="meta">Mã: ' . e($data['QuoteCode'] ?? '') . '<br>Khách hàng: ' . e($data['CustomerName'] ?? '') . '<br>Ngày: ' . e($data['Date'] ?? '') . '</div><div class="product-info"><strong>Thông tin sản phẩm:</strong><br>' . e($data['ProductInfo'] ?? '') . '</div><table><thead><tr><th>#</th><th>Tên</th><th>Thông tin sản phẩm</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th></tr></thead><tbody>' . $rows . '</tbody></table><div style="margin-top:12px">Tổng: ' . e($data['TotalAmount'] ?? '') . '</div></body></html>';
+        return '<html><head><meta charset="utf-8"><style>body{font-family:DejaVu Sans, sans-serif;font-size:12px}.title{text-align:center;font-size:18px;font-weight:bold}.meta{margin:12px 0}.product-info{margin:8px 0 12px 0;white-space:pre-line}table{width:100%;border-collapse:collapse}th,td{border:1px solid #333;padding:6px;vertical-align:top}</style></head><body><div class="title">BÁO GIÁ</div><div class="meta">Mã: ' . e($data['QuoteCode'] ?? '') . '<br>Khách hàng: ' . e($data['CustomerName'] ?? '') . '<br>Ngày: ' . e($data['Date'] ?? '') . '</div><div class="product-info"><strong>Thông tin sản phẩm:</strong><br>' . e($data['ProductInfo'] ?? '') . '</div><table><thead><tr><th>#</th><th>Tên</th><th>Thông tin sản phẩm</th><th>SL</th><th>Đơn giá</th><th>VAT</th><th>Tiền thuế</th><th>Sau thuế</th></tr></thead><tbody>' . $rows . '</tbody></table><div style="margin-top:12px">Tổng: ' . e($data['TotalAmount'] ?? '') . '</div></body></html>';
     }
 
     private function renderSpreadsheetTemplateToTempFile(string $templatePath, array $data, array $items, string $ext = 'xlsx'): string

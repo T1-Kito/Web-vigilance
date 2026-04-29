@@ -58,12 +58,13 @@
         .q-table .center { text-align: center; white-space: nowrap; }
 
         .q-table th:nth-child(1), .q-table td:nth-child(1) { width: 5%; }
-        .q-table th:nth-child(2), .q-table td:nth-child(2) { width: 43%; }
-        .q-table th:nth-child(3), .q-table td:nth-child(3) { width: 10%; }
-        .q-table th:nth-child(4), .q-table td:nth-child(4) { width: 9%; }
+        .q-table th:nth-child(2), .q-table td:nth-child(2) { width: 36%; }
+        .q-table th:nth-child(3), .q-table td:nth-child(3) { width: 8%; }
+        .q-table th:nth-child(4), .q-table td:nth-child(4) { width: 7%; }
         .q-table th:nth-child(5), .q-table td:nth-child(5) { width: 11%; }
-        .q-table th:nth-child(6), .q-table td:nth-child(6) { width: 10%; }
-        .q-table th:nth-child(7), .q-table td:nth-child(7) { width: 12%; }
+        .q-table th:nth-child(6), .q-table td:nth-child(6) { width: 9%; }
+        .q-table th:nth-child(7), .q-table td:nth-child(7) { width: 11%; }
+        .q-table th:nth-child(8), .q-table td:nth-child(8) { width: 13%; }
 
         .q-note-label { color: #d32f2f; font-style: italic; font-weight: 700; }
         .muted { color: #555; }
@@ -106,9 +107,13 @@
         return (float) ($item->unit_price ?? 0) * (int) ($item->quantity ?? 0);
     });
     $discountPercent = (float) ($salesOrder->discount_percent ?? 0);
-    $vatPercent = (float) ($salesOrder->vat_percent ?? 8);
     $afterDiscount = max(0, $subTotal * (1 - ($discountPercent / 100)));
-    $vatAmount = $afterDiscount * ($vatPercent / 100);
+    $vatAmount = (float) $items->sum(function ($item) use ($discountPercent, $salesOrder) {
+        $lineSub = (float) ($item->unit_price ?? 0) * (int) ($item->quantity ?? 0);
+        $lineAfterDiscount = $lineSub * (1 - ($discountPercent / 100));
+        $lineVatRate = (float) ($item->vat_percent ?? $salesOrder->vat_percent ?? 8);
+        return $lineAfterDiscount * ($lineVatRate / 100);
+    });
     $totalAmount = $afterDiscount + $vatAmount;
 
     $invoiceName = $salesOrder->invoice_company_name ?: '...';
@@ -190,7 +195,8 @@
                     <th>Đơn vị<br><span class="sub">Unit</span></th>
                     <th>SL<br><span class="sub">Qty</span></th>
                     <th>Đơn giá<br><span class="sub">Unit Price</span></th>
-                    <th>VAT<br><span class="sub">{{ (int) $vatPercent }}%</span></th>
+                    <th>Thuế suất<br><span class="sub">VAT rate</span></th>
+                    <th>Tiền thuế<br><span class="sub">VAT amount</span></th>
                     <th>Thành tiền<br><span class="sub">Amount</span></th>
                 </tr>
                 </thead>
@@ -200,8 +206,10 @@
                         $price = (float) ($item->unit_price ?? 0);
                         $qty = (int) ($item->quantity ?? 0);
                         $lineSub = $price * $qty;
-                        $lineTax = $lineSub * ($vatPercent / 100);
-                        $lineAmount = $lineSub + $lineTax;
+                        $lineAfterDiscount = $lineSub * (1 - ($discountPercent / 100));
+                        $lineVatRate = (float) ($item->vat_percent ?? $salesOrder->vat_percent ?? 8);
+                        $lineTax = $lineAfterDiscount * ($lineVatRate / 100);
+                        $lineAmount = $lineAfterDiscount + $lineTax;
                     @endphp
                     <tr>
                         <td class="center">{{ $idx + 1 }}</td>
@@ -209,13 +217,14 @@
                         <td class="center">{{ $item->unit ?: '---' }}</td>
                         <td class="center">{{ $qty }}</td>
                         <td class="right">{{ number_format($price, 0, ',', '.') }}</td>
+                        <td class="center">{{ $lineVatRate == 0 ? 'KCT/0%' : (rtrim(rtrim(number_format($lineVatRate, 2, '.', ''), '0'), '.') . '%') }}</td>
                         <td class="right">{{ number_format($lineTax, 0, ',', '.') }}</td>
                         <td class="right">{{ number_format($lineAmount, 0, ',', '.') }}</td>
                     </tr>
                 @endforeach
 
                 <tr>
-                    <td colspan="7" class="left"><span class="q-note-label">Ghi chú:</span> Giá trị đã bao gồm VAT và được làm tròn theo chứng từ kế toán.</td>
+                    <td colspan="8" class="left"><span class="q-note-label">Ghi chú:</span> VAT được tính theo từng dòng hàng (thuế suất riêng từng sản phẩm) và được làm tròn theo chứng từ kế toán.</td>
                 </tr>
                 </tbody>
             </table>
@@ -231,7 +240,7 @@
                         <div class="q-summary-value">{{ number_format($subTotal - $afterDiscount, 0, ',', '.') }}</div>
                     </div>
                     <div class="q-summary-row">
-                        <div class="q-summary-label">VAT ({{ rtrim(rtrim(number_format($vatPercent, 2, '.', ''), '0'), '.') }}%)</div>
+                        <div class="q-summary-label">VAT (theo từng dòng)</div>
                         <div class="q-summary-value">{{ number_format($vatAmount, 0, ',', '.') }}</div>
                     </div>
                     <div class="q-summary-row total">

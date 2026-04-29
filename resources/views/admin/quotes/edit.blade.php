@@ -24,6 +24,7 @@
                 'unit' => $row['unit'] ?? '',
                 'quantity' => (int) ($row['quantity'] ?? 1),
                 'unit_price' => (float) ($row['unit_price'] ?? 0),
+                'vat_percent' => (string) ($row['vat_percent'] ?? '8'),
             ];
         })->all();
     } else {
@@ -36,6 +37,7 @@
                 'unit' => (string) ($item->unit ?? ''),
                 'quantity' => (int) ($item->quantity ?? 1),
                 'unit_price' => (float) ($item->price ?? 0),
+                'vat_percent' => (string) (($item->vat_percent ?? $item->product->vat_percent ?? 8)),
             ];
         })->values()->all();
     }
@@ -46,9 +48,10 @@
             'product_id' => 0,
             'product_name' => '',
             'serial_number' => '',
-            'unit' => '',
+            'unit' => 'Cái',
             'quantity' => 1,
             'unit_price' => 0,
+            'vat_percent' => '8',
         ];
     }
 
@@ -191,6 +194,7 @@
                                         <th style="width:130px;">Đơn vị</th>
                                         <th style="width:110px;">SL</th>
                                         <th style="width:170px;">Đơn giá</th>
+                                        <th style="width:120px;">Thuế suất</th>
                                         <th style="width:70px;"></th>
                                     </tr>
                                 </thead>
@@ -205,7 +209,7 @@
                                                 <input type="text" class="form-control item-product-search" placeholder="Tìm theo tên/mã sản phẩm..." value="{{ $item['product_name'] ?? '' }}" autocomplete="off" required>
                                             </td>
                                             <td>
-                                                <input type="text" name="items[{{ $idx }}][unit]" class="form-control" value="{{ $item['unit'] ?? '' }}" placeholder="Cái, bộ...">
+                                                <input type="text" name="items[{{ $idx }}][unit]" class="form-control item-unit" value="{{ $item['unit'] ?: 'Cái' }}" list="quote-unit-options" placeholder="Cái">
                                             </td>
                                             <td>
                                                 <input type="number" min="1" max="99999" name="items[{{ $idx }}][quantity]" class="form-control item-qty" value="{{ (int) ($item['quantity'] ?? 1) }}" required>
@@ -218,6 +222,16 @@
                                                     </button>
                                                 </div>
                                                 <input type="number" min="0" step="1" name="items[{{ $idx }}][unit_price]" class="form-control item-unit-price" value="{{ (float) ($item['unit_price'] ?? 0) }}" required readonly>
+                                            </td>
+                                            <td>
+                                                <select name="items[{{ $idx }}][vat_percent]" class="form-select item-vat-percent">
+                                                    @php $vp = strtoupper((string) ($item['vat_percent'] ?? '8')); @endphp
+                                                    <option value="KCT" @selected($vp === 'KCT')>KCT</option>
+                                                    <option value="0" @selected($vp === '0' || $vp === '0.00')>0%</option>
+                                                    <option value="5" @selected($vp === '5' || $vp === '5.00')>5%</option>
+                                                    <option value="8" @selected($vp === '8' || $vp === '8.00')>8%</option>
+                                                    <option value="10" @selected($vp === '10' || $vp === '10.00')>10%</option>
+                                                </select>
                                             </td>
                                             <td class="text-center">
                                                 <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item" title="Xóa dòng">
@@ -362,6 +376,13 @@
     </form>
 </div>
 
+<datalist id="quote-unit-options">
+    <option value="Cái"></option>
+    <option value="Gói"></option>
+    <option value="Máy"></option>
+    <option value="Bộ"></option>
+</datalist>
+
 <template id="quote-item-row-template">
     <tr data-row>
         <td class="ps-3">
@@ -372,7 +393,7 @@
             <input type="text" class="form-control item-product-search" placeholder="Tìm theo tên/mã sản phẩm..." value="" autocomplete="off" required>
         </td>
         <td>
-            <input type="text" name="items[__I__][unit]" class="form-control" value="" placeholder="Cái, bộ...">
+            <input type="text" name="items[__I__][unit]" class="form-control item-unit" value="Cái" list="quote-unit-options" placeholder="Cái">
         </td>
         <td>
             <input type="number" min="1" max="99999" name="items[__I__][quantity]" class="form-control item-qty" value="1" required>
@@ -385,6 +406,15 @@
                 </button>
             </div>
             <input type="number" min="0" step="1" name="items[__I__][unit_price]" class="form-control item-unit-price" value="0" required readonly>
+        </td>
+        <td>
+            <select name="items[__I__][vat_percent]" class="form-select item-vat-percent">
+                <option value="KCT">KCT</option>
+                <option value="0">0%</option>
+                <option value="5">5%</option>
+                <option value="8" selected>8%</option>
+                <option value="10">10%</option>
+            </select>
         </td>
         <td class="text-center">
             <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item" title="Xóa dòng">
@@ -710,17 +740,23 @@
 
     function recalcSummary() {
         let subtotal = 0;
+        let vatAmount = 0;
+        const discount = Math.max(0, Math.min(100, safeNumber(discountInput?.value, 0)));
+
         tbody.querySelectorAll('tr[data-row]').forEach(function (row) {
-            const qty = safeNumber(row.querySelector('.item-qty')?.value, 0);
-            const price = safeNumber(row.querySelector('.item-unit-price')?.value, 0);
-            subtotal += Math.max(0, qty) * Math.max(0, price);
+            const qty = Math.max(0, safeNumber(row.querySelector('.item-qty')?.value, 0));
+            const price = Math.max(0, safeNumber(row.querySelector('.item-unit-price')?.value, 0));
+            const line = qty * price;
+            subtotal += line;
+
+            const vatRaw = String(row.querySelector('.item-vat-percent')?.value || '8').toUpperCase();
+            const lineVatRate = vatRaw === 'KCT' ? 0 : Math.max(0, Math.min(100, safeNumber(vatRaw, 0)));
+
+            const lineAfterDiscount = line * (1 - discount / 100);
+            vatAmount += lineAfterDiscount * (lineVatRate / 100);
         });
 
-        const discount = Math.max(0, Math.min(100, safeNumber(discountInput?.value, 0)));
-        const vat = Math.max(0, Math.min(100, safeNumber(vatInput?.value, 0)));
-
         const afterDiscount = Math.max(0, subtotal * (1 - discount / 100));
-        const vatAmount = afterDiscount * (vat / 100);
         const total = afterDiscount + vatAmount;
 
         subTotalEl.textContent = money(subtotal);
@@ -978,6 +1014,7 @@
         });
 
         row.querySelector('.item-unit-price')?.addEventListener('input', recalcSummary);
+        row.querySelector('.item-vat-percent')?.addEventListener('change', recalcSummary);
 
         const searchInput = row.querySelector('.item-product-search');
         if (searchInput) {
