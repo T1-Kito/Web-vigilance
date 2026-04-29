@@ -1,9 +1,15 @@
 @extends('layouts.admin')
 
-@section('title', 'Sửa báo giá')
+@section('title', ($pageTitle ?? ((($pageMode ?? 'quote') === 'quote') ? 'Sửa báo giá' : 'Xử lý đơn từ Web')))
 
 @section('content')
 @php
+    $pageMode = $pageMode ?? 'quote';
+    $isQuoteMode = $pageMode === 'quote';
+    $backRoute = $backRoute ?? 'admin.quotes.index';
+    $formAction = $formAction ?? ($isQuoteMode ? (isset($isCreate) && $isCreate ? route('admin.quotes.store') : route('admin.quotes.update', $order)) : route('admin.web-orders.update', $order));
+    $submitLabel = $submitLabel ?? ((isset($isCreate) && $isCreate) ? 'Tạo báo giá' : ($isQuoteMode ? 'Lưu báo giá' : 'Lưu xử lý đơn web'));
+    $pageHeading = $pageHeading ?? ((isset($isCreate) && $isCreate) ? 'Tạo báo giá mới' : ($isQuoteMode ? ('Sửa báo giá: ' . ($order->quote_code ?? ('VK' . str_pad($order->id, 6, '0', STR_PAD_LEFT)))) : ('Sửa đơn web: ' . ($order->order_code ?? ('OD' . str_pad($order->id, 6, '0', STR_PAD_LEFT))))));
     $orderCode = $order->quote_code ?? $order->order_code ?? ('VK' . str_pad($order->id, 6, '0', STR_PAD_LEFT));
 
     $oldItems = old('items');
@@ -18,6 +24,7 @@
                 'unit' => $row['unit'] ?? '',
                 'quantity' => (int) ($row['quantity'] ?? 1),
                 'unit_price' => (float) ($row['unit_price'] ?? 0),
+                'vat_percent' => (string) ($row['vat_percent'] ?? '8'),
             ];
         })->all();
     } else {
@@ -30,6 +37,7 @@
                 'unit' => (string) ($item->unit ?? ''),
                 'quantity' => (int) ($item->quantity ?? 1),
                 'unit_price' => (float) ($item->price ?? 0),
+                'vat_percent' => (string) (($item->vat_percent ?? $item->product->vat_percent ?? 8)),
             ];
         })->values()->all();
     }
@@ -40,9 +48,10 @@
             'product_id' => 0,
             'product_name' => '',
             'serial_number' => '',
-            'unit' => '',
+            'unit' => 'Cái',
             'quantity' => 1,
             'unit_price' => 0,
+            'vat_percent' => '8',
         ];
     }
 
@@ -60,11 +69,11 @@
 <div class="container-fluid py-4 quote-edit-page">
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
         <div>
-            <h1 class="h3 fw-bold mb-1">{{ isset($isCreate) && $isCreate ? 'Tạo báo giá mới' : ('Sửa báo giá: ' . $orderCode) }}</h1>
-            <div class="text-muted">Form mới chuyên nghiệp: thêm, xóa, đổi sản phẩm và cập nhật giá/SL trực tiếp.</div>
+            <h1 class="h3 fw-bold mb-1">{{ $pageHeading }}</h1>
+            <div class="text-muted">Form chuẩn: thêm, xóa, đổi sản phẩm và cập nhật giá/SL trực tiếp.</div>
         </div>
         <div class="d-flex gap-2">
-            @if(!(isset($isCreate) && $isCreate))
+            @if($isQuoteMode && !(isset($isCreate) && $isCreate))
                 <a href="{{ route('orders.quote', ['orderCode' => $orderCode]) }}" target="_blank" rel="noopener" class="btn btn-outline-primary">
                     <i class="bi bi-eye me-1"></i>Xem báo giá
                 </a>
@@ -77,7 +86,7 @@
                     </form>
                 @endif
             @endif
-            <a href="{{ route('admin.quotes.index') }}" class="btn btn-outline-secondary">
+            <a href="{{ route($backRoute) }}" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left me-1"></i>Quay lại
             </a>
         </div>
@@ -101,11 +110,16 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ isset($isCreate) && $isCreate ? route('admin.quotes.store') : route('admin.quotes.update', $order) }}" id="quote-edit-form">
+    <form method="POST" action="{{ $formAction }}" id="quote-edit-form">
         @csrf
         @if(!(isset($isCreate) && $isCreate))
             @method('PATCH')
         @endif
+
+        <div id="workflow-warning-panel" class="alert alert-warning border-0 shadow-sm d-none mb-4">
+            <div class="fw-bold mb-1"><i class="bi bi-exclamation-triangle me-1"></i>Cảnh báo đối chiếu dữ liệu</div>
+            <div class="small mb-0" id="workflow-warning-text">Hệ thống sẽ cảnh báo ngay khi tên hàng trên chứng từ không khớp.</div>
+        </div>
 
         <div class="row g-4">
             <div class="col-xl-8">
@@ -154,7 +168,7 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">SĐT người nhận</label>
-                                <input type="text" id="qe-receiver-phone" name="receiver_phone" class="form-control" value="{{ old('receiver_phone', $order->receiver_phone) }}" required>
+                                <input type="text" id="qe-receiver-phone" name="receiver_phone" class="form-control" value="{{ old('receiver_phone', $order->receiver_phone) }}" placeholder="Không bắt buộc">
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Địa chỉ giao hàng</label>
@@ -180,6 +194,7 @@
                                         <th style="width:130px;">Đơn vị</th>
                                         <th style="width:110px;">SL</th>
                                         <th style="width:170px;">Đơn giá</th>
+                                        <th style="width:120px;">Thuế suất</th>
                                         <th style="width:70px;"></th>
                                     </tr>
                                 </thead>
@@ -194,7 +209,7 @@
                                                 <input type="text" class="form-control item-product-search" placeholder="Tìm theo tên/mã sản phẩm..." value="{{ $item['product_name'] ?? '' }}" autocomplete="off" required>
                                             </td>
                                             <td>
-                                                <input type="text" name="items[{{ $idx }}][unit]" class="form-control" value="{{ $item['unit'] ?? '' }}" placeholder="Cái, bộ...">
+                                                <input type="text" name="items[{{ $idx }}][unit]" class="form-control item-unit" value="{{ $item['unit'] ?: 'Cái' }}" list="quote-unit-options" placeholder="Cái">
                                             </td>
                                             <td>
                                                 <input type="number" min="1" max="99999" name="items[{{ $idx }}][quantity]" class="form-control item-qty" value="{{ (int) ($item['quantity'] ?? 1) }}" required>
@@ -207,6 +222,16 @@
                                                     </button>
                                                 </div>
                                                 <input type="number" min="0" step="1" name="items[{{ $idx }}][unit_price]" class="form-control item-unit-price" value="{{ (float) ($item['unit_price'] ?? 0) }}" required readonly>
+                                            </td>
+                                            <td>
+                                                <select name="items[{{ $idx }}][vat_percent]" class="form-select item-vat-percent">
+                                                    @php $vp = strtoupper((string) ($item['vat_percent'] ?? '8')); @endphp
+                                                    <option value="KCT" @selected($vp === 'KCT')>KCT</option>
+                                                    <option value="0" @selected($vp === '0' || $vp === '0.00')>0%</option>
+                                                    <option value="5" @selected($vp === '5' || $vp === '5.00')>5%</option>
+                                                    <option value="8" @selected($vp === '8' || $vp === '8.00')>8%</option>
+                                                    <option value="10" @selected($vp === '10' || $vp === '10.00')>10%</option>
+                                                </select>
                                             </td>
                                             <td class="text-center">
                                                 <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item" title="Xóa dòng">
@@ -262,11 +287,11 @@
                                 <div class="form-text">Đơn giá sẽ tự áp theo bảng giá số lượng + loại khách hàng.</div>
                             </div>
 
-                            <div class="col-md-6 col-xl-12">
+                            <div class="col-md-6 col-xl-12 d-none">
                                 <label class="form-label">Chiết khấu (%)</label>
                                 <input type="number" min="0" max="100" step="0.01" name="discount_percent" class="form-control" id="discount-percent" value="{{ old('discount_percent', $order->discount_percent ?? 0) }}">
                             </div>
-                            <div class="col-md-6 col-xl-12">
+                            <div class="col-md-6 col-xl-12 d-none">
                                 <label class="form-label">VAT (%)</label>
                                 <input type="number" min="0" max="100" step="0.01" name="vat_percent" class="form-control" id="vat-percent" value="{{ old('vat_percent', $order->vat_percent ?? 8) }}">
                             </div>
@@ -339,10 +364,10 @@
                         </div>
 
                         <div class="d-grid gap-2 mt-3">
-                            <button type="submit" class="btn btn-primary" @if(!(isset($isCreate) && $isCreate) && (((($order->status ?? '') === 'won') || optional($order->convertedSalesOrder)->id))) disabled @endif>
-                                <i class="bi bi-check2-circle me-1"></i>{{ isset($isCreate) && $isCreate ? 'Tạo báo giá' : 'Lưu báo giá' }}
+                            <button type="submit" class="btn btn-primary" @if($isQuoteMode && !(isset($isCreate) && $isCreate) && (((($order->status ?? '') === 'won') || optional($order->convertedSalesOrder)->id))) disabled @endif>
+                                <i class="bi bi-check2-circle me-1"></i>{{ $submitLabel }}
                             </button>
-                            <a href="{{ route('admin.quotes.index') }}" class="btn btn-light border">Hủy</a>
+                            <a href="{{ route($backRoute) }}" class="btn btn-light border">Hủy</a>
                         </div>
                     </div>
                 </div>
@@ -350,6 +375,13 @@
         </div>
     </form>
 </div>
+
+<datalist id="quote-unit-options">
+    <option value="Cái"></option>
+    <option value="Gói"></option>
+    <option value="Máy"></option>
+    <option value="Bộ"></option>
+</datalist>
 
 <template id="quote-item-row-template">
     <tr data-row>
@@ -361,7 +393,7 @@
             <input type="text" class="form-control item-product-search" placeholder="Tìm theo tên/mã sản phẩm..." value="" autocomplete="off" required>
         </td>
         <td>
-            <input type="text" name="items[__I__][unit]" class="form-control" value="" placeholder="Cái, bộ...">
+            <input type="text" name="items[__I__][unit]" class="form-control item-unit" value="Cái" list="quote-unit-options" placeholder="Cái">
         </td>
         <td>
             <input type="number" min="1" max="99999" name="items[__I__][quantity]" class="form-control item-qty" value="1" required>
@@ -374,6 +406,15 @@
                 </button>
             </div>
             <input type="number" min="0" step="1" name="items[__I__][unit_price]" class="form-control item-unit-price" value="0" required readonly>
+        </td>
+        <td>
+            <select name="items[__I__][vat_percent]" class="form-select item-vat-percent">
+                <option value="KCT">KCT</option>
+                <option value="0">0%</option>
+                <option value="5">5%</option>
+                <option value="8" selected>8%</option>
+                <option value="10">10%</option>
+            </select>
         </td>
         <td class="text-center">
             <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item" title="Xóa dòng">
@@ -462,6 +503,8 @@
     const receiverNameInput = document.getElementById('qe-receiver-name');
     const receiverPhoneInput = document.getElementById('qe-receiver-phone');
     const receiverAddressInput = document.getElementById('qe-receiver-address');
+    const workflowWarningPanel = document.getElementById('workflow-warning-panel');
+    const workflowWarningText = document.getElementById('workflow-warning-text');
 
     let suggestEl = null;
     let activeInput = null;
@@ -546,6 +589,35 @@
         return { ok: res.ok, json };
     }
 
+    function setWorkflowWarning(message, show = true) {
+        if (!workflowWarningPanel || !workflowWarningText) return;
+        workflowWarningText.textContent = message || '';
+        workflowWarningPanel.classList.toggle('d-none', !show);
+    }
+
+    function normalizeName(s) {
+        return String(s || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/đ/g, 'd')
+            .replace(/[^a-z0-9\s]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function similarText(a, b) {
+        const aa = normalizeName(a);
+        const bb = normalizeName(b);
+        if (!aa || !bb) return 1;
+        if (aa === bb) return 0;
+        const aParts = aa.split(' ');
+        const bParts = bb.split(' ');
+        const overlap = aParts.filter(function (x) { return bParts.includes(x); }).length;
+        const maxLen = Math.max(aParts.length, bParts.length, 1);
+        return 1 - (overlap / maxLen);
+    }
+
     function applyTaxPayload(d) {
         if (!d) return;
         const v = function (x) { return (x != null && String(x).trim() !== '') ? String(x).trim() : ''; };
@@ -596,6 +668,8 @@
         taxInput.addEventListener('input', function () {
             const code = normalizeTaxCode(taxInput.value);
             if (taxTimer) clearTimeout(taxTimer);
+
+            validateWorkflowWarnings();
 
             if (!isTaxLike(code)) {
                 setTaxHint('Nhập MST (ít nhất 8 ký tự)', 'text-muted');
@@ -666,23 +740,62 @@
 
     function recalcSummary() {
         let subtotal = 0;
+        let vatAmount = 0;
+        const discount = Math.max(0, Math.min(100, safeNumber(discountInput?.value, 0)));
+
         tbody.querySelectorAll('tr[data-row]').forEach(function (row) {
-            const qty = safeNumber(row.querySelector('.item-qty')?.value, 0);
-            const price = safeNumber(row.querySelector('.item-unit-price')?.value, 0);
-            subtotal += Math.max(0, qty) * Math.max(0, price);
+            const qty = Math.max(0, safeNumber(row.querySelector('.item-qty')?.value, 0));
+            const price = Math.max(0, safeNumber(row.querySelector('.item-unit-price')?.value, 0));
+            const line = qty * price;
+            subtotal += line;
+
+            const vatRaw = String(row.querySelector('.item-vat-percent')?.value || '8').toUpperCase();
+            const lineVatRate = vatRaw === 'KCT' ? 0 : Math.max(0, Math.min(100, safeNumber(vatRaw, 0)));
+
+            const lineAfterDiscount = line * (1 - discount / 100);
+            vatAmount += lineAfterDiscount * (lineVatRate / 100);
         });
 
-        const discount = Math.max(0, Math.min(100, safeNumber(discountInput?.value, 0)));
-        const vat = Math.max(0, Math.min(100, safeNumber(vatInput?.value, 0)));
-
         const afterDiscount = Math.max(0, subtotal * (1 - discount / 100));
-        const vatAmount = afterDiscount * (vat / 100);
         const total = afterDiscount + vatAmount;
 
         subTotalEl.textContent = money(subtotal);
         afterDiscountEl.textContent = money(afterDiscount);
         vatEl.textContent = money(vatAmount);
         totalEl.textContent = money(total);
+        validateWorkflowWarnings();
+    }
+
+    function getRowsItemNames() {
+        return Array.from(tbody.querySelectorAll('tr[data-row]')).map(function (row) {
+            return String(row.querySelector('.item-product-search')?.value || '').trim();
+        }).filter(Boolean);
+    }
+
+    function validateWorkflowWarnings() {
+        const quoteCompany = String(invoiceCompanyInput?.value || receiverNameInput?.value || '').trim();
+        const rowNames = getRowsItemNames();
+        const warningParts = [];
+        const orderName = String(receiverNameInput?.value || '').trim();
+
+        if (quoteCompany && rowNames.length) {
+            const mismatched = rowNames.filter(function (name) {
+                return similarText(name, quoteCompany) > 0.5;
+            });
+            if (mismatched.length) {
+                warningParts.push('Tên hàng trên báo giá có thể không khớp với tên công ty/khách hàng đã nhập.');
+            }
+        }
+
+        if (orderName && quoteCompany && normalizeName(orderName) !== normalizeName(quoteCompany)) {
+            warningParts.push('Thông tin người nhận và tên công ty đang khác nhau, vui lòng kiểm tra lại trước khi phát hành.');
+        }
+
+        if (warningParts.length > 0) {
+            setWorkflowWarning(warningParts.join(' '), true);
+        } else {
+            setWorkflowWarning('', false);
+        }
     }
 
     function ensureSuggest() {
@@ -901,6 +1014,7 @@
         });
 
         row.querySelector('.item-unit-price')?.addEventListener('input', recalcSummary);
+        row.querySelector('.item-vat-percent')?.addEventListener('change', recalcSummary);
 
         const searchInput = row.querySelector('.item-product-search');
         if (searchInput) {
@@ -971,6 +1085,10 @@
 
     tbody.querySelectorAll('tr[data-row]').forEach(bindRow);
 
+    [invoiceCompanyInput, receiverNameInput, receiverPhoneInput, receiverAddressInput, taxInput, salesNameInput].forEach(function (node) {
+        node?.addEventListener('input', validateWorkflowWarnings);
+        node?.addEventListener('change', validateWorkflowWarnings);
+    });
 
     document.addEventListener('click', function (e) {
         if (!suggestEl) return;
@@ -1007,8 +1125,13 @@
         if (invalid) {
             e.preventDefault();
             alert('Có dòng sản phẩm chưa chọn đúng sản phẩm. Vui lòng kiểm tra lại.');
+            return;
         }
+
+        validateWorkflowWarnings();
     });
+
+    validateWorkflowWarnings();
 
     // Giữ nguyên đơn giá đã lưu khi mở lại màn hình sửa báo giá.
     // Chỉ tự áp giá khi user thao tác (đổi loại KH / đổi SL / chọn sản phẩm mới).

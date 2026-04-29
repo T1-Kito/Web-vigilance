@@ -45,19 +45,36 @@
                             <th>Đơn hàng</th>
                             <th>Ngày xuất</th>
                             <th>Trạng thái</th>
+                            <th>Hóa đơn phát hành</th>
                             <th class="text-end pe-3">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody>
                     @forelse($deliveries as $delivery)
-                        <tr>
+                        <tr class="delivery-row" data-href="{{ route('admin.deliveries.show', $delivery) }}">
                             <td class="fw-semibold">{{ $delivery->delivery_code }}</td>
                             <td>{{ $delivery->salesOrder->sales_order_code ?? $delivery->order->order_code ?? ('#' . ($delivery->sales_order_id ?? $delivery->order_id)) }}</td>
                             <td>{{ optional($delivery->delivered_at)->format('d/m/Y H:i') }}</td>
                             <td>
-                                <span class="badge bg-{{ $delivery->status === 'confirmed' ? 'success' : ($delivery->status === 'cancelled' ? 'danger' : 'secondary') }}">
-                                    {{ $delivery->status === 'confirmed' ? 'Đã xuất' : ($delivery->status === 'cancelled' ? 'Đã hủy' : 'Nháp') }}
-                                </span>
+                                @php
+                                    $deliveryStatusMeta = [
+                                        'confirmed' => ['label' => 'Đã xuất', 'class' => 'state-chip state-chip--green', 'icon' => 'bi-truck'],
+                                        'pending' => ['label' => 'Chờ xử lý', 'class' => 'state-chip state-chip--amber', 'icon' => 'bi-hourglass-split'],
+                                        'cancelled' => ['label' => 'Đã hủy', 'class' => 'state-chip state-chip--red', 'icon' => 'bi-x-circle'],
+                                        'draft' => ['label' => 'Nháp', 'class' => 'state-chip state-chip--gray', 'icon' => 'bi-journal-text'],
+                                    ];
+                                    $ds = $deliveryStatusMeta[$delivery->status] ?? ['label' => ucfirst((string) $delivery->status), 'class' => 'state-chip state-chip--gray', 'icon' => 'bi-dot'];
+                                @endphp
+                                <span class="{{ $ds['class'] }}"><i class="bi {{ $ds['icon'] }}"></i>{{ $ds['label'] }}</span>
+                            </td>
+                            <td>
+                                @php
+                                    $hasIssuedInvoice = (bool) optional($delivery->salesOrder)->invoices?->contains(fn($inv) => $inv->status === 'issued');
+                                    $isMeta = $hasIssuedInvoice
+                                        ? ['label' => 'Đã phát hành', 'class' => 'state-chip state-chip--green', 'icon' => 'bi-receipt']
+                                        : ['label' => 'Chưa phát hành', 'class' => 'state-chip state-chip--slate', 'icon' => 'bi-receipt-cutoff'];
+                                @endphp
+                                <span class="{{ $isMeta['class'] }}"><i class="bi {{ $isMeta['icon'] }}"></i>{{ $isMeta['label'] }}</span>
                             </td>
                             <td class="text-end pe-3">
                                 <div class="dropdown d-inline-block">
@@ -93,7 +110,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="text-center text-muted py-4">Chưa có phiếu xuất kho.</td>
+                            <td colspan="6" class="text-center text-muted py-4">Chưa có phiếu xuất kho.</td>
                         </tr>
                     @endforelse
                     </tbody>
@@ -114,5 +131,74 @@
 .table-actions-visible .dropdown-menu {
     z-index: 2000 !important;
 }
+
+.delivery-row {
+    cursor: pointer;
+    transition: background-color .16s ease;
+}
+.delivery-row:hover td {
+    background: #eaf3ff !important;
+}
+.delivery-row td {
+    transition: background-color .16s ease;
+}
+
+.state-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: .76rem;
+    font-weight: 700;
+    line-height: 1;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+.state-chip i { font-size: .78rem; line-height: 1; }
+
+.state-chip--green {
+    color: #065f46;
+    background: linear-gradient(135deg, rgba(16,185,129,.18), rgba(52,211,153,.22));
+    border-color: rgba(16,185,129,.35);
+}
+.state-chip--blue {
+    color: #1e40af;
+    background: linear-gradient(135deg, rgba(59,130,246,.15), rgba(99,102,241,.2));
+    border-color: rgba(59,130,246,.35);
+}
+.state-chip--amber {
+    color: #92400e;
+    background: linear-gradient(135deg, rgba(245,158,11,.2), rgba(251,191,36,.22));
+    border-color: rgba(245,158,11,.38);
+}
+.state-chip--red {
+    color: #991b1b;
+    background: linear-gradient(135deg, rgba(239,68,68,.16), rgba(248,113,113,.2));
+    border-color: rgba(239,68,68,.35);
+}
+.state-chip--slate,
+.state-chip--gray {
+    color: #334155;
+    background: linear-gradient(135deg, rgba(148,163,184,.2), rgba(203,213,225,.26));
+    border-color: rgba(148,163,184,.4);
+}
 </style>
+
+<script>
+(function () {
+    const rows = document.querySelectorAll('.delivery-row[data-href]');
+    rows.forEach((row) => {
+        row.addEventListener('click', function (e) {
+            if (e.target.closest('a, button, input, select, textarea, .dropdown, .dropdown-menu, form')) {
+                return;
+            }
+            const href = row.getAttribute('data-href');
+            if (href) {
+                window.location.href = href;
+            }
+        });
+    });
+})();
+</script>
 @endsection

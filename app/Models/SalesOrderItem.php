@@ -12,6 +12,7 @@ class SalesOrderItem extends Model
         'quantity',
         'unit_price',
         'unit',
+        'vat_percent',
     ];
 
     public function salesOrder()

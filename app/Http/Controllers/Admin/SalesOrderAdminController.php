@@ -11,6 +11,7 @@ use App\Models\Product;
 use App\Models\SalesOrder;
 use App\Support\ActivityLogger;
 use App\Support\DocumentCodeGenerator;
+use App\Support\LineVatCalculator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -69,14 +70,8 @@ class SalesOrderAdminController extends Controller
             ->whereIn('sales_order_item_id', $salesOrder->items->pluck('id')->all())
             ->sum('quantity');
 
-        $subTotal = (float) $salesOrder->items->sum(function ($item) {
-            return (float) ($item->unit_price ?? 0) * (int) ($item->quantity ?? 0);
-        });
-        $discountPercent = (float) ($salesOrder->discount_percent ?? 0);
-        $vatPercent = (float) ($salesOrder->vat_percent ?? 8);
-        $afterDiscount = max(0, $subTotal * (1 - ($discountPercent / 100)));
-        $vatAmount = $afterDiscount * ($vatPercent / 100);
-        $orderTotal = $afterDiscount + $vatAmount;
+        $totals = LineVatCalculator::totals($salesOrder->items, 'unit_price', (float) ($salesOrder->discount_percent ?? 0), (float) ($salesOrder->vat_percent ?? 8));
+        $orderTotal = (float) $totals['total'];
         $paidAmount = (float) ($salesOrder->debt->paid_amount ?? $salesOrder->paid_amount ?? 0);
         $remainingDebt = max(0, $orderTotal - $paidAmount);
 
@@ -258,14 +253,8 @@ class SalesOrderAdminController extends Controller
         ]);
 
         $salesOrder->load('items');
-        $subTotal = (float) $salesOrder->items->sum(function ($item) {
-            return (float) ($item->unit_price ?? 0) * (int) ($item->quantity ?? 0);
-        });
-        $discountPercent = (float) ($salesOrder->discount_percent ?? 0);
-        $vatPercent = (float) ($salesOrder->vat_percent ?? 8);
-        $afterDiscount = max(0, $subTotal * (1 - ($discountPercent / 100)));
-        $vatAmount = $afterDiscount * ($vatPercent / 100);
-        $total = $afterDiscount + $vatAmount;
+        $totals = LineVatCalculator::totals($salesOrder->items, 'unit_price', (float) ($salesOrder->discount_percent ?? 0), (float) ($salesOrder->vat_percent ?? 8));
+        $total = (float) $totals['total'];
 
         $paid = min((float) $validated['paid_amount'], $total);
         $remaining = max(0, $total - $paid);
@@ -361,16 +350,13 @@ class SalesOrderAdminController extends Controller
         }
 
         $invoice = DB::transaction(function () use ($request, $salesOrder, $validated) {
-            $subTotal = (float) $salesOrder->items->sum(function ($item) {
-                return (float) ($item->unit_price ?? 0) * (int) ($item->quantity ?? 0);
-            });
-
             $discountPercent = (float) ($validated['discount_percent'] ?? 0);
-            $vatPercent = (float) ($validated['vat_percent'] ?? 8);
-
-            $afterDiscount = max(0, $subTotal * (1 - ($discountPercent / 100)));
-            $vatAmount = $afterDiscount * ($vatPercent / 100);
-            $total = $afterDiscount + $vatAmount;
+            $fallbackVatPercent = (float) ($validated['vat_percent'] ?? $salesOrder->vat_percent ?? 8);
+            $totals = LineVatCalculator::totals($salesOrder->items, 'unit_price', $discountPercent, $fallbackVatPercent);
+            $subTotal = (float) $totals['sub_total'];
+            $vatAmount = (float) $totals['vat_amount'];
+            $total = (float) $totals['total'];
+            $vatPercent = $fallbackVatPercent;
 
             $invoice = Invoice::create([
                 'sales_order_id' => $salesOrder->id,

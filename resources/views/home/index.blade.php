@@ -6,6 +6,9 @@
 @section('canonical', url('/'))
 
 @section('content')
+@php
+    $isAgentUser = auth()->check() && (string) auth()->user()->role === 'agent';
+@endphp
 
 <!-- Thông báo lỗi từ middleware -->
 @if(session('error'))
@@ -765,8 +768,11 @@
             @foreach($hotSaleProducts as $product)
                 @php
                     $discount = $product->discount_percent ?? 0;
-                    $oldPrice = $product->price;
+                    $oldPrice = (float) ($product->price ?? 0);
                     $finalPrice = $discount ? round($oldPrice * (100 - $discount) / 100, -3) : $oldPrice;
+                    $agentPrice = (float) ($product->agency_price ?? 0);
+                    $displayPrice = $isAgentUser && $agentPrice > 0 ? $agentPrice : $finalPrice;
+                    $showListedStrike = $isAgentUser && $agentPrice > 0 && $oldPrice > 0;
                 @endphp
                 <div class="swiper-slide">
                     <div class="card h-100 border-0 shadow product-card-modern w-100 position-relative" style="box-shadow:0 6px 24px rgba(43,47,142,0.08); cursor:pointer;" onclick="window.location.href='{{ route('product.show', $product->slug) }}'">
@@ -785,13 +791,15 @@
                             </div>
                             <h6 class="card-title fw-bold mb-2" style="font-size:0.85rem; font-weight:600; min-height:36px; color:#222; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;" title="{{ $product->name }}">{{ Str::limit($product->name, 45) }}</h6>
                             <div class="mb-2">
-                                @if($product->price == 0)
+                                @if($displayPrice == 0)
                                     <span class="product-price-main" style="font-size:1.08em; color:#d32f2f; font-weight:700;">
                                         <a href="https://zalo.me/0982751039" target="_blank" style="text-decoration:none; color:inherit;">Liên hệ</a>
                                     </span>
                                 @else
-                                    <span class="product-price-main" style="font-size:1.08em; color:#d32f2f; font-weight:700;">{{ number_format($finalPrice, 0, ',', '.') }}đ</span>
-                                    @if($discount)
+                                    <span class="product-price-main" style="font-size:1.08em; color:#d32f2f; font-weight:700;">{{ number_format($displayPrice, 0, ',', '.') }}đ</span>
+                                    @if($showListedStrike)
+                                        <span class="product-price-old" style="font-size:0.98em; color:#888; text-decoration:line-through; margin-left:6px;">{{ number_format($oldPrice, 0, ',', '.') }}đ</span>
+                                    @elseif($discount)
                                         <span class="product-price-old" style="font-size:0.98em; color:#888; text-decoration:line-through; margin-left:6px;">{{ number_format($oldPrice, 0, ',', '.') }}đ</span>
                                     @endif
                                 @endif

@@ -163,9 +163,34 @@
             </div>
             <div class="card-body">
                 <div class="row g-3">
-                    <div class="col-md-3">
-                        <label class="form-label">Giá bán niêm yết <span class="text-danger">*</span></label>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Giá đối thủ 1</label>
+                        <div class="small text-muted mb-1">{{ $competitorPriceRefs[0]['label'] ?? 'Vinh Nguyễn' }}</div>
+                        @if(!empty($competitorPriceRefs[0]['product_url']))
+                            <a href="{{ $competitorPriceRefs[0]['product_url'] }}" target="_blank" rel="noopener" class="small d-inline-block mb-1">Mở link đối thủ</a>
+                        @endif
+                        <input type="text" class="form-control money-input" value="{{ old('competitor_price_1', '') }}" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Giá đối thủ 2</label>
+                        <div class="small text-muted mb-1">{{ $competitorPriceRefs[1]['label'] ?? 'Đối thủ 2' }}</div>
+                        @if(!empty($competitorPriceRefs[1]['product_url']))
+                            <a href="{{ $competitorPriceRefs[1]['product_url'] }}" target="_blank" rel="noopener" class="small d-inline-block mb-1">Mở link đối thủ</a>
+                        @endif
+                        <input type="text" class="form-control money-input" value="{{ old('competitor_price_2', '') }}" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Giá đối thủ 3</label>
+                        <div class="small text-muted mb-1">{{ $competitorPriceRefs[2]['label'] ?? 'Đối thủ 3' }}</div>
+                        @if(!empty($competitorPriceRefs[2]['product_url']))
+                            <a href="{{ $competitorPriceRefs[2]['product_url'] }}" target="_blank" rel="noopener" class="small d-inline-block mb-1">Mở link đối thủ</a>
+                        @endif
+                        <input type="text" class="form-control money-input" value="{{ old('competitor_price_3', '') }}" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Giá của mình <span class="text-danger">*</span></label>
                         <input type="text" inputmode="numeric" id="price" name="price" class="form-control money-input @error('price') is-invalid @enderror" value="{{ old('price', 0) }}" placeholder="Nhập giá bán hoặc giá vốn">
+                        <div id="competitor-live-compare" class="small mt-2 text-wrap"></div>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Giá vốn</label>
@@ -175,10 +200,11 @@
                         <label class="form-label">Giảm giá (%)</label>
                         <input type="number" name="discount_percent" class="form-control" value="{{ old('discount_percent') }}" min="0" max="100">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label class="form-label">Thuế GTGT (%)</label>
                         <input type="number" step="0.01" name="vat_percent" class="form-control" value="{{ old('vat_percent', 0) }}" min="0" max="100">
                     </div>
+
 
                     <div class="col-md-4"><label class="form-label">Đơn giá nhà máy (auto)</label><input type="text" inputmode="numeric" id="factory_price" name="factory_price" class="form-control money-input" value="{{ old('factory_price') }}" readonly></div>
                     <div class="col-md-4"><label class="form-label">Giá bán cho Đại lý 1-5 (auto)</label><input type="text" inputmode="numeric" id="agency_price" name="agency_price" class="form-control money-input" value="{{ old('agency_price') }}" readonly></div>
@@ -340,12 +366,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function toMoneyInteger(value) {
         const raw = (value || '').toString().trim();
         if (!raw) return 0;
-
-        if (/^\d+(\.\d+)?$/.test(raw)) {
-            const n = Number(raw);
-            return Number.isFinite(n) ? Math.round(n) : 0;
-        }
-
+        
         const digits = raw.replace(/\D+/g, '');
         return digits ? Number(digits) : 0;
     }
@@ -389,6 +410,8 @@ document.addEventListener('DOMContentLoaded', function () {
         bindMoneyInput(row.querySelector('.money-input'));
     };
 
+    const compareBox = document.getElementById('competitor-live-compare');
+    const competitorFilterSelect = document.getElementById('competitor_filter_select');
     const costInput = document.getElementById('cost_price');
     const listInput = document.getElementById('price');
     const factoryInput = document.getElementById('factory_price');
@@ -444,6 +467,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (listInput) {
         listInput.addEventListener('input', applyFromList);
     }
+    document.querySelectorAll('input[name="name"], input[name="serial_number"]').forEach((el) => {
+        el.addEventListener('blur', refreshCompetitorRefs);
+    });
 
     if (parseMoneyInput(costInput?.value || '') > 0) {
         applyFromCost();
@@ -451,6 +477,90 @@ document.addEventListener('DOMContentLoaded', function () {
         applyFromList();
     }
 
+    async function runCompetitorCompare() {
+        if (!compareBox || !listInput) return;
+        const currentPrice = parseMoneyInput(listInput.value || '');
+        const competitor = competitorFilterSelect?.value || '';
+        if (currentPrice <= 0) {
+            compareBox.className = 'small mt-2 text-muted';
+            compareBox.textContent = competitor
+                ? 'Nhập giá để so với dữ liệu đối thủ.'
+                : 'Nhập giá để xem giá có đang ổn không.';
+            return;
+        }
+
+        try {
+            const params = new URLSearchParams({
+                name: (document.querySelector('input[name="name"]')?.value || '').trim(),
+                serial_number: (document.querySelector('input[name="serial_number"]')?.value || '').trim(),
+                price: String(currentPrice || 0),
+            });
+            if (competitor) params.set('competitor', competitor);
+
+            const res = await fetch(`{{ route('admin.products.competitor-compare') }}?${params.toString()}`, {
+                headers: { 'Accept': 'application/json' }
+            });
+            const data = await res.json();
+
+            if (!data?.ok || !data?.has_data) {
+                compareBox.className = 'small mt-2 text-muted';
+                compareBox.textContent = 'Chưa có dữ liệu đối thủ để so sánh cho tên/mã này.';
+                return;
+            }
+
+            const delta = Number(data.delta ?? 0);
+            const compName = data.best_competitor || 'đối thủ';
+            const bestUrl = (data.best_competitor_url || '').trim();
+            const linkHtml = bestUrl ? ` <a href="${bestUrl}" target="_blank" rel="noopener" class="ms-1">Xem</a>` : '';
+
+            if (data.status === 'higher') {
+                compareBox.className = 'small mt-2 text-danger fw-semibold';
+                compareBox.innerHTML = `Giá bạn đang CAO hơn ${compName} khoảng ${formatThousands(String(delta))}đ.${linkHtml}`;
+            } else if (data.status === 'lower') {
+                compareBox.className = 'small mt-2 text-success fw-semibold';
+                compareBox.innerHTML = `Giá bạn đang THẤP hơn ${compName} khoảng ${formatThousands(String(Math.abs(delta)))}đ.${linkHtml}`;
+            } else {
+                compareBox.className = 'small mt-2 text-primary fw-semibold';
+                compareBox.innerHTML = `Giá bạn đang BẰNG giá thấp nhất của ${compName}.${linkHtml}`;
+            }
+        } catch (e) {
+            compareBox.className = 'small mt-2 text-muted';
+            compareBox.textContent = 'Không thể tải dữ liệu so sánh đối thủ lúc này.';
+        }
+    }
+
+    async function refreshCompetitorRefs() {
+        const name = document.querySelector('input[name="name"]')?.value || '';
+        const serial = document.querySelector('input[name="serial_number"]')?.value || '';
+        const params = new URLSearchParams({ name: name.trim(), serial_number: serial.trim() });
+        try {
+            const res = await fetch(`{{ route('admin.products.competitor-price-refs') }}?${params.toString()}`, {
+                headers: { 'Accept': 'application/json' }
+            });
+            const data = await res.json();
+            if (!data?.ok || !Array.isArray(data.refs)) return;
+            data.refs.forEach((ref, idx) => {
+                const input = document.querySelectorAll('.money-input[readonly]')[idx];
+                if (input) input.value = ref.price ? formatThousands(String(ref.price)) : '';
+                const label = input?.parentElement?.querySelector('.text-muted');
+                if (label) label.textContent = ref.label || label.textContent;
+            });
+        } catch (e) {}
+    }
+
+    let compareTimer = null;
+    function scheduleCompare() {
+        if (compareTimer) clearTimeout(compareTimer);
+        compareTimer = setTimeout(runCompetitorCompare, 350);
+    }
+
+    if (listInput) listInput.addEventListener('input', scheduleCompare);
+    if (competitorFilterSelect) competitorFilterSelect.addEventListener('change', scheduleCompare);
+    const nameInput = document.querySelector('input[name="name"]');
+    const serialInput = document.querySelector('input[name="serial_number"]');
+    if (nameInput) nameInput.addEventListener('input', scheduleCompare);
+    if (serialInput) serialInput.addEventListener('input', scheduleCompare);
+    runCompetitorCompare();
 
     const form = document.querySelector('form[action="{{ route('admin.products.store') }}"]');
     if (form) {

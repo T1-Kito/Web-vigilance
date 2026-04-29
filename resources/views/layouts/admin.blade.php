@@ -364,173 +364,120 @@
         
         <!-- Navigation Menu -->
         <div class="nav-menu">
-            <div class="nav-group-title">Tổng quan</div>
-            <div class="nav-item">
-                <a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-                    <div class="nav-icon"><i class="bi bi-speedometer2"></i></div>
-                    Bảng điều khiển
-                </a>
-            </div>
-
-            <div class="nav-group-title">Quản lý báo giá</div>
-            <div class="nav-item">
-                <a href="{{ route('admin.quotes.index') }}" class="nav-link {{ request()->routeIs('admin.quotes.*') ? 'active' : '' }}">
-                    <div class="nav-icon"><i class="bi bi-file-earmark-text"></i></div>
-                    Quản lý báo giá
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="{{ route('admin.sales-orders.index') }}" class="nav-link {{ request()->routeIs('admin.sales-orders.*') ? 'active' : '' }}">
-                    <div class="nav-icon"><i class="bi bi-receipt"></i></div>
-                    Đơn hàng
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="{{ route('admin.deliveries.index') }}" class="nav-link {{ request()->routeIs('admin.deliveries.*') ? 'active' : '' }}">
-                    <div class="nav-icon"><i class="bi bi-truck"></i></div>
-                    Phiếu xuất kho
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="{{ route('admin.invoices.index') }}" class="nav-link {{ request()->routeIs('admin.invoices.*') ? 'active' : '' }}">
-                    <div class="nav-icon"><i class="bi bi-receipt-cutoff"></i></div>
-                    Hóa đơn
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="{{ route('admin.document-templates.index') }}" class="nav-link {{ request()->routeIs('admin.document-templates.*') ? 'active' : '' }}">
-                    <div class="nav-icon"><i class="bi bi-file-earmark-richtext"></i></div>
-                    Mẫu in chứng từ
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="{{ route('admin.debts.index') }}" class="nav-link {{ request()->routeIs('admin.debts.*') ? 'active' : '' }}">
-                    <div class="nav-icon"><i class="bi bi-cash-coin"></i></div>
-                    Quản lý công nợ
-                </a>
-            </div>
-
-            <div class="nav-group-title">Bán hàng web</div>
-            <div class="nav-item">
-                <a href="{{ route('admin.orders.index') }}" class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
-                    <div class="nav-icon"><i class="bi bi-cart-check"></i></div>
-                    Đơn hàng
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="{{ route('admin.customers.index') }}" class="nav-link {{ request()->routeIs('admin.customers.*') ? 'active' : '' }}">
-                    <div class="nav-icon"><i class="bi bi-person-badge"></i></div>
-                    Quản lý khách hàng
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="{{ route('admin.customer-order-info.index') }}" class="nav-link {{ request()->routeIs('admin.customer-order-info.*') ? 'active' : '' }}">
-                    <div class="nav-icon"><i class="bi bi-person-workspace"></i></div>
-                    Thông tin khách 
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="{{ route('admin.borrow-requests.index') }}" class="nav-link {{ request()->routeIs('admin.borrow-requests.*') ? 'active' : '' }}">
-                    <div class="nav-icon"><i class="bi bi-clipboard-check"></i></div>
-                    Mượn hàng
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="{{ route('admin.warranties.index') }}" class="nav-link {{ request()->routeIs('admin.warranties.*') ? 'active' : '' }}">
-                    <div class="nav-icon"><i class="bi bi-shield-check"></i></div>
-                    Bán & bảo hành
-                </a>
-            </div>
-            <div class="nav-group-title">Quản lí mua hàng</div>
-            <div class="nav-item">
-                <a href="{{ route('admin.purchase-orders.index') }}" class="nav-link {{ request()->routeIs('admin.purchase-orders.*') ? 'active' : '' }}">
-                    <div class="nav-icon"><i class="bi bi-file-earmark-text"></i></div>
-                    Đơn mua hàng
-                </a>
-            </div>
-           
-            <div class="nav-group-title">Bảo hành &amp; sửa chữa</div>
-           
-            <div class="nav-item">
-                <a href="{{ route('admin.repair-forms.index') }}" class="nav-link {{ request()->routeIs('admin.repair-forms.*') ? 'active' : '' }}">
-                    <div class="nav-icon"><i class="bi bi-file-earmark-text"></i></div>
-                    Phiếu bảo hành
-                </a>
-            </div>
-            <div class="nav-group-title">Sản phẩm &amp; hiển thị</div>
-            <div class="nav-item">
-                <a href="{{ route('admin.products.index') }}" class="nav-link {{ request()->routeIs('admin.products.*') ? 'active' : '' }}">
-                    <div class="nav-icon"><i class="bi bi-tags"></i></div>
-                    Quản lý sản phẩm
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="{{ route('admin.pricing-formula.edit') }}" class="nav-link {{ request()->routeIs('admin.pricing-formula.*') ? 'active' : '' }}">
-                    <div class="nav-icon"><i class="bi bi-sliders"></i></div>
-                    Công thức giá
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="{{ route('admin.categories.index') }}" class="nav-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">
-                    <div class="nav-icon"><i class="bi bi-grid"></i></div>
-                    Quản lý danh mục
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="{{ route('admin.banners.index') }}" class="nav-link {{ request()->routeIs('admin.banners.*') ? 'active' : '' }}">
-                    <div class="nav-icon"><i class="bi bi-images"></i></div>
-                    Quản lý banner
-                </a>
-            </div>
-
-           
-
             @php
-                $superAdminEmail = strtolower(trim((string) env('SUPER_ADMIN_EMAIL', '')));
-                $currentEmail = strtolower(trim((string) (Auth::user()->email ?? '')));
-                $canManageUsers = ($superAdminEmail === '') || ($currentEmail !== '' && $currentEmail === $superAdminEmail);
+                $currentUser = Auth::user();
+                $can = fn(string $permission) => \App\Support\Permission::allows($currentUser, $permission);
+                $groups = [
+                    'overview' => $can('dashboard.view') || $can('admin.access'),
+                    'quotes' => $can('quotation.view') || $can('quotation.create') || $can('quotation.edit') || $can('quotation.delete') || $can('quotation.print') || $can('quotation.approve') || $can('quotation.convert'),
+                    'web_sales' => $can('orders.view') || $can('orders.create') || $can('orders.edit') || $can('orders.delete') || $can('customers.view') || $can('customers.create') || $can('customers.edit') || $can('customers.delete') || $can('customers.lookup') || $can('warranties.view') || $can('warranties.create') || $can('warranties.edit') || $can('warranties.delete'),
+                    'purchase' => $can('purchase-orders.view') || $can('purchase-orders.create') || $can('purchase-orders.edit') || $can('purchase-orders.delete'),
+                    'repair' => $can('warranties.view') || $can('warranties.create') || $can('warranties.edit') || $can('warranties.delete') || $can('warranty-claims.view') || $can('warranty-claims.process'),
+                    'products' => $can('products.view') || $can('products.create') || $can('products.edit') || $can('products.delete') || $can('pricing-formula.edit') || $can('products.competitor.view') || $can('products.competitor.edit') || $can('categories.view') || $can('categories.create') || $can('categories.edit') || $can('categories.delete') || $can('banners.manage'),
+                    'admin' => $can('users.view') || $can('users.manage') || $can('users.permission') || $can('activity-logs.view') || $can('chat-support.manage'),
+                    'reports' => false,
+                    'system' => false,
+                ];
             @endphp
-            <div class="nav-group-title">Quản trị</div>
-            @if($canManageUsers)
-                <div class="nav-item">
-                    <a href="{{ route('admin.users.index') }}" class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
-                        <div class="nav-icon"><i class="bi bi-people"></i></div>
-                        Quản lý người dùng
-                    </a>
-                </div>
+
+            @if($groups['overview'])
+            <div class="nav-group-title">Tổng quan</div>
+            <div class="nav-item"><a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-speedometer2"></i></div>Bảng điều khiển</a></div>
             @endif
-            <div class="nav-item">
-                <a href="{{ route('admin.activity-logs.index') }}" class="nav-link {{ request()->routeIs('admin.activity-logs.*') ? 'active' : '' }}">
-                    <div class="nav-icon"><i class="bi bi-clock-history"></i></div>
-                    Nhật ký hoạt động
-                </a>
-            </div>
 
+            @if($groups['quotes'])
+            <div class="nav-group-title">Bán hàng</div>
+            <div class="nav-item"><a href="{{ route('admin.quotes.index') }}" class="nav-link {{ request()->routeIs('admin.quotes.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-file-earmark-text"></i></div>Báo giá</a></div>
+            @if($can('orders.view') || $can('orders.create') || $can('orders.edit') || $can('orders.delete'))
+            <div class="nav-item"><a href="{{ route('admin.sales-orders.index') }}" class="nav-link {{ request()->routeIs('admin.sales-orders.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-receipt"></i></div>Đơn bán</a></div>
+            @endif
+            @if($can('deliveries.view') || $can('deliveries.create') || $can('deliveries.delete'))
+            <div class="nav-item"><a href="{{ route('admin.deliveries.index') }}" class="nav-link {{ request()->routeIs('admin.deliveries.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-truck"></i></div>Phiếu xuất kho</a></div>
+            @endif
+            @if($can('invoices.view') || $can('invoices.create') || $can('invoices.delete'))
+            <div class="nav-item"><a href="{{ route('admin.invoices.index') }}" class="nav-link {{ request()->routeIs('admin.invoices.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-receipt-cutoff"></i></div>Hóa đơn phát hành</a></div>
+            @endif
+            @if($can('debts.view'))
+            <div class="nav-item"><a href="{{ route('admin.debts.index') }}" class="nav-link {{ request()->routeIs('admin.debts.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-cash-coin"></i></div>Công nợ</a></div>
+            @endif
+            @if($can('document-templates.view') || $can('document-templates.edit'))
+            <div class="nav-group-title">In phiếu</div>
+            <div class="nav-item"><a href="{{ route('admin.document-templates.index') }}" class="nav-link {{ request()->routeIs('admin.document-templates.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-file-earmark-richtext"></i></div>Mẫu in chứng từ</a></div>
+            <div class="nav-item"><a href="{{ route('admin.pdf-templates.index') }}" class="nav-link {{ request()->routeIs('admin.pdf-templates.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-filetype-html"></i></div>Quản lý PDF</a></div>
+            @endif
+            <div class="nav-item"><a href="{{ route('admin.misa-meinvoice.settings.edit') }}" class="nav-link {{ request()->routeIs('admin.misa-meinvoice.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-gear"></i></div>Cấu hình MISA</a></div>
+            @endif
+
+            @if($groups['web_sales'])
+            <div class="nav-group-title">Bán hàng web</div>
+            @if($can('orders.view') || $can('orders.create') || $can('orders.edit') || $can('orders.delete'))
+            <div class="nav-item"><a href="{{ route('admin.web-orders.index') }}" class="nav-link {{ request()->routeIs('admin.web-orders.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-globe2"></i></div>Đơn hàng web</a></div>
+            @endif
+            @if($can('customers.view') || $can('customers.create') || $can('customers.edit') || $can('customers.delete'))
+            <div class="nav-item"><a href="{{ route('admin.customers.index') }}" class="nav-link {{ request()->routeIs('admin.customers.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-person-badge"></i></div>Khách hàng</a></div>
+            <div class="nav-item"><a href="{{ route('admin.customer-order-info.index') }}" class="nav-link {{ request()->routeIs('admin.customer-order-info.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-person-workspace"></i></div>Thông tin khách</a></div>
+            @endif
+            @if($can('orders.create') || $can('orders.view'))
+            <div class="nav-item"><a href="{{ route('admin.borrow-requests.index') }}" class="nav-link {{ request()->routeIs('admin.borrow-requests.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-clipboard-check"></i></div>Mượn hàng</a></div>
+            @endif
+            @if($can('warranties.view') || $can('warranties.create') || $can('warranties.edit') || $can('warranties.delete'))
+            <div class="nav-item"><a href="{{ route('admin.warranties.index') }}" class="nav-link {{ request()->routeIs('admin.warranties.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-shield-check"></i></div>Bán & bảo hành</a></div>
+            @endif
+            @endif
+
+            @if($groups['purchase'])
+            <div class="nav-group-title">Mua hàng</div>
+            <div class="nav-item"><a href="{{ route('admin.purchase-orders.index') }}" class="nav-link {{ request()->routeIs('admin.purchase-orders.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-file-earmark-text"></i></div>Đơn mua hàng</a></div>
+            @endif
+
+            @if($groups['products'])
+            <div class="nav-group-title">Sản phẩm &amp; hiển thị</div>
+            @if($can('products.view') || $can('products.create') || $can('products.edit') || $can('products.delete'))
+            <div class="nav-item"><a href="{{ route('admin.products.index') }}" class="nav-link {{ request()->routeIs('admin.products.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-tags"></i></div>Sản phẩm</a></div>
+            @endif
+            @if($can('pricing-formula.edit'))
+            <div class="nav-item"><a href="{{ route('admin.pricing-formula.edit') }}" class="nav-link {{ request()->routeIs('admin.pricing-formula.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-sliders"></i></div>Công thức giá</a></div>
+            @endif
+            @if($can('products.competitor.view') || $can('products.competitor.edit'))
+            <div class="nav-item"><a href="{{ route('admin.products.competitor-prices') }}" class="nav-link {{ request()->routeIs('admin.products.competitor-prices') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-binoculars"></i></div>Kho giá</a></div>
+            @endif
+            @if($can('categories.view') || $can('categories.create') || $can('categories.edit') || $can('categories.delete'))
+            <div class="nav-item"><a href="{{ route('admin.categories.index') }}" class="nav-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-grid"></i></div>Danh mục</a></div>
+            @endif
+            @if($can('banners.manage'))
+            <div class="nav-item"><a href="{{ route('admin.banners.index') }}" class="nav-link {{ request()->routeIs('admin.banners.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-images"></i></div>Banner</a></div>
+            @endif
+            @endif
+
+            @if($groups['repair'])
+            <div class="nav-group-title">Bảo hành &amp; sửa chữa</div>
+            @if($can('warranties.view') || $can('warranties.create') || $can('warranties.edit') || $can('warranties.delete'))
+            <div class="nav-item"><a href="{{ route('admin.repair-forms.index') }}" class="nav-link {{ request()->routeIs('admin.repair-forms.index') || request()->routeIs('admin.repair-forms.show') || request()->routeIs('admin.repair-forms.create') || request()->routeIs('admin.repair-forms.edit') || request()->routeIs('admin.repair-forms.print*') || request()->routeIs('admin.repair-forms.export*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-file-earmark-text"></i></div>Phiếu bảo hành</a></div>
+            <div class="nav-item"><a href="{{ route('admin.repair-forms.returns') }}" class="nav-link {{ request()->routeIs('admin.repair-forms.returns') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-file-earmark-pdf"></i></div>Danh sách phiếu trả</a></div>
+            @endif
+            @endif
+
+            @if($groups['admin'])
+            <div class="nav-group-title">Quản trị</div>
+            @if($can('users.view') || $can('users.manage') || $can('users.permission') || $can('admin.access'))
+            <div class="nav-item"><a href="{{ route('admin.users.index') }}" class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-people"></i></div>Người dùng</a></div>
+            @endif
+            @if($can('activity-logs.view'))
+            <div class="nav-item"><a href="{{ route('admin.activity-logs.index') }}" class="nav-link {{ request()->routeIs('admin.activity-logs.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-clock-history"></i></div>Nhật ký hoạt động</a></div>
+            @endif
+            @if($can('chat-support.manage'))
+            <div class="nav-item"><a href="{{ route('admin.chat-support.index') }}" class="nav-link {{ request()->routeIs('admin.chat-support.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-chat-left-text"></i></div><span style="display: inline-flex; align-items: center; gap: 8px; width: 100%;"><span>Hộp thư Chat</span><span id="vw-admin-chat-unread-nav" class="badge rounded-pill bg-danger" style="font-size: 0.75em; display: none;"></span></span></a></div>
+            @endif
+            @endif
+
+            @if($groups['reports'])
             <div class="nav-group-title">Báo cáo &amp; hỗ trợ</div>
-            <div class="nav-item">
-                <a href="{{ route('admin.chat-support.index') }}" class="nav-link {{ request()->routeIs('admin.chat-support.*') ? 'active' : '' }}">
-                    <div class="nav-icon"><i class="bi bi-chat-left-text"></i></div>
-                    <span style="display: inline-flex; align-items: center; gap: 8px; width: 100%;">
-                        <span>Hộp thư Chat</span>
-                        <span id="vw-admin-chat-unread-nav" class="badge rounded-pill bg-danger" style="font-size: 0.75em; display: none;"></span>
-                    </span>
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="#" class="nav-link">
-                    <div class="nav-icon"><i class="bi bi-graph-up"></i></div>
-                    Báo cáo doanh thu
-                </a>
-            </div>
+            @endif
 
+            @if($groups['system'])
             <div class="nav-group-title">Hệ thống</div>
-            <div class="nav-item">
-                <a href="#" class="nav-link">
-                    <div class="nav-icon"><i class="bi bi-gear"></i></div>
-                    Cài đặt hệ thống
-                </a>
-            </div>
-            
+            @endif
+
             <div class="nav-item" style="margin-top: 30px;">
                 <a href="{{ route('home') }}" class="nav-link">
                     <div class="nav-icon"><i class="bi bi-house"></i></div>
@@ -540,35 +487,32 @@
         </div>
     </div>
     
+    <!-- Toast Notifications -->
+    <div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3" style="z-index: 2000; min-width: 320px; max-width: 90vw;">
+        @if(session('error'))
+            <div id="adminToastError" class="toast align-items-center text-bg-warning border-0 mx-auto" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3500" style="width: 100%;">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ session('error') }}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        @endif
+        @if(session('success'))
+            <div id="adminToastSuccess" class="toast align-items-center text-bg-success border-0 mx-auto" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="2500" style="width: 100%;">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        @endif
+    </div>
+
     <!-- Main Content -->
     <div class="admin-main">
-        <!-- Header -->
-        <div class="admin-header">
-            <div class="header-logo">
-                <img src="{{ asset('logo1.png') }}" alt="Vigilance Logo">
-                <h1 class="page-title">@yield('title')</h1>
-            </div>
-            <div class="user-info">
-                <div class="user-avatar">
-                    @if(Auth::user() && Auth::user()->avatar)
-                        <img src="{{ route('admin.profile.avatar.image', ['v' => optional(Auth::user()->updated_at)->timestamp]) }}" alt="Avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
-                    @else
-                        {{ strtoupper(substr(Auth::user()->name ?? 'A', 0, 2)) }}
-                    @endif
-                </div>
-                <span style="font-weight: 600; color: #374151;">{{ Auth::user()->name ?? 'Admin' }}</span>
-                <a href="{{ route('admin.profile.avatar.edit') }}" class="btn btn-sm btn-outline-primary" style="margin-left: 10px;">
-                    <i class="bi bi-person-bounding-box"></i> Đổi avatar
-                </a>
-                <form action="{{ route('logout') }}" method="POST" class="d-inline">
-                    @csrf
-                    <button type="submit" class="logout-btn">
-                        <i class="bi bi-box-arrow-right"></i> Đăng xuất
-                    </button>
-                </form>
-            </div>
-        </div>
-        
         <!-- Page Content -->
         @yield('content')
     </div>
@@ -598,6 +542,42 @@
             const isChatSupportPage = {{ request()->routeIs('admin.chat-support.*') ? 'true' : 'false' }};
             const unreadNotificationsCount = Number({{ (int) $adminUnreadNotificationsCount }});
             const seenKey = 'vw_admin_chat_seen_user_id_v1';
+
+            // Chống submit lặp cho các form thao tác trong admin.
+            // Mặc định áp dụng cho form method khác GET.
+            // Có thể bỏ qua bằng cách thêm data-allow-multiple-submit="1" trên form.
+            const lockSubmitButtons = (form) => {
+                const submitButtons = form.querySelectorAll('button[type="submit"], input[type="submit"]');
+                submitButtons.forEach((btn) => {
+                    if (btn.dataset.originalLabel === undefined) {
+                        btn.dataset.originalLabel = btn.tagName === 'INPUT' ? btn.value : btn.innerHTML;
+                    }
+
+                    if (btn.tagName === 'INPUT') {
+                        btn.value = 'Đang xử lý...';
+                    } else {
+                        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Đang xử lý...';
+                    }
+
+                    btn.disabled = true;
+                });
+            };
+
+            document.querySelectorAll('form').forEach((form) => {
+                const method = (form.getAttribute('method') || 'GET').toUpperCase();
+                if (method === 'GET') return;
+                if (form.dataset.allowMultipleSubmit === '1') return;
+
+                form.addEventListener('submit', function (e) {
+                    if (form.dataset.submitting === '1') {
+                        e.preventDefault();
+                        return;
+                    }
+
+                    form.dataset.submitting = '1';
+                    lockSubmitButtons(form);
+                });
+            });
 
             const bellBadge = document.getElementById('vw-admin-bell-badge');
             const navBadge = document.getElementById('vw-admin-chat-unread-nav');
@@ -673,6 +653,16 @@
                     backoffMs = Math.min(maxMs, Math.max(slowMs, backoffMs * 2));
                     schedule(backoffMs);
                 }
+            }
+
+            const successToastEl = document.getElementById('adminToastSuccess');
+            if (successToastEl && window.bootstrap) {
+                new bootstrap.Toast(successToastEl).show();
+            }
+
+            const errorToastEl = document.getElementById('adminToastError');
+            if (errorToastEl && window.bootstrap) {
+                new bootstrap.Toast(errorToastEl).show();
             }
 
             poll();

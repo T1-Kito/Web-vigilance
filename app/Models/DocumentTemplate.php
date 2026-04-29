@@ -10,6 +10,7 @@ class DocumentTemplate extends Model
         'name',
         'type',
         'file_path',
+        'file_type',
         'is_active',
         'is_default',
     ];

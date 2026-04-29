@@ -5,6 +5,11 @@
 @php
     $productDescription = $product->description ?: ($product->information ?: ($product->specifications ?: ''));
     $productDescription = trim(strip_tags($productDescription));
+
+    $isAgentUser = auth()->check() && (string) auth()->user()->role === 'agent';
+    $listedPrice = (float) ($product->price ?? 0);
+    $agentPrice = (float) ($product->agency_price ?? 0);
+    $displayMainPrice = $isAgentUser && $agentPrice > 0 ? $agentPrice : (float) ($product->final_price ?? $listedPrice);
 @endphp
 
 @section('meta_description', $productDescription ? \Illuminate\Support\Str::limit($productDescription, 155) : ($product->name . ' chính hãng, giá tốt, tư vấn lắp đặt và bảo hành rõ ràng tại Vigilance.'))
@@ -1475,6 +1480,25 @@
     white-space: nowrap;
 }
 
+.pd-price-agent-meta {
+    font-size: 0.8rem;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.pd-price-listed-wrap {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.pd-price-listed-label {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
 .pd-price-old {
     font-size: 1.05em !important;
 }
@@ -1853,7 +1877,20 @@
                         <!-- Price Section -->
                         <div class="mb-4 price-section">
                             <div class="pd-price-label" style="font-size:0.9rem; color:#64748b; font-weight:600; margin-bottom:8px;">Giá sản phẩm</div>
-                            @if($product->has_discount)
+                            @if($isAgentUser && $agentPrice > 0)
+                                <div class="pd-price-row" style="align-items:flex-end; justify-content:space-between; gap:12px;">
+                                    <div style="min-width:0;">
+                                        <div class="pd-price-main" style="font-size:2.2em; font-weight:900; color:#e30019; line-height:1; letter-spacing:-1.5px;">{{ number_format($agentPrice, 0, ',', '.') }}đ</div>
+                                        <div class="pd-price-agent-meta mt-1">Giá đại lý • Chưa VAT</div>
+                                    </div>
+                                    @if($listedPrice > 0)
+                                        <div class="pd-price-listed-wrap">
+                                            <div class="pd-price-listed-label">Giá niêm yết</div>
+                                            <div class="pd-price-old" style="font-size:1em; color:#94a3b8; text-decoration:line-through; font-weight:600;">{{ number_format($listedPrice, 0, ',', '.') }}đ</div>
+                                        </div>
+                                    @endif
+                                </div>
+                            @elseif($product->has_discount)
                                 <span class="badge bg-danger" style="position:absolute; top:18px; right:24px; font-size:1.1em; padding:7px 18px; border-radius:1em; z-index:2;">Giảm {{ $product->discount_percent }}%</span>
                                 <div class="pd-price-row">
                                     <div class="pd-price-main" style="font-size:1.9em; font-weight:900; color:#e30019; line-height:1; letter-spacing:-2px;">{{ number_format($product->final_price, 0, ',', '.') }}đ</div>
@@ -1862,8 +1899,8 @@
                                 </div>
                             @else
                                 <div class="pd-price-row">
-                                    @if($product->price > 0)
-                                        <div class="pd-price-main" style="font-size:2.2em; font-weight:900; color:#d32f2f; line-height:1; letter-spacing:-2px;">{{ number_format($product->price, 0, ',', '.') }}đ</div>
+                                    @if($listedPrice > 0)
+                                        <div class="pd-price-main" style="font-size:2.2em; font-weight:900; color:#d32f2f; line-height:1; letter-spacing:-2px;">{{ number_format($listedPrice, 0, ',', '.') }}đ</div>
                                         <span class="pd-price-vat">(Chưa bao gồm thuế VAT)</span>
                                     @else
                                         <a href="https://zalo.me/0982751039" target="_blank" style="text-decoration:none;">
@@ -1885,7 +1922,7 @@
                         <div class="color-option-wrapper" style="position:relative;">
                             <button type="button"
                                 class="btn color-option-btn"
-                                data-price="{{ $color->price ?? $product->final_price }}"
+                                data-price="{{ $color->price ?? $displayMainPrice }}"
                                 data-quantity="{{ $color->quantity }}"
                                 data-color="{{ $color->color_code }}"
                                 data-color-name="{{ $color->color_name }}"
@@ -1900,7 +1937,7 @@
                                 
                                 <div style="flex:1; text-align:left;">
                                     <div style="font-weight:700; color:#2d3748; margin-bottom:4px;">{{ $color->color_name }}</div>
-                                    <div style="font-size:1.05em; font-weight:600; color:#e30019;">@if($color->price){{ number_format($color->price, 0, ',', '.') }}đ @else {{ number_format($product->final_price, 0, ',', '.') }}đ @endif</div>
+                                    <div style="font-size:1.05em; font-weight:600; color:#e30019;">@if($color->price){{ number_format($color->price, 0, ',', '.') }}đ @else {{ number_format($displayMainPrice, 0, ',', '.') }}đ @endif</div>
                                 </div>
                                 
                                 {{-- Stock indicator --}}
@@ -2005,15 +2042,22 @@
                                 const priceDisplay = priceBlock.querySelector('div[style*="display:flex"]');
                                 if(priceDisplay) {
                                     // Reset về giá gốc của sản phẩm
-                                    @if($product->has_discount)
+                                    @if($isAgentUser && $agentPrice > 0)
+                                        priceDisplay.innerHTML = `<div style="display:flex; align-items:baseline; gap:18px;">
+                                            <div style="font-size:2.1em; font-weight:900; color:#e30019; line-height:1; letter-spacing:-2px;">{{ number_format($agentPrice, 0, ',', '.') }}đ</div>
+                                            @if($listedPrice > 0)
+                                            <div style="font-size:1.1em; color:#b0b0b0; text-decoration:line-through; font-weight:500;">{{ number_format($listedPrice, 0, ',', '.') }}đ</div>
+                                            @endif
+                                        </div>`;
+                                    @elseif($product->has_discount)
                                         priceDisplay.innerHTML = `<div style="display:flex; align-items:baseline; gap:18px;">
                                             <div style="font-size:2.1em; font-weight:900; color:#e30019; line-height:1; letter-spacing:-2px;">{{ number_format($product->final_price, 0, ',', '.') }}đ</div>
                                             <div style="font-size:1.3em; color:#b0b0b0; text-decoration:line-through; font-weight:500;">{{ number_format($product->price, 0, ',', '.') }}đ</div>
                                         </div>`;
                                     @else
-                                        @if($product->price > 0)
+                                        @if($listedPrice > 0)
                                             priceDisplay.innerHTML = `<div style="display:flex; align-items:baseline; gap:18px;">
-                                                <div style="font-size:2.7em; font-weight:900; color:#007BFF; line-height:1; letter-spacing:-2px;">{{ number_format($product->price, 0, ',', '.') }}đ</div>
+                                                <div style="font-size:2.7em; font-weight:900; color:#007BFF; line-height:1; letter-spacing:-2px;">{{ number_format($listedPrice, 0, ',', '.') }}đ</div>
                                             </div>`;
                                         @else
                                             priceDisplay.innerHTML = `<div style="display:flex; align-items:baseline; gap:18px;">
@@ -2388,9 +2432,12 @@
             {{-- Tabs chức năng chính, đặc điểm kỹ thuật, hướng dẫn sử dụng, bình luận --}}
             <ul class="nav nav-tabs mb-3" id="productTab" role="tablist" style="font-size:0.95rem;">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="main-tab" data-bs-toggle="tab" data-bs-target="#main" type="button" role="tab">Các tính năng chính</button>
+                    <button class="nav-link active" id="desc-tab" data-bs-toggle="tab" data-bs-target="#desc-pane" type="button" role="tab" aria-controls="desc-pane" aria-selected="true">Mô tả</button>
                 </li>
-                            </ul>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="info-tab" data-bs-toggle="tab" data-bs-target="#info-pane" type="button" role="tab" aria-controls="info-pane" aria-selected="false">Thông tin</button>
+                </li>
+            </ul>
             <style>
                 /* Mobile: biến tabs thành dạng pill cuộn ngang, dễ bấm và gọn */
                 @media (max-width: 576px) {
@@ -2442,8 +2489,19 @@
                 }
             </style>
             <div class="tab-content p-3 bg-white rounded shadow-sm" id="productTabContent">
-                <div class="tab-pane fade show active" id="main" role="tabpanel">
-                   <h5 class="fw-bold mb-2" style="font-size:0.95rem;">Mô tả sản phẩm</h5>
+                <div class="tab-pane fade" id="info-pane" role="tabpanel" aria-labelledby="info-tab">
+                    <h5 class="fw-bold mb-2" style="font-size:0.95rem;">Thông tin sản phẩm</h5>
+                    @if(!empty(trim((string) $product->information)))
+                        <div style="font-size:0.85rem; line-height:1.6; color:#334155;">
+                            {!! nl2br(e($product->information)) !!}
+                        </div>
+                    @else
+                        <div class="text-muted" style="font-size:0.85rem;">Chưa cập nhật thông tin sản phẩm.</div>
+                    @endif
+                </div>
+
+                <div class="tab-pane fade show active" id="desc-pane" role="tabpanel" aria-labelledby="desc-tab">
+                    <h5 class="fw-bold mb-2" style="font-size:0.95rem;">Mô tả sản phẩm</h5>
                     <div style="position: relative;">
                         <div id="product-description" style="font-size:0.85rem; line-height:1.6; max-height: 120px; overflow: hidden; position: relative; border: 1px solid transparent;">
                             {!! nl2br(e($product->description)) !!}
@@ -2454,10 +2512,9 @@
                         <i class="bi bi-chevron-down me-1"></i>Xem thêm
                     </button>
                 </div>
-                            </div>
+            </div>
 
-            {{-- Thông số kỹ thuật hiển thị luôn (CellphoneS style) --}}
-            <div class="bg-white rounded shadow-sm p-3 mb-4 mt-4">
+            <div id="section-specs" class="bg-white rounded shadow-sm p-3 mb-4 mt-4" style="scroll-margin-top: 100px;">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="fw-bold mb-0" style="font-size:0.95rem; color:#222;">Thông số kỹ thuật</h5>
                     <a href="#" class="text-primary" style="font-size:0.9em;">Xem tất cả ></a>
@@ -2494,14 +2551,14 @@
             </div>
         </div>
     </div>
-    <div class="row mt-5 related-products-mobile">
+
+    <div id="section-related" class="row mt-5 related-products-mobile" style="scroll-margin-top: 100px;">
         <div class="col-12">
             <h4 class="fw-bold text-center mb-4" style="letter-spacing:1px; font-size:0.95rem;">SẢN PHẨM KHÁC</h4>
             <div class="row g-3 justify-content-center">
                 @forelse($relatedProducts as $item)
                     <div class="col-6 col-md-3">
                         <div class="card h-100 shadow-sm border-0 product-card position-relative product-hover-container related-product-card-mobile" data-url="{{ route('product.show', $item->slug) }}" style="min-height: 360px; display: flex; flex-direction: column;">
-                            <!-- Product Hover Tooltip -->
                             <div class="product-hover-tooltip" style="position:absolute; bottom:0; left:0; width:100%; height:60%; background:linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(240,248,255,0.95) 100%); backdrop-filter:blur(10px); border-radius:0 0 1.5rem 1.5rem; padding:20px; z-index:10; opacity:0; visibility:hidden; transition:all 0.4s cubic-bezier(0.4, 0, 0.2, 1); display:flex; flex-direction:column; justify-content:center; box-shadow:0 8px 32px rgba(0,123,255,0.15); border:2px solid rgba(0,123,255,0.3); border-top:2px solid rgba(0,123,255,0.5);">
                                 <div class="tooltip-header mb-3">
                                     <h6 class="fw-bold mb-2" style="color:#1a1a1a; font-size:1.1em; text-shadow:0 1px 2px rgba(0,0,0,0.1);">{{ $item->name }}</h6>
@@ -2516,11 +2573,11 @@
                                     </p>
                                 </div>
                             </div>
-                            <a href="{{ route('product.show', $item->slug) }}" class="text-decoration-none">
-                                <img src="{{ asset('images/products/' . $item->image) }}" class="card-img-top rounded-3" alt="{{ $item->name }}" style="object-fit:contain; height:200px; width:100%; padding:12px; background:#fff;">
+                            <a href="{{ route('product.show', $item->slug) }}" class="text-decoration-none js-product-nav-link" data-product-link>
+                                <img src="{{ asset('images/products/' . $item->image) }}" class="card-img-top rounded-3" alt="{{ $item->name }}" style="object-fit:contain; height:200px; width:100%; padding:12px; background:#fff;" loading="lazy" decoding="async">
                             </a>
                             <div class="card-body pb-2 d-flex flex-column" style="flex:1 1 auto;">
-                                <a href="{{ route('product.show', $item->slug) }}" class="text-decoration-none" style="color:#222;">
+                                <a href="{{ route('product.show', $item->slug) }}" class="text-decoration-none js-product-nav-link" data-product-link style="color:#222;">
                                     <h6 class="card-title mb-1" style="font-size:0.8rem; min-height:28px; font-weight:600; line-height:1.25; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; color:#222;">{{ $item->name }}</h6>
                                 </a>
                                 <div class="product-card-desc mb-2 text-truncate" title="{{ $item->description }}" style="font-size:0.7rem; color:#666; min-height:16px;">{{ $item->description }}</div>
@@ -2537,7 +2594,7 @@
                                         </a>
                                     @endif
                                 </div>
-                                <a href="{{ route('product.show', $item->slug) }}" class="btn btn-sm w-100 fw-bold mt-auto" style="border-radius:0.8rem; background:var(--brand-primary); color:white; font-size:0.8rem;"><i class="bi bi-lightning-charge-fill"></i> Mua ngay</a>
+                                <a href="{{ route('product.show', $item->slug) }}" class="btn btn-sm w-100 fw-bold mt-auto js-product-nav-link" data-product-link style="border-radius:0.8rem; background:var(--brand-primary); color:white; font-size:0.8rem;"><i class="bi bi-lightning-charge-fill"></i> Mua ngay</a>
                             </div>
                         </div>
                     </div>
@@ -2547,6 +2604,41 @@
             </div>
         </div>
     </div>
+
+@push('scripts')
+<script>
+(function () {
+    const links = document.querySelectorAll('.js-product-nav-link[data-product-link]');
+    if (!links.length) return;
+
+    links.forEach(function (link) {
+        const href = link.getAttribute('href');
+        if (!href) return;
+
+        const prefetchOnIntent = function () {
+            if (link.dataset.prefetched === '1') return;
+            const prefetch = document.createElement('link');
+            prefetch.rel = 'prefetch';
+            prefetch.href = href;
+            prefetch.as = 'document';
+            document.head.appendChild(prefetch);
+            link.dataset.prefetched = '1';
+        };
+
+        link.addEventListener('mouseenter', prefetchOnIntent, { passive: true });
+        link.addEventListener('touchstart', prefetchOnIntent, { passive: true, once: true });
+
+        link.addEventListener('click', function (e) {
+            if (e.defaultPrevented) return;
+            if (e.button !== 0) return;
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+            document.body.classList.add('is-page-leaving');
+        }, true);
+    });
+})();
+</script>
+@endpush
+
 @endsection
 
 <!-- Modal xem lớn ảnh (full screen + zoom) -->

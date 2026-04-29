@@ -5,6 +5,7 @@
  @php
      $categoryCanonical = isset($category) ? route('category.show', $category->slug) : url()->current();
      $hasFacetParams = request()->hasAny(['brand', 'sort', 'filter', 'page']);
+     $isAgentUser = auth()->check() && (string) auth()->user()->role === 'agent';
  @endphp
 
 @section('meta_description', (isset($category) ? ('Mua ' . $category->name . ' chính hãng, giá tốt, nhiều lựa chọn, tư vấn 24/7. Xem ngay danh sách sản phẩm ' . $category->name . ' tại Vigilance.') : 'Danh mục sản phẩm Vigilance.'))
@@ -850,6 +851,12 @@
         
         <div class="row g-3">
             @forelse($products as $product)
+                @php
+                    $listedPrice = (float) ($product->price ?? 0);
+                    $agentPrice = (float) ($product->agency_price ?? 0);
+                    $displayPrice = $isAgentUser && $agentPrice > 0 ? $agentPrice : $listedPrice;
+                    $showListedStrike = $isAgentUser && $agentPrice > 0 && $listedPrice > 0;
+                @endphp
                 <div class="col-6 col-md-4 col-lg-3">
                     <div class="card h-100 product-card" onclick="window.location.href='{{ route('product.show', $product->slug) }}'">
                         <div class="product-media">
@@ -868,14 +875,17 @@
                             </h6>
                             
                             <div class="mb-2 product-contact-text" style="min-height: 24px;">
-                                @if($product->price == 0)
+                                @if($displayPrice == 0)
                                     <a href="https://zalo.me/0982751039" target="_blank" onclick="event.stopPropagation();" class="product-price" style="text-decoration:none;">
                                         <span class="product-price-badge">Liên hệ</span>
                                     </a>
                                 @else
                                     <span class="product-price">
-                                        <span class="product-price-badge">{{ number_format($product->price, 0, ',', '.') }}đ</span>
+                                        <span class="product-price-badge">{{ number_format($displayPrice, 0, ',', '.') }}đ</span>
                                     </span>
+                                    @if($showListedStrike)
+                                        <span style="font-size:0.85rem; color:#888; text-decoration:line-through; margin-left:6px;">{{ number_format($listedPrice, 0, ',', '.') }}đ</span>
+                                    @endif
                                 @endif
                             </div>
                             

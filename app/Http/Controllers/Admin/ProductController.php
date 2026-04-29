@@ -14,6 +14,8 @@ use App\Models\ProductAddon;
 use App\Models\ProductImage;
 use App\Models\ProductPriceTier;
 use App\Models\PricingFormulaSetting;
+use App\Models\CompetitorPrice;
+use App\Services\VinhNguyenPriceScraper;
 use App\Support\ActivityLogger;
 
 class ProductController extends Controller
@@ -75,6 +77,142 @@ class ProductController extends Controller
         return response()->json($items);
     }
 
+    public function competitorCompare(Request $request)
+    {
+        $name = trim((string) $request->query('name', ''));
+        $serialNumber = trim((string) $request->query('serial_number', ''));
+        $price = (float) preg_replace('/[^0-9]/', '', (string) $request->query('price', '0'));
+        $competitorFilter = trim((string) $request->query('competitor', ''));
+
+        $product = null;
+        if ($request->filled('product_id')) {
+            $product = Product::find((int) $request->query('product_id'));
+        }
+
+        $keys = [];
+        if ($product) {
+            $keys = $this->buildCompetitorKeys($product, $name !== '' ? $name : null);
+            if ($serialNumber !== '') {
+                $nk = $this->normalizeCompetitorKey($serialNumber);
+                if ($nk !== '' && !in_array($nk, $keys, true)) {
+                    $keys[] = $nk;
+                }
+            }
+        } else {
+            $nk1 = $this->normalizeCompetitorKey($serialNumber);
+            $nk2 = $this->normalizeCompetitorKey($name);
+            if ($nk1 !== '') $keys[] = $nk1;
+            if ($nk2 !== '' && !in_array($nk2, $keys, true)) $keys[] = $nk2;
+        }
+
+        $referenceName = $name !== ''
+            ? $name
+            : ($product ? ((string) ($product->name ?? '')) : $serialNumber);
+        $referenceModel = $this->extractBestCompetitorModelToken($referenceName);
+
+        $compare = $this->compareAgainstCompetitors(
+            $keys,
+            $competitorFilter !== '' ? $competitorFilter : null,
+            $referenceName,
+            $referenceModel
+        );
+
+        if (!$compare['best']) {
+            return response()->json([
+                'ok' => true,
+                'has_data' => false,
+                'message' => 'Chưa có dữ liệu giá đối thủ cho sản phẩm này.',
+                'keys' => $keys,
+            ]);
+        }
+
+        $bestPrice = (float) ($compare['min_price'] ?? 0);
+        $delta = $price > 0 ? round($price - $bestPrice, 2) : null;
+
+        return response()->json([
+            'ok' => true,
+            'has_data' => true,
+            'keys' => $keys,
+            'compare_price' => $price,
+            'best_competitor_price' => $bestPrice,
+            'best_competitor' => $compare['best']['competitor_name'] ?? null,
+            'best_competitor_url' => $compare['best']['product_url'] ?? null,
+            'avg_competitor_price' => $compare['avg_price'],
+            'delta' => $delta,
+            'status' => $delta === null ? 'unknown' : ($delta > 0 ? 'higher' : ($delta < 0 ? 'lower' : 'equal')),
+            'sources' => $compare['sources'],
+        ]);
+    }
+
+    public function competitorPrices(Request $request)
+    {
+        $query = CompetitorPrice::query();
+
+        if ($request->filled('q')) {
+            $q = trim((string) $request->query('q'));
+            $normalized = $this->normalizeCompetitorSearchTerm($q);
+            $query->where(function ($sub) use ($q, $normalized) {
+                $sub->where('product_key', 'like', "%{$q}%")
+                    ->orWhere('product_key', 'like', "%{$normalized}%")
+                    ->orWhere('product_name_raw', 'like', "%{$q}%")
+                    ->orWhere('product_name_raw', 'like', "%{$normalized}%")
+                    ->orWhere('competitor_name', 'like', "%{$q}%");
+            });
+        }
+
+        if ($request->filled('competitor')) {
+            $query->where('competitor_name', $request->query('competitor'));
+        }
+
+        $items = $query->orderByDesc('checked_at')->orderByDesc('id')->paginate(50)
+            ->appends($request->only(['q', 'competitor']));
+
+        $competitors = CompetitorPrice::query()
+            ->select('competitor_name')
+            ->distinct()
+            ->orderBy('competitor_name')
+            ->pluck('competitor_name');
+
+        return view('admin.products.competitor-prices', compact('items', 'competitors'));
+    }
+
+    public function syncVinhNguyenPrices(VinhNguyenPriceScraper $scraper)
+    {
+        abort_unless(\App\Support\Permission::allows(auth()->user(), 'products.competitor.edit'), 403);
+
+        $result = $scraper->sync();
+
+        return redirect()
+            ->route('admin.products.competitor-prices', ['competitor' => 'vinh-nguyen'])
+            ->with($result['ok'] ? 'success' : 'error', $result['message']);
+    }
+
+    public function competitorPriceRefs(Request $request)
+    {
+        abort_unless(\App\Support\Permission::allows(auth()->user(), 'products.view'), 403);
+
+        $name = trim((string) $request->query('name', ''));
+        $serial = trim((string) $request->query('serial_number', ''));
+        $product = null;
+
+        if ($request->filled('product_id')) {
+            $product = Product::find((int) $request->query('product_id'));
+        }
+
+        if (!$product && ($name !== '' || $serial !== '')) {
+            $product = new Product([
+                'name' => $name,
+                'serial_number' => $serial,
+                'slug' => Str::slug($name !== '' ? $name : $serial),
+            ]);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'refs' => $this->getCompetitorPriceRefs($product),
+        ]);
+    }
+
     public function index(Request $request)
     {
         $query = Product::with('category');
@@ -103,13 +241,16 @@ class ProductController extends Controller
 
     public function create()
     {
+        abort_unless(\App\Support\Permission::allows(auth()->user(), 'products.create'), 403);
         $categories = Category::all();
         $pricingSetting = PricingFormulaSetting::current();
-        return view('admin.products.create', compact('categories', 'pricingSetting'));
+        $competitorPriceRefs = [];
+        return view('admin.products.create', compact('categories', 'pricingSetting', 'competitorPriceRefs'));
     }
 
     public function store(Request $request)
     {
+        abort_unless(\App\Support\Permission::allows(auth()->user(), 'products.create'), 403);
         $this->normalizeMoneyFields($request);
 
         if (!$request->filled('price')) {
@@ -136,6 +277,9 @@ class ProductController extends Controller
             'default_revenue_mode' => 'nullable|string|max:100',
             'cost_price' => 'nullable|numeric|min:0',
             'discount_percent' => 'nullable|integer|min:0|max:100',
+            'competitor_source' => 'nullable|string|max:255',
+            'competitor_price' => 'nullable|numeric|min:0',
+            'competitor_product_url' => 'nullable|url|max:1000',
             'sort_order' => 'nullable|integer|min:1',
             'image' => 'nullable|image',
             'additional_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -186,6 +330,8 @@ class ProductController extends Controller
         $data['price_includes_tax'] = $request->has('price_includes_tax') ? 1 : 0;
         $data['is_featured'] = $request->has('is_featured') ? 1 : 0;
         $data['status'] = $request->has('status') ? 1 : 0;
+        $hasCompetitorData = !empty($data['competitor_source']) || !empty($data['competitor_price']) || !empty($data['competitor_product_url']);
+        $data['competitor_checked_at'] = $hasCompetitorData ? now() : null;
         $data = $this->applyBossPricingFormula($data);
         try {
             $product = Product::create($data);
@@ -263,14 +409,17 @@ class ProductController extends Controller
 
     public function edit(Product $product)
     {
+        abort_unless(\App\Support\Permission::allows(auth()->user(), 'products.edit'), 403);
         $categories = Category::all();
         $pricingSetting = PricingFormulaSetting::current();
+        $competitorPriceRefs = $this->getCompetitorPriceRefs($product);
         $product->load(['images', 'priceTiers']);
-        return view('admin.products.edit', compact('product', 'categories', 'pricingSetting'));
+        return view('admin.products.edit', compact('product', 'categories', 'pricingSetting', 'competitorPriceRefs'));
     }
 
     public function update(Request $request, Product $product)
     {
+        abort_unless(\App\Support\Permission::allows(auth()->user(), 'products.edit'), 403);
         $this->normalizeMoneyFields($request);
 
         $before = $product->only(['name', 'price', 'discount_percent', 'sort_order', 'status', 'is_featured', 'category_id', 'brand', 'serial_number']);
@@ -298,6 +447,9 @@ class ProductController extends Controller
             'default_revenue_mode' => 'nullable|string|max:100',
             'cost_price' => 'nullable|numeric|min:0',
             'discount_percent' => 'nullable|integer|min:0|max:100',
+            'competitor_source' => 'nullable|string|max:255',
+            'competitor_price' => 'nullable|numeric|min:0',
+            'competitor_product_url' => 'nullable|url|max:1000',
             'sort_order' => 'nullable|integer|min:1',
             'image' => 'nullable|image',
             'additional_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -349,6 +501,8 @@ class ProductController extends Controller
         $data['price_includes_tax'] = $request->has('price_includes_tax') ? 1 : 0;
         $data['is_featured'] = $request->has('is_featured') ? 1 : 0;
         $data['status'] = $request->has('status') ? 1 : 0;
+        $hasCompetitorData = !empty($data['competitor_source']) || !empty($data['competitor_price']) || !empty($data['competitor_product_url']);
+        $data['competitor_checked_at'] = $hasCompetitorData ? now() : null;
         $data = $this->applyBossPricingFormula($data);
         $product->update($data);
 
@@ -510,6 +664,7 @@ class ProductController extends Controller
 
     public function destroy(Product $product)
     {
+        abort_unless(\App\Support\Permission::allows(auth()->user(), 'products.delete'), 403);
         ActivityLogger::log('product.delete', $product, 'Xóa sản phẩm: ' . ($product->name ?? ''), [
             'name' => $product->name ?? null,
         ]);
@@ -519,6 +674,7 @@ class ProductController extends Controller
 
     public function show(Product $product)
     {
+        abort_unless(\App\Support\Permission::allows(auth()->user(), 'products.view'), 403);
         $product->load('images');
 
         $quoteItems = \App\Models\QuoteItem::query()
@@ -546,6 +702,33 @@ class ProductController extends Controller
         $salesOrderCount = $salesOrderItems->pluck('sales_order_id')->filter()->unique()->count();
         $invoiceCount = $invoiceItems->pluck('invoice_id')->filter()->unique()->count();
 
+        $competitorSources = [
+            'vinh-nguyen' => 'Vinh Nguyễn',
+            'sieuthivienthong' => 'SieuthiVienthong',
+            'viethoang' => 'Việt Hoàng',
+        ];
+
+        $competitorPrices = [];
+        foreach ($competitorSources as $slug => $label) {
+            $row = CompetitorPrice::query()
+                ->where('competitor_name', 'like', '%' . $slug . '%')
+                ->where(function ($q) use ($product) {
+                    $q->where('product_key', $product->slug ?? '')
+                      ->orWhere('product_name_raw', 'like', '%' . $product->name . '%');
+                })
+                ->orderByDesc('checked_at')
+                ->orderByDesc('id')
+                ->first();
+
+            $competitorPrices[] = [
+                'slug' => $slug,
+                'label' => $label,
+                'price' => $row?->price,
+                'product_url' => $row?->product_url,
+                'checked_at' => $row?->checked_at,
+            ];
+        }
+
         return view('admin.products.show', compact(
             'product',
             'quoteItems',
@@ -553,7 +736,8 @@ class ProductController extends Controller
             'invoiceItems',
             'quoteCount',
             'salesOrderCount',
-            'invoiceCount'
+            'invoiceCount',
+            'competitorPrices'
         ));
     }
 
@@ -913,6 +1097,159 @@ class ProductController extends Controller
         ];
     }
 
+    private function getCompetitorPriceRefs(?Product $product = null): array
+    {
+        $sources = [
+            ['slug' => 'vinh-nguyen', 'label' => 'Vinh Nguyễn', 'aliases' => ['vinhnguyen', 'vinhnguyen.vn']],
+            ['slug' => 'sieuthivienthong', 'label' => 'SieuthiVienthong', 'aliases' => ['sieuthivienthong.com', 'sieuthi-vienthong', 'sieuthi vienthong']],
+            ['slug' => 'vuhoang', 'label' => 'Việt Hoàng', 'aliases' => ['vuhoangtelecom', 'vuhoangtelecom.vn', 'vu hoang', 'vuhoang telecom']],
+        ];
+
+        $fallbackSources = [];
+        if ($product) {
+            $keys = $this->buildCompetitorKeysForProduct($product);
+            $referenceName = (string) ($product->name ?? '');
+            $referenceModel = $this->extractBestCompetitorModelToken($referenceName);
+            $compare = $this->compareAgainstCompetitors($keys, null, $referenceName, $referenceModel);
+            $fallbackSources = $compare['sources'] ?? [];
+        }
+
+        $refs = [];
+        foreach ($sources as $source) {
+            $row = $this->findCompetitorPriceForProduct($source['slug'], $product, $source['aliases'] ?? []);
+
+            if (!$row && !empty($fallbackSources)) {
+                $bestCandidate = null;
+                $bestScore = 0.0;
+                foreach ($fallbackSources as $candidate) {
+                    if (!$this->matchesCompetitorSource((string) ($candidate['competitor_name'] ?? ''), $source['slug'], $source['aliases'] ?? [])) {
+                        continue;
+                    }
+
+                    $score = $this->scoreCompetitorCandidateForProduct($candidate, $product, $source['label'], $source['slug'], $source['aliases'] ?? []);
+                    if ($score > $bestScore) {
+                        $bestScore = $score;
+                        $bestCandidate = $candidate;
+                    }
+                }
+
+                if ($bestCandidate) {
+                    $row = (object) $bestCandidate;
+                }
+            }
+
+            $refs[] = [
+                'slug' => $source['slug'],
+                'label' => $source['label'],
+                'price' => $row?->price,
+                'checked_at' => $row?->checked_at,
+                'product_url' => $row?->product_url,
+            ];
+        }
+
+        return $refs;
+    }
+
+    private function findCompetitorPriceForProduct(string $slug, ?Product $product = null, array $aliases = []): ?CompetitorPrice
+    {
+        $query = CompetitorPrice::query()->where(function ($q) use ($slug, $aliases) {
+            $q->where('competitor_name', 'like', '%' . $slug . '%');
+            foreach ($aliases as $alias) {
+                $q->orWhere('competitor_name', 'like', '%' . $alias . '%');
+            }
+        });
+
+        if ($product) {
+            $normalizedKeys = $this->buildCompetitorKeysForProduct($product);
+            $normalizedName = $this->normalizeCompetitorSearchTerm((string) ($product->name ?? ''));
+            $query->where(function ($q) use ($product, $normalizedName, $normalizedKeys) {
+                $q->where('product_key', $product->slug ?? '');
+                foreach ($normalizedKeys as $key) {
+                    $q->orWhere('product_key', 'like', '%' . $key . '%');
+                }
+                $q->orWhere('product_name_raw', 'like', '%' . ($product->name ?? '') . '%')
+                  ->orWhere('product_name_raw', 'like', '%' . $normalizedName . '%');
+            });
+        }
+
+        return $query->orderByDesc('checked_at')->orderByDesc('id')->first();
+    }
+
+    private function matchesCompetitorSource(string $competitorName, string $slug, array $aliases = []): bool
+    {
+        $normalized = $this->normalizeCompetitorSearchTerm($competitorName);
+        $candidates = array_merge([$slug], $aliases);
+        foreach ($candidates as $candidate) {
+            $candidate = $this->normalizeCompetitorSearchTerm((string) $candidate);
+            if ($candidate !== '' && str_contains($normalized, $candidate)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private function buildCompetitorKeysForProduct(Product $product): array
+    {
+        $keys = [];
+        foreach ([(string) ($product->slug ?? ''), (string) ($product->name ?? ''), (string) ($product->serial_number ?? '')] as $value) {
+            $normalized = $this->normalizeCompetitorSearchTerm($value);
+            if ($normalized !== '' && !in_array($normalized, $keys, true)) {
+                $keys[] = $normalized;
+            }
+        }
+
+        $model = $this->extractBestCompetitorModelToken((string) ($product->name ?? ''));
+        $model = $this->normalizeModelToken($model);
+        if ($model !== '' && !in_array($model, $keys, true)) {
+            $keys[] = $model;
+        }
+
+        return $keys;
+    }
+
+    private function scoreCompetitorCandidateForProduct(array|object $candidate, Product $product, string $sourceLabel, string $sourceSlug, array $aliases = []): float
+    {
+        $candidateKey = $this->normalizeCompetitorSearchTerm((string) ($candidate['product_key'] ?? $candidate->product_key ?? ''));
+        $candidateName = $this->normalizeCompetitorSearchTerm((string) ($candidate['product_name_raw'] ?? $candidate->product_name_raw ?? ''));
+        $productKeys = $this->buildCompetitorKeysForProduct($product);
+        $productName = $this->normalizeCompetitorSearchTerm((string) ($product->name ?? ''));
+        $productModel = $this->normalizeModelToken($this->extractBestCompetitorModelToken($productName));
+        $candidateModel = $this->normalizeModelToken($this->extractBestCompetitorModelToken($candidateName));
+
+        $score = 0.0;
+        foreach ($productKeys as $key) {
+            if ($key !== '' && (str_contains($candidateKey, $key) || str_contains($candidateName, $key))) {
+                $score += 35;
+            }
+        }
+
+        foreach (array_merge([$sourceSlug, $sourceLabel], $aliases) as $hint) {
+            $hint = $this->normalizeCompetitorSearchTerm((string) $hint);
+            if ($hint !== '' && str_contains((string) ($candidate['competitor_name'] ?? $candidate->competitor_name ?? ''), $hint)) {
+                $score += 15;
+            }
+        }
+
+        if ($productModel !== '' && $candidateModel !== '' && $productModel === $candidateModel) {
+            $score += 60;
+        }
+
+        if ($candidateName !== '' && $productName !== '') {
+            similar_text($productName, $candidateName, $percent);
+            $score += ((float) $percent) * 0.4;
+        }
+
+        return $score;
+    }
+
+    private function normalizeCompetitorSearchTerm(string $value): string
+    {
+        $value = mb_strtolower(trim($value), 'UTF-8');
+        $value = preg_replace('/[\p{P}\p{S}]+/u', ' ', $value) ?? $value;
+        $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
+        return trim($value);
+    }
+
     private function normalizeMoneyFields(Request $request): void
     {
         $moneyFields = [
@@ -924,6 +1261,7 @@ class ProductController extends Controller
             'shipping_price',
             'labor_price',
             'cost_price',
+            'competitor_price',
         ];
 
         $normalized = [];
@@ -943,6 +1281,277 @@ class ProductController extends Controller
         if ($normalized !== []) {
             $request->merge($normalized);
         }
+    }
+
+    private function normalizeCompetitorKey(?string $value): string
+    {
+        $v = trim((string) $value);
+        if ($v === '') return '';
+
+        $v = mb_strtolower($v, 'UTF-8');
+        $v = preg_replace('/["\'`]+/u', '', $v) ?? $v;
+        $v = preg_replace('/[^\p{L}\p{N}\s\-]+/u', ' ', $v) ?? $v;
+        $v = preg_replace('/\s+/u', ' ', $v) ?? $v;
+        $v = trim($v);
+
+        return $v;
+    }
+
+    private function buildCompetitorKeys(Product $product, ?string $overrideName = null): array
+    {
+        $keys = [];
+
+        $name = $overrideName !== null ? $overrideName : (string) ($product->name ?? '');
+        $serial = (string) ($product->serial_number ?? '');
+
+        if ($serial !== '') {
+            $keys[] = $serial;
+        }
+        if ($name !== '') {
+            $keys[] = $name;
+        }
+
+        $codeFromName = $this->extractCompetitorModelCode($name);
+        $codeFromSerial = $this->extractCompetitorModelCode($serial);
+        if ($codeFromName !== '') {
+            $keys[] = $codeFromName;
+        }
+        if ($codeFromSerial !== '') {
+            $keys[] = $codeFromSerial;
+        }
+
+        $unique = [];
+        foreach ($keys as $k) {
+            $nk = $this->normalizeCompetitorKey($k);
+            if ($nk !== '' && !in_array($nk, $unique, true)) {
+                $unique[] = $nk;
+            }
+        }
+
+        return $unique;
+    }
+
+    private function extractCompetitorModelCode(?string $value): string
+    {
+        $text = trim((string) $value);
+        if ($text === '') {
+            return '';
+        }
+
+        if (preg_match('/\b([a-z]{1,8}[\-\/][a-z0-9\-\/]{2,})\b/iu', $text, $m1)) {
+            return (string) ($m1[1] ?? '');
+        }
+
+        if (preg_match('/\b([a-z]{1,6}\s?[0-9]{1,6}(?:\s?[a-z0-9]{1,6})?)\b/iu', $text, $m2)) {
+            return preg_replace('/\s+/u', ' ', (string) ($m2[1] ?? '')) ?? '';
+        }
+
+        return '';
+    }
+
+    private function compareAgainstCompetitors(array $keys, ?string $competitorFilter = null, ?string $referenceName = null, ?string $referenceModel = null): array
+    {
+        $empty = [
+            'min_price' => null,
+            'max_price' => null,
+            'avg_price' => null,
+            'best' => null,
+            'sources' => [],
+        ];
+
+        $latestByCompetitor = collect();
+
+        if ($keys !== []) {
+            $latestByCompetitor = \App\Models\CompetitorPrice::query()
+                ->whereIn('id', function ($sub) use ($keys, $competitorFilter) {
+                    $sub->from('competitor_prices')
+                        ->selectRaw('MAX(id)')
+                        ->whereIn('product_key', $keys);
+
+                    if ($competitorFilter !== null && $competitorFilter !== '') {
+                        $sub->where('competitor_name', $competitorFilter);
+                    }
+
+                    $sub->groupBy('competitor_name');
+                })
+                ->get(['competitor_name', 'price', 'product_url', 'checked_at', 'product_name_raw']);
+        }
+
+        $normalizedRef = $this->normalizeNameForFuzzy($referenceName ?? '');
+        $referenceModel = $this->normalizeModelToken($referenceModel ?? $this->extractBestCompetitorModelToken($referenceName ?? ''));
+
+        // Fallback fuzzy khi không match được theo key
+        if ($latestByCompetitor->isEmpty() && ($normalizedRef !== '' || $referenceModel !== '')) {
+            $candidates = \App\Models\CompetitorPrice::query()
+                ->when($competitorFilter !== null && $competitorFilter !== '', function ($q) use ($competitorFilter) {
+                    $q->where('competitor_name', $competitorFilter);
+                })
+                ->orderByDesc('checked_at')
+                ->orderByDesc('id')
+                ->limit(4000)
+                ->get(['id', 'competitor_name', 'price', 'product_url', 'checked_at', 'product_name_raw']);
+
+            $bestByCompetitor = [];
+            foreach ($candidates as $row) {
+                $candidateNameRaw = (string) ($row->product_name_raw ?? '');
+                $candidateName = $this->normalizeNameForFuzzy($candidateNameRaw);
+                if ($candidateName === '') {
+                    continue;
+                }
+
+                $candidateModel = $this->normalizeModelToken($this->extractBestCompetitorModelToken($candidateNameRaw));
+
+                $score = 0.0;
+
+                if ($referenceModel !== '' && $candidateModel !== '' && $referenceModel === $candidateModel) {
+                    $score = 100.0;
+                } else {
+                    similar_text($normalizedRef, $candidateName, $percent);
+                    $score = (float) $percent;
+
+                    // Boost nếu 2 bên có token model giống nhau một phần
+                    if ($this->hasCommonModelToken($normalizedRef, $candidateName)) {
+                        $score += 20;
+                    }
+                }
+
+                if ($score < 60.0) {
+                    continue;
+                }
+
+                $comp = (string) ($row->competitor_name ?? '');
+                $current = $bestByCompetitor[$comp] ?? null;
+                if ($current === null || $score > $current['score']) {
+                    $bestByCompetitor[$comp] = ['score' => $score, 'row' => $row];
+                }
+            }
+
+            $latestByCompetitor = collect(array_values(array_map(fn ($x) => $x['row'], $bestByCompetitor)));
+        }
+
+        if ($latestByCompetitor->isEmpty()) {
+            return $empty;
+        }
+
+        $prices = $latestByCompetitor->pluck('price')->filter(function ($p) {
+            return $p !== null && $p > 0;
+        })->values();
+
+        if ($prices->isEmpty()) {
+            return $empty;
+        }
+
+        $min = (float) $prices->min();
+        $max = (float) $prices->max();
+        $avg = (float) round($prices->avg(), 2);
+
+        $best = $latestByCompetitor
+            ->filter(fn ($row) => (float) $row->price === $min)
+            ->first();
+
+        return [
+            'min_price' => $min,
+            'max_price' => $max,
+            'avg_price' => $avg,
+            'best' => $best ? [
+                'competitor_name' => (string) ($best->competitor_name ?? ''),
+                'price' => (float) ($best->price ?? 0),
+                'product_url' => (string) ($best->product_url ?? ''),
+                'checked_at' => optional($best->checked_at)->toDateTimeString(),
+            ] : null,
+            'sources' => $latestByCompetitor->map(function ($row) {
+                return [
+                    'competitor_name' => (string) ($row->competitor_name ?? ''),
+                    'price' => (float) ($row->price ?? 0),
+                    'product_url' => (string) ($row->product_url ?? ''),
+                    'checked_at' => optional($row->checked_at)->toDateTimeString(),
+                ];
+            })->values()->all(),
+        ];
+    }
+
+    private function normalizeNameForFuzzy(string $value): string
+    {
+        $v = mb_strtolower(trim($value), 'UTF-8');
+        if ($v === '') {
+            return '';
+        }
+
+        $v = preg_replace('/["\'`]+/u', '', $v) ?? $v;
+        $v = preg_replace('/[^\p{L}\p{N}\s\-]+/u', ' ', $v) ?? $v;
+
+        $stopWords = [
+            'camera', 'máy', 'chấm', 'công', 'vân', 'tay', 'khuôn', 'mặt',
+            'wifi', 'ip', 'dome', 'thân', 'ngoài', 'trời', 'trong', 'nhà',
+            'chính', 'hãng', 'quan', 'sát', 'lắp', 'đặt', 'giá', 'rẻ', 'và', 'thẻ', 'từ'
+        ];
+
+        $tokens = preg_split('/\s+/u', $v, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $tokens = array_values(array_filter($tokens, function ($token) use ($stopWords) {
+            // giữ token có số như k14, pro, kx-ad2112 kể cả ngắn
+            if (preg_match('/[0-9]/', $token)) {
+                return true;
+            }
+            if (mb_strlen($token, 'UTF-8') <= 1) {
+                return false;
+            }
+            return !in_array($token, $stopWords, true);
+        }));
+
+        return implode(' ', $tokens);
+    }
+
+    private function hasCommonModelToken(string $a, string $b): bool
+    {
+        $ta = $this->extractModelTokens($a);
+        $tb = $this->extractModelTokens($b);
+
+        if ($ta === [] || $tb === []) {
+            return false;
+        }
+
+        return count(array_intersect($ta, $tb)) > 0;
+    }
+
+    private function extractBestCompetitorModelToken(?string $value): string
+    {
+        $text = trim((string) $value);
+        if ($text === '') {
+            return '';
+        }
+
+        $tokens = $this->extractModelTokens($text);
+        return $tokens !== [] ? end($tokens) : '';
+    }
+
+    private function extractModelTokens(string $value): array
+    {
+        $tokens = preg_split('/\s+/u', trim($value), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $models = [];
+
+        foreach ($tokens as $token) {
+            $token = $this->normalizeModelToken($token);
+            if ($token === '') {
+                continue;
+            }
+
+            if (preg_match('/[0-9]/', $token) || str_contains($token, '-')) {
+                $models[] = $token;
+            }
+        }
+
+        return array_values(array_unique($models));
+    }
+
+    private function normalizeModelToken(?string $value): string
+    {
+        $v = mb_strtolower(trim((string) $value), 'UTF-8');
+        if ($v === '') {
+            return '';
+        }
+
+        $v = preg_replace('/[^\p{L}\p{N}\-]+/u', '', $v) ?? $v;
+        return trim($v);
     }
 
     public function activityHistory(Product $product)

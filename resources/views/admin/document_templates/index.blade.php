@@ -7,7 +7,7 @@
     <div class="d-flex justify-content-between align-items-start gap-3 mb-4 flex-wrap">
         <div>
             <h1 class="h4 fw-bold mb-1">Quản lý mẫu in chứng từ</h1>
-            <div class="text-muted">Upload mẫu Word (.docx), bật/tắt và chọn mẫu mặc định theo từng loại chứng từ.</div>
+            <div class="text-muted">Quản lý mẫu Word, còn PDF sẽ được tách riêng ở module PDF để dựng HTML/CSS và xuất ra file in.</div>
         </div>
         <a href="{{ route('admin.document-templates.fields.download') }}" class="btn btn-outline-primary">
             <i class="bi bi-file-earmark-arrow-down me-1"></i>Tải danh sách trường trộn
@@ -36,11 +36,12 @@
                         <option value="quote">Báo giá</option>
                         <option value="sales_order">Đơn hàng</option>
                         <option value="invoice">Hóa đơn</option>
+                        <option value="pdf">PDF</option>
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">File mẫu (.docx / .xlsx / .xls)</label>
-                    <input type="file" name="file" class="form-control" accept=".docx,.xlsx,.xls" required>
+                    <label class="form-label">File mẫu (.docx / .xlsx / .xls / .pdf / .html)</label>
+                    <input type="file" name="file" class="form-control" accept=".docx,.xlsx,.xls,.pdf,.html,.htm" required>
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
                     <button class="btn btn-primary w-100" type="submit">Upload</button>
@@ -85,7 +86,8 @@
                             <td>
                                 @if($tpl->type === 'quote') Báo giá
                                 @elseif($tpl->type === 'sales_order') Đơn hàng
-                                @else Hóa đơn
+                                @elseif($tpl->type === 'invoice') Hóa đơn
+                                @else PDF
                                 @endif
                             </td>
                             <td>
@@ -134,9 +136,10 @@
                                             <option value="quote" @selected($tpl->type === 'quote')>Báo giá</option>
                                             <option value="sales_order" @selected($tpl->type === 'sales_order')>Đơn hàng</option>
                                             <option value="invoice" @selected($tpl->type === 'invoice')>Hóa đơn</option>
+                                            <option value="pdf" @selected($tpl->type === 'pdf')>PDF</option>
                                         </select>
                                     </div>
-                                    <div class="col-md-3"><input type="file" name="file" class="form-control form-control-sm" accept=".docx,.xlsx,.xls"></div>
+                                    <div class="col-md-3"><input type="file" name="file" class="form-control form-control-sm" accept=".docx,.xlsx,.xls,.pdf,.html,.htm"></div>
                                     <div class="col-md-3 d-flex align-items-center gap-3">
                                         <label class="form-check mb-0">
                                             <input class="form-check-input" type="checkbox" name="is_active" value="1" @checked($tpl->is_active)>
@@ -164,10 +167,11 @@
     </div>
 
     <div class="alert alert-info mt-4 mb-0">
-        <b>Cách dùng placeholder trong file Word:</b>
+        <b>Cách dùng placeholder trong file mẫu:</b>
         <div class="small mt-1">
             Ví dụ: <code>@{{CustomerName}}</code>, <code>@{{QuoteCode}}</code>, <code>@{{TotalAmount}}</code>.<br>
-            Dòng sản phẩm: dùng block <code>@{{#Items}}</code> ... <code>@{{/Items}}</code> với các trường con như <code>@{{Item.Name}}</code>, <code>@{{Item.Quantity}}</code>.
+            Dòng sản phẩm: dùng block <code>@{{#Items}}</code> ... <code>@{{/Items}}</code> với các trường con như <code>@{{Item.Name}}</code>, <code>@{{Item.Quantity}}</code>.<br>
+            Nếu dùng PDF/HTML, bạn có thể tạo layout sẵn bằng HTML rồi gắn dữ liệu tương tự.
         </div>
     </div>
 </div>

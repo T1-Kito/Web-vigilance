@@ -26,9 +26,14 @@
     <meta name="twitter:title" content="@yield('title', 'Vigilance Việt Nam JSC')">
     <meta name="twitter:description" content="@yield('meta_description', 'Vigilance Việt Nam JSC - Cung cấp giải pháp công nghệ và thiết bị chuyên nghiệp')">
     @stack('structured_data')
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="dns-prefetch" href="//cdn.jsdelivr.net">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="{{ asset('css/custom-fonts.css') }}" onerror="console.error('Failed to load custom-fonts.css')">
+    <link rel="stylesheet" href="{{ asset('css/custom-fonts.css') }}">
+    @if(request()->routeIs('login'))
+        <link rel="preload" as="image" href="{{ asset('images/auth/login-hero.webp') }}" fetchpriority="high" type="image/webp">
+    @endif
     <style>
         :root {
             /* Brand palette derived from logo */
@@ -54,7 +59,26 @@
         .btn-brand:hover { background: var(--brand-accent); color:#fff; }
     </style>
     <style>
-        body { background: #FFFFFF; font-size: 0.97em; }
+        html, body {
+            background: #fff;
+        }
+
+        html {
+            scrollbar-gutter: stable;
+            overflow-y: scroll;
+        }
+
+        body {
+            font-size: 0.97em;
+        }
+
+        main {
+            transition: opacity .14s ease;
+        }
+
+        body.is-page-leaving main {
+            opacity: .88;
+        }
     </style>
     <style>
         /* Floating User Button & Menu */
@@ -131,7 +155,7 @@
     </style>
     <style>
   body {
-    background: #F4F6FA;
+    background: #fff;
   }
   *,
   *::before,
@@ -535,7 +559,35 @@
     @if(!$isEmbed)
         @include('components.chat-widget')
     @endif
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script>
+        document.documentElement.classList.add('js-ready');
+
+        (function () {
+            function markPageLeaving(anchor) {
+                if (!(anchor instanceof HTMLAnchorElement)) return;
+                const href = anchor.getAttribute('href') || '';
+                if (!href || href.startsWith('#')) return;
+                if (anchor.hasAttribute('download')) return;
+                if (anchor.target && anchor.target !== '_self') return;
+                if (anchor.origin !== window.location.origin) return;
+                document.body.classList.add('is-page-leaving');
+            }
+
+            document.addEventListener('click', function (e) {
+                const anchor = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+                if (!anchor) return;
+                if (e.defaultPrevented) return;
+                if (e.button !== 0) return;
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                markPageLeaving(anchor);
+            }, true);
+
+            window.addEventListener('pageshow', function () {
+                document.body.classList.remove('is-page-leaving');
+            });
+        })();
+    </script>
     <script>
         document.addEventListener('click', function (e) {
             var link = e.target && e.target.closest ? e.target.closest('.pagination a') : null;
@@ -613,34 +665,6 @@
             }
         }, true);
     </script>
-    @if(session('showLoginModal') || session('showRegisterModal'))
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            try {
-                var isMobile = window.matchMedia && window.matchMedia('(max-width: 575.98px)').matches;
-                var hasMobileLoginModal = !!document.getElementById('mobileLoginModal');
-
-                @if(session('showLoginModal'))
-                    if (isMobile && hasMobileLoginModal && typeof window.openMobileLoginModal === 'function') {
-                        window.openMobileLoginModal();
-                    } else if (document.getElementById('loginModal')) {
-                        var loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
-                        loginModal.show();
-                    }
-                @endif
-
-                @if(session('showRegisterModal'))
-                    if (document.getElementById('registerModal')) {
-                        var registerModal = new bootstrap.Modal(document.getElementById('registerModal'));
-                        registerModal.show();
-                    }
-                @endif
-            } catch (error) {
-                console.log('Modal initialization error:', error);
-            }
-        });
-    </script>
-    @endif
     <script>
         (function () {
             var root = document.getElementById('floating-side-banners');

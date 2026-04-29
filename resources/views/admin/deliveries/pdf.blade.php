@@ -26,6 +26,8 @@
         .grid th { background:#eef1f5; text-align:center; font-weight:700; }
         .text-center { text-align:center; }
         .text-right { text-align:right; }
+        .money { text-align:right; white-space:nowrap; font-variant-numeric: tabular-nums; }
+        .nowrap { white-space:nowrap; }
 
         .sign { margin-top:14px; width:100%; border-collapse:collapse; }
         .sign td { width:25%; text-align:center; font-size:12px; vertical-align:top; }
@@ -97,11 +99,14 @@
     <table class="grid">
         <thead>
             <tr>
-                <th style="width:6%;">STT</th>
-                <th style="width:16%;">Mã hàng</th>
+                <th style="width:5%;">STT</th>
+                <th style="width:12%;">Mã hàng</th>
                 <th>Tên hàng</th>
-                <th style="width:10%;">Số lượng</th>
-                <th style="width:18%;">Số BG/Đơn</th>
+                <th style="width:7%;">SL</th>
+                <th style="width:11%;">Đơn giá</th>
+                <th style="width:8%;">VAT</th>
+                <th style="width:11%;">Tiền thuế</th>
+                <th style="width:13%;">Sau thuế</th>
             </tr>
         </thead>
         <tbody>
@@ -109,23 +114,35 @@
             @php
                 $unitCode = $line->product->serial_number ?? ('SP' . $line->product_id);
                 $name = $line->product->name ?? ('Sản phẩm #' . $line->product_id);
+                $soItem = $line->salesOrderItem;
+                $orderItem = $line->orderItem;
+                $qty = (int) ($line->quantity ?? 0);
+                $unitPrice = (float) ($soItem->unit_price ?? ($orderItem->unit_price ?? $orderItem->price ?? 0));
+                $lineTotal = $unitPrice * $qty;
+                $lineVatRate = (float) ($soItem->vat_percent ?? ($salesOrder->vat_percent ?? 0));
+                $lineVatAmount = $lineTotal * max(0, $lineVatRate) / 100;
+                $lineAfterTax = $lineTotal + $lineVatAmount;
+                $vatLabel = $lineVatRate == 0 ? 'KCT/0%' : (rtrim(rtrim(number_format($lineVatRate, 2, '.', ''), '0'), '.') . '%');
             @endphp
             <tr>
                 <td class="text-center">{{ $loop->iteration }}</td>
                 <td>{{ $unitCode }}</td>
                 <td>{{ $name }}</td>
-                <td class="text-center">{{ (int) $line->quantity }}</td>
-                <td class="text-center">{{ $sourceCode }}</td>
+                <td class="text-center">{{ $qty }}</td>
+                <td class="money">{{ number_format($unitPrice, 0, ',', '.') }}</td>
+                <td class="text-center nowrap">{{ $vatLabel }}</td>
+                <td class="money">{{ number_format($lineVatAmount, 0, ',', '.') }}</td>
+                <td class="money"><strong>{{ number_format($lineAfterTax, 0, ',', '.') }}</strong></td>
             </tr>
         @empty
             <tr>
-                <td colspan="5" class="text-center">Không có dòng xuất kho</td>
+                <td colspan="8" class="text-center">Không có dòng xuất kho</td>
             </tr>
         @endforelse
         <tr>
             <td colspan="3" class="text-right"><strong>Cộng</strong></td>
             <td class="text-center"><strong>{{ $totalQty }}</strong></td>
-            <td></td>
+            <td colspan="4"></td>
         </tr>
         </tbody>
     </table>

@@ -118,6 +118,8 @@
         }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
+        .nowrap { white-space: nowrap; }
+        .money { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 
         .signatures {
             display: flex;
@@ -209,24 +211,43 @@
     <table>
         <thead>
             <tr>
-                <th style="width:58px;" class="text-center">STT</th>
+                <th style="width:42px;" class="text-center">STT</th>
                 <th>Tên hàng</th>
-                <th style="width:100px;" class="text-center">ĐVT</th>
-                <th style="width:110px;" class="text-right">Số lượng</th>
+                <th style="width:62px;" class="text-center">ĐVT</th>
+                <th style="width:60px;" class="text-center">SL</th>
+                <th style="width:86px;" class="money">Đơn giá</th>
+                <th style="width:68px;" class="text-center">VAT</th>
+                <th style="width:88px;" class="money">Tiền thuế</th>
+                <th style="width:96px;" class="money">Sau thuế</th>
             </tr>
         </thead>
         <tbody>
         @forelse($delivery->items as $idx => $line)
-            @php $unit = $line->salesOrderItem->unit ?? ($line->orderItem->unit ?? '---'); @endphp
+            @php
+                $soItem = $line->salesOrderItem;
+                $orderItem = $line->orderItem;
+                $unit = $soItem->unit ?? ($orderItem->unit ?? '---');
+                $unitPrice = (float) ($soItem->unit_price ?? ($orderItem->unit_price ?? $orderItem->price ?? 0));
+                $qty = (int) ($line->quantity ?? 0);
+                $lineTotal = $unitPrice * $qty;
+                $lineVatRate = (float) ($soItem->vat_percent ?? ($salesOrder->vat_percent ?? 0));
+                $lineVatAmount = $lineTotal * max(0, $lineVatRate) / 100;
+                $lineAfterTax = $lineTotal + $lineVatAmount;
+                $vatLabel = $lineVatRate == 0 ? 'KCT/0%' : (rtrim(rtrim(number_format($lineVatRate, 2, '.', ''), '0'), '.') . '%');
+            @endphp
             <tr>
                 <td class="text-center">{{ $idx + 1 }}</td>
                 <td>{{ $line->product->name ?? ('Sản phẩm #' . $line->product_id) }}</td>
                 <td class="text-center">{{ $unit }}</td>
-                <td class="text-right">{{ (int) $line->quantity }}</td>
+                <td class="text-center">{{ $qty }}</td>
+                <td class="money">{{ number_format($unitPrice, 0, ',', '.') }}</td>
+                <td class="text-center nowrap">{{ $vatLabel }}</td>
+                <td class="money">{{ number_format($lineVatAmount, 0, ',', '.') }}</td>
+                <td class="money"><strong>{{ number_format($lineAfterTax, 0, ',', '.') }}</strong></td>
             </tr>
         @empty
             <tr>
-                <td colspan="4" class="text-center" style="color:#6b7280;">Không có dòng hàng.</td>
+                <td colspan="8" class="text-center" style="color:#6b7280;">Không có dòng hàng.</td>
             </tr>
         @endforelse
         </tbody>

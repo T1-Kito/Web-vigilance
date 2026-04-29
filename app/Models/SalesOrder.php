@@ -15,6 +15,7 @@ class SalesOrder extends Model
     protected $fillable = [
         'user_id',
         'source_quote_id',
+        'source_order_id',
         'sales_order_code',
         'receiver_name',
         'receiver_phone',
@@ -55,5 +56,15 @@ class SalesOrder extends Model
     public function debt()
     {
         return $this->hasOne(Debt::class);
+    }
+
+    public function deliveries()
+    {
+        return $this->hasMany(Delivery::class);
+    }
+
+    public function invoices()
+    {
+        return $this->hasMany(Invoice::class);
     }
 }

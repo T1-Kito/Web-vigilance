@@ -7,6 +7,12 @@
     $discountPercent = (float) ($order->discount_percent ?? 0);
     $vatPercent = (float) ($order->vat_percent ?? 8);
 
+    $selectedPaymentTerm = old('payment_term', $order->payment_term ?? 'full_advance');
+    $selectedPaymentDueDays = old('payment_due_days', $order->payment_due_days ?? null);
+    $selectedDepositPercent = old('deposit_percent', $order->deposit_percent ?? null);
+    $selectedPaymentNote = old('payment_note', $order->payment_note ?? $order->note ?? '');
+    $selectedPaymentMethod = old('payment_method', $order->payment_method ?? 'bank_transfer');
+
     $items = $order->items ?? collect();
 
     $orderCode = $order->quote_code ?? $order->order_code ?? ("VK" . str_pad($order->id, 6, '0', STR_PAD_LEFT));
@@ -259,21 +265,25 @@
 
     .no-print { display: block; }
 
-    .admin-qe { border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
-    .admin-qe .admin-qe-head { padding: 10px 12px; background: linear-gradient(180deg, #fafafa, #ffffff); border-bottom: 1px solid #eef0f3; }
-    .admin-qe .admin-qe-title { font-weight: 800; font-size: 13px; }
-    .admin-qe .admin-qe-code { font-size: 12px; color: #6b7280; font-weight: 600; }
-    .admin-qe .admin-qe-body { padding: 12px; }
-    .admin-qe .admin-qe-label { font-size: 11.5px; color: #374151; font-weight: 700; margin-bottom: 4px; }
-    .admin-qe .admin-qe-control { font-size: 13px; padding: 8px 10px; border-radius: 10px; border: 1px solid #e5e7eb; background: #fff; }
-    .admin-qe .admin-qe-control:focus { border-color: #2563eb; box-shadow: 0 0 0 .18rem rgba(37, 99, 235, .14); }
-    .admin-qe .admin-qe-actions { display: flex; align-items: flex-end; justify-content: flex-end; }
-    .admin-qe .admin-qe-submit { padding: 9px 16px; border-radius: 10px; font-weight: 800; min-width: 110px; }
-    .admin-qe textarea.admin-qe-control { line-height: 1.35; max-height: 44px; resize: vertical; }
-    .admin-qe .row.g-2 { --bs-gutter-x: .6rem; --bs-gutter-y: .6rem; }
+    .misa-form { border: 1px solid #dbe3ef; border-radius: 12px; overflow: hidden; background: #fff; box-shadow: 0 6px 18px rgba(15, 23, 42, .06); }
+    .misa-form__head { padding: 12px 14px; background: linear-gradient(180deg, #f8fbff, #ffffff); border-bottom: 1px solid #e6edf7; }
+    .misa-form__title { font-weight: 800; font-size: 14px; color: #0f172a; }
+    .misa-form__sub { font-size: 12px; color: #64748b; margin-top: 2px; }
+    .misa-form__body { padding: 12px; }
+    .misa-label { font-size: 12px; color: #334155; font-weight: 700; margin-bottom: 6px; }
+    .misa-control { font-size: 13px; padding: 9px 10px; border-radius: 10px; border: 1px solid #dbe3ef; background: #fff; }
+    .misa-control:focus { border-color: #2563eb; box-shadow: 0 0 0 .18rem rgba(37,99,235,.14); }
+    .misa-choice-group { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .misa-choice { border: 1px solid #dbe3ef; border-radius: 10px; padding: 9px 10px; display: flex; align-items: center; gap: 8px; background: #fff; }
+    .misa-choice input { margin: 0; }
+    .misa-choice span { font-size: 12.5px; font-weight: 600; color: #1e293b; }
+    .misa-inline-note { font-size: 11px; color: #64748b; margin-top: 4px; }
+    .misa-actions { display: flex; justify-content: flex-end; }
+    .misa-submit { border-radius: 10px; font-weight: 800; padding: 10px 16px; min-width: 180px; }
     @media (max-width: 768px) {
-        .admin-qe .admin-qe-actions { justify-content: stretch; }
-        .admin-qe .admin-qe-submit { width: 100%; }
+        .misa-choice-group { grid-template-columns: 1fr; }
+        .misa-actions { justify-content: stretch; }
+        .misa-submit { width: 100%; }
     }
 
     @page { size: A4; margin: 8mm; }
@@ -472,6 +482,11 @@
                             @php
                                 $name = $item->product->name ?? 'Sản phẩm';
                                 $productImage = $item->product->image ?? null;
+                                $rawDescription = $item->product->description
+                                    ?? $item->product->information
+                                    ?? $item->product->specifications
+                                    ?? '';
+                                $productDescription = trim(strip_tags((string) $rawDescription));
                                 $price = (float) ($item->price ?? 0);
                                 $qty = (int) ($item->quantity ?? 0);
                                 $unit = $item->unit ?? '';
@@ -485,7 +500,12 @@
                             @endphp
                             <tr>
                                 <td class="center">{{ $idx + 1 }}</td>
-                                <td class="left">{{ $name }}</td>
+                                <td class="left">
+                                    <div><b>{{ $name }}</b></div>
+                                    @if($productDescription !== '')
+                                        <div class="muted" style="margin-top:2px;">{{ \Illuminate\Support\Str::limit($productDescription, 220) }}</div>
+                                    @endif
+                                </td>
                                 <td class="center">
                                     @if(!empty($productImage))
                                         <img class="q-prod-img" src="{{ asset('images/products/' . $productImage) }}" alt="{{ $name }}">
@@ -578,14 +598,68 @@
                     </table>
                 </div>
 
-                <div class="no-print mt-3 text-center">
+                <div class="no-print mt-3">
                     @php
                         $isAdminViewer = auth()->check() && (auth()->user()->role ?? null) === 'admin';
                     @endphp
                     @if($order->status === 'pending' && !$isAdminViewer)
-                        <form method="POST" action="{{ route('orders.quote.confirm', ['orderCode' => $orderCode]) }}" class="d-inline">
+                        <form method="POST" action="{{ route('orders.quote.confirm', ['orderCode' => $orderCode]) }}" class="misa-form" id="userConfirmQuoteForm">
                             @csrf
-                            <button type="submit" class="btn btn-success px-4">Xác nhận đặt hàng</button>
+                            <div class="misa-form__head">
+                                <div class="misa-form__title">Thông tin xác nhận đơn hàng (Form 1)</div>
+                                <div class="misa-form__sub">Vui lòng chọn điều khoản và phương thức thanh toán trước khi xác nhận.</div>
+                            </div>
+
+                            <div class="misa-form__body">
+                                <div class="row g-2">
+                                    <div class="col-12">
+                                        <div class="misa-label">Điều khoản thanh toán</div>
+                                        <div class="misa-choice-group">
+                                            <label class="misa-choice">
+                                                <input type="radio" name="payment_term" value="full_advance" {{ $selectedPaymentTerm === 'full_advance' ? 'checked' : '' }}>
+                                                <span>Thanh toán 100% trước giao hàng</span>
+                                            </label>
+                                            <label class="misa-choice">
+                                                <input type="radio" name="payment_term" value="deposit" {{ $selectedPaymentTerm === 'deposit' ? 'checked' : '' }}>
+                                                <span>Đặt cọc + phần còn lại</span>
+                                            </label>
+                                            <label class="misa-choice">
+                                                <input type="radio" name="payment_term" value="debt" {{ $selectedPaymentTerm === 'debt' ? 'checked' : '' }}>
+                                                <span>Công nợ theo hạn</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-4" id="userDepositPercentWrap" style="display:none;">
+                                        <label class="misa-label" for="userDepositPercent">Tỷ lệ đặt cọc (%)</label>
+                                        <input id="userDepositPercent" type="number" min="0.01" max="100" step="0.01" name="deposit_percent" class="form-control misa-control" value="{{ $selectedDepositPercent }}" placeholder="VD: 30">
+                                    </div>
+
+                                    <div class="col-md-4" id="userPaymentDueDaysWrap" style="display:none;">
+                                        <label class="misa-label" for="userPaymentDueDays">Hạn công nợ (ngày)</label>
+                                        <input id="userPaymentDueDays" type="number" min="1" max="3650" name="payment_due_days" class="form-control misa-control" value="{{ $selectedPaymentDueDays }}" placeholder="VD: 30">
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <div class="misa-label">Phương thức thanh toán</div>
+                                        <select name="payment_method" class="form-select misa-control">
+                                            <option value="bank_transfer" {{ $selectedPaymentMethod === 'bank_transfer' ? 'selected' : '' }}>Chuyển khoản</option>
+                                            <option value="cash" {{ $selectedPaymentMethod === 'cash' ? 'selected' : '' }}>Tiền mặt</option>
+                                            <option value="mixed" {{ $selectedPaymentMethod === 'mixed' ? 'selected' : '' }}>Kết hợp</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <label class="misa-label" for="userPaymentNote">Ghi chú thanh toán</label>
+                                        <textarea id="userPaymentNote" name="payment_note" class="form-control misa-control" rows="2" placeholder="Ghi chú thêm (nếu có)">{{ $selectedPaymentNote }}</textarea>
+                                        <div class="misa-inline-note">Ví dụ: thanh toán phần còn lại sau nghiệm thu.</div>
+                                    </div>
+
+                                    <div class="col-12 misa-actions">
+                                        <button type="submit" class="btn btn-success misa-submit">Xác nhận đặt hàng</button>
+                                    </div>
+                                </div>
+                            </div>
                         </form>
                     @endif
                 </div>
@@ -593,6 +667,49 @@
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    const form = document.getElementById('userConfirmQuoteForm');
+    if (!form) return;
+
+    const termInputs = form.querySelectorAll('input[name="payment_term"]');
+    const depositWrap = document.getElementById('userDepositPercentWrap');
+    const debtWrap = document.getElementById('userPaymentDueDaysWrap');
+    const depositInput = document.getElementById('userDepositPercent');
+    const debtInput = document.getElementById('userPaymentDueDays');
+
+    function getSelectedTerm() {
+        const checked = form.querySelector('input[name="payment_term"]:checked');
+        return checked ? checked.value : 'full_advance';
+    }
+
+    function toggleFields() {
+        const term = getSelectedTerm();
+
+        if (term === 'deposit') {
+            depositWrap.style.display = '';
+            debtWrap.style.display = 'none';
+            if (debtInput) debtInput.value = '';
+        } else if (term === 'debt') {
+            depositWrap.style.display = 'none';
+            debtWrap.style.display = '';
+            if (depositInput) depositInput.value = '';
+        } else {
+            depositWrap.style.display = 'none';
+            debtWrap.style.display = 'none';
+            if (depositInput) depositInput.value = '';
+            if (debtInput) debtInput.value = '';
+        }
+    }
+
+    termInputs.forEach(function (input) {
+        input.addEventListener('change', toggleFields);
+    });
+
+    toggleFields();
+})();
+</script>
 
 @if($isPrintMode)
 <script>

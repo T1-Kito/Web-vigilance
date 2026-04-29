@@ -18,15 +18,26 @@ class Invoice extends Model
         'vat_amount',
         'total_amount',
         'note',
+        'misa_ref_id',
+        'misa_transaction_id',
+        'misa_inv_series',
+        'misa_invoice_code',
+        'misa_request_payload',
+        'misa_response_payload',
+        'misa_error_message',
+        'misa_issued_at',
     ];
 
     protected $casts = [
         'issued_at' => 'datetime',
+        'misa_issued_at' => 'datetime',
         'vat_percent' => 'float',
         'discount_percent' => 'float',
         'sub_total' => 'float',
         'vat_amount' => 'float',
         'total_amount' => 'float',
+        'misa_request_payload' => 'array',
+        'misa_response_payload' => 'array',
     ];
 
     public function order()
