@@ -52,6 +52,13 @@
         background: linear-gradient(135deg, rgba(148,163,184,.2), rgba(203,213,225,.26));
         border-color: rgba(148,163,184,.4);
     }
+
+    .quick-tabs .nav-link { font-weight: 600; }
+    .amount-muted {
+        color: #94a3b8 !important;
+        text-decoration: line-through;
+        text-decoration-thickness: 1.5px;
+    }
 </style>
 
 <div class="container-fluid py-4">
@@ -76,8 +83,22 @@
     </div>
 
     <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body">
+        <div class="card-body pb-0">
+            @php $activeTab = $filters['tab'] ?? 'all'; @endphp
+            <ul class="nav nav-tabs quick-tabs mb-3">
+                <li class="nav-item">
+                    <a class="nav-link {{ $activeTab === 'all' ? 'active' : '' }}" href="{{ route('admin.invoices.index', array_merge(request()->except('page'), ['tab' => 'all'])) }}">Tất cả</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ $activeTab === 'active' ? 'active' : '' }}" href="{{ route('admin.invoices.index', array_merge(request()->except('page'), ['tab' => 'active'])) }}">Đang hiệu lực</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ $activeTab === 'referenced' ? 'active' : '' }}" href="{{ route('admin.invoices.index', array_merge(request()->except('page'), ['tab' => 'referenced'])) }}">Bị điều chỉnh/thay thế</a>
+                </li>
+            </ul>
+
             <form class="row g-2 align-items-end" method="GET" action="{{ route('admin.invoices.index') }}">
+                <input type="hidden" name="tab" value="{{ $activeTab }}">
                 <div class="col-md-4">
                     <label class="form-label small text-muted">Mã đơn hàng</label>
                     <input type="text" name="order_code" class="form-control" value="{{ $filters['order_code'] ?? '' }}" placeholder="VD: SO202604-0001">
@@ -87,6 +108,8 @@
                     <select name="status" class="form-select">
                         <option value="" @selected(($filters['status'] ?? '') === '')>Tất cả</option>
                         <option value="issued" @selected(($filters['status'] ?? '') === 'issued')>Đã phát hành</option>
+                        <option value="replaced" @selected(($filters['status'] ?? '') === 'replaced')>Đã bị thay thế</option>
+                        <option value="adjusted" @selected(($filters['status'] ?? '') === 'adjusted')>Đã bị điều chỉnh</option>
                         <option value="draft" @selected(($filters['status'] ?? '') === 'draft')>Nháp</option>
                         <option value="cancelled" @selected(($filters['status'] ?? '') === 'cancelled')>Đã hủy</option>
                     </select>
@@ -117,13 +140,31 @@
                     @forelse($invoices as $invoice)
                         <tr class="invoice-row" data-href="{{ route('admin.invoices.open-misa', $invoice) }}">
                             <td class="fw-semibold">
-                                {{ $invoice->invoice_code }}
+                                <div class="d-flex align-items-center gap-1">
+                                    <span>{{ $invoice->invoice_code }}</span>
+                                    @if(in_array($invoice->reference_action, ['adjustment', 'replacement'], true) && $invoice->sourceInvoice)
+                                        @php
+                                            $refTypeText = $invoice->reference_action === 'replacement' ? 'Thay thế' : 'Điều chỉnh';
+                                            $srcCode = $invoice->sourceInvoice->misa_invoice_code ?: $invoice->sourceInvoice->invoice_code;
+                                        @endphp
+                                        <a
+                                            href="{{ route('admin.invoices.show', $invoice->sourceInvoice) }}"
+                                            class="text-decoration-none text-secondary"
+                                            data-bs-toggle="tooltip"
+                                            data-bs-placement="top"
+                                            title="{{ $refTypeText }} cho tờ số {{ $srcCode }}"
+                                            aria-label="{{ $refTypeText }} cho tờ số {{ $srcCode }}"
+                                        >
+                                            <i class="bi bi-link-45deg"></i>
+                                        </a>
+                                    @endif
+                                </div>
                                 @if($invoice->misa_transaction_id)
                                     <div class="small text-muted">Tra cứu: {{ $invoice->misa_transaction_id }}</div>
                                 @endif
                             </td>
                             <td>{{ $invoice->salesOrder->sales_order_code ?? ($invoice->order->order_code ?? ('#' . ($invoice->sales_order_id ?? $invoice->order_id))) }}</td>
-                            <td>{{ optional($invoice->issued_at)->format('d/m/Y H:i') }}</td>
+                            <td>{{ optional($invoice->issued_at)->timezone(config('app.timezone'))->format('d/m/Y H:i') }}</td>
                             <td>
                                 @php
                                     $invoiceStatusMeta = [
@@ -131,12 +172,14 @@
                                         'cancelled' => ['label' => 'Đã hủy', 'class' => 'state-chip state-chip--red', 'icon' => 'bi-x-circle'],
                                         'draft' => ['label' => 'Nháp', 'class' => 'state-chip state-chip--gray', 'icon' => 'bi-journal-text'],
                                         'pending' => ['label' => 'Chờ xử lý', 'class' => 'state-chip state-chip--amber', 'icon' => 'bi-hourglass-split'],
+                                        'replaced' => ['label' => 'Đã bị thay thế', 'class' => 'state-chip state-chip--red', 'icon' => 'bi-arrow-repeat'],
+                                        'adjusted' => ['label' => 'Đã bị điều chỉnh', 'class' => 'state-chip state-chip--amber', 'icon' => 'bi-sliders'],
                                     ];
                                     $is = $invoiceStatusMeta[$invoice->status] ?? ['label' => ucfirst((string) $invoice->status), 'class' => 'state-chip state-chip--gray', 'icon' => 'bi-dot'];
                                 @endphp
                                 <span class="{{ $is['class'] }}"><i class="bi {{ $is['icon'] }}"></i>{{ $is['label'] }}</span>
                             </td>
-                            <td class="fw-bold text-danger">{{ number_format((float) $invoice->total_amount, 0, ',', '.') }}đ</td>
+                            <td class="fw-bold text-danger {{ in_array($invoice->status, ['replaced', 'adjusted'], true) ? 'amount-muted' : '' }}">{{ number_format((float) $invoice->total_amount, 0, ',', '.') }}đ</td>
                             <td class="text-end pe-3">
                                 <div class="dropdown d-inline-block">
                                     <button
@@ -160,6 +203,18 @@
                                                 <i class="bi bi-eye me-2 text-primary"></i>Chi tiết nội bộ
                                             </a>
                                         </li>
+                                        @if($invoice->status === 'issued')
+                                        <li>
+                                            <a class="dropdown-item" href="{{ route('admin.invoices.reference.create', [$invoice, 'replacement']) }}">
+                                                <i class="bi bi-arrow-repeat me-2 text-warning"></i>Thay thế hóa đơn
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="{{ route('admin.invoices.reference.create', [$invoice, 'adjustment']) }}">
+                                                <i class="bi bi-sliders me-2 text-info"></i>Điều chỉnh hóa đơn
+                                            </a>
+                                        </li>
+                                        @endif
                                         <li><hr class="dropdown-divider"></li>
                                         <li>
                                             <form method="POST" action="{{ route('admin.invoices.destroy', $invoice) }}" onsubmit="return confirm('Xóa hóa đơn này?');">

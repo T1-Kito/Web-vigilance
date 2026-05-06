@@ -161,7 +161,7 @@
         .nav-link {
             display: flex;
             align-items: center;
-            padding: 12px 20px;
+            padding: 7px 4px;
             color: var(--sidebar-text);
             text-decoration: none;
             border-radius: 10px;
@@ -513,6 +513,19 @@
 
     <!-- Main Content -->
     <div class="admin-main">
+        @if(session('success'))
+            <div class="alert alert-success alert-dismissible fade show shadow-sm mb-3" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+        @if(session('error'))
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm mb-3" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
         <!-- Page Content -->
         @yield('content')
     </div>
@@ -664,6 +677,18 @@
             if (errorToastEl && window.bootstrap) {
                 new bootstrap.Toast(errorToastEl).show();
             }
+
+            @php $openMisaTabUrl = request()->query('open_misa_tab', session('open_misa_tab')); @endphp
+            @if($openMisaTabUrl)
+                try {
+                    const opened = window.open(@json($openMisaTabUrl), '_blank', 'noopener');
+                    if (!opened) {
+                        console.warn('Popup bị chặn, không mở được tab MISA tự động.');
+                    }
+                } catch (e) {
+                    console.warn('Không thể tự động mở tab MISA:', e);
+                }
+            @endif
 
             poll();
         });

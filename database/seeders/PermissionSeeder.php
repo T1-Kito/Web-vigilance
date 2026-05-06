@@ -86,6 +86,7 @@ class PermissionSeeder extends Seeder
                     ['slug' => 'deliveries.delete', 'name' => 'Xóa phiếu xuất kho'],
                     ['slug' => 'invoices.view', 'name' => 'Xem hóa đơn'],
                     ['slug' => 'invoices.create', 'name' => 'Tạo hóa đơn'],
+                    ['slug' => 'invoices.edit', 'name' => 'Sửa hóa đơn'],
                     ['slug' => 'invoices.delete', 'name' => 'Xóa hóa đơn'],
                     ['slug' => 'purchase-orders.view', 'name' => 'Xem phiếu mua hàng'],
                     ['slug' => 'purchase-orders.create', 'name' => 'Tạo phiếu mua hàng'],

@@ -9,8 +9,10 @@ class Invoice extends Model
     protected $fillable = [
         'order_id',
         'sales_order_id',
+        'source_invoice_id',
         'invoice_code',
         'status',
+        'reference_action',
         'issued_at',
         'vat_percent',
         'discount_percent',
@@ -18,10 +20,12 @@ class Invoice extends Model
         'vat_amount',
         'total_amount',
         'note',
+        'reference_reason',
         'misa_ref_id',
         'misa_transaction_id',
         'misa_inv_series',
         'misa_invoice_code',
+        'misa_publish_view_url',
         'misa_request_payload',
         'misa_response_payload',
         'misa_error_message',
@@ -53,5 +57,15 @@ class Invoice extends Model
     public function salesOrder()
     {
         return $this->belongsTo(SalesOrder::class);
+    }
+
+    public function sourceInvoice()
+    {
+        return $this->belongsTo(self::class, 'source_invoice_id');
+    }
+
+    public function replacementChildren()
+    {
+        return $this->hasMany(self::class, 'source_invoice_id');
     }
 }

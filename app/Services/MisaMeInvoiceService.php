@@ -15,6 +15,40 @@ use Illuminate\Contracts\Cache\LockTimeoutException;
 
 class MisaMeInvoiceService
 {
+    public function getDraftViewUrl(Invoice $invoice): string
+    {
+        $requestPayload = $invoice->misa_request_payload;
+        if (!is_array($requestPayload) || empty($requestPayload)) {
+            throw new \RuntimeException('Hóa đơn nháp chưa có dữ liệu request để mở bản nháp trên MISA.');
+        }
+
+        $token = $this->getToken();
+        $response = $this->webappRequest($token)->post('/invoice/unpublishview', $requestPayload);
+
+        $body = (string) $response->body();
+        $json = null;
+        try {
+            $json = $response->json();
+        } catch (\Throwable $e) {
+            $json = null;
+        }
+
+        if (!$response->successful()) {
+            throw new \RuntimeException('MISA mở bản nháp hóa đơn trả HTTP ' . $response->status() . '. Body: ' . $this->shortenResponse($body));
+        }
+
+        $payload = is_array($json) ? $json : [];
+        $success = Arr::get($payload, 'success', Arr::get($payload, 'Success', null));
+        $errorCode = (string) Arr::get($payload, 'errorCode', Arr::get($payload, 'ErrorCode', ''));
+        $viewUrl = (string) Arr::get($payload, 'data', Arr::get($payload, 'Data', ''));
+
+        if ($success !== true || $errorCode !== '' || trim($viewUrl) === '') {
+            throw new \RuntimeException('MISA không trả link xem hóa đơn nháp hợp lệ. Body: ' . $this->shortenResponse($body));
+        }
+
+        return $viewUrl;
+    }
+
     public function getPublishedViewUrl(Invoice $invoice): string
     {
         $transactionId = trim((string) ($invoice->misa_transaction_id ?? ''));
@@ -91,6 +125,62 @@ class MisaMeInvoiceService
         ];
     }
 
+    public function previewFromSalesOrder(SalesOrder $salesOrder, ?Quote $quote = null, array $overrides = [], ?array $reference = null): array
+    {
+        $token = $this->getToken();
+
+        $template = null;
+        try {
+            $template = $this->pickWebappTemplate($token);
+        } catch (\Throwable $e) {
+            logger()->warning('MISA preview template fallback', [
+                'sales_order_id' => $salesOrder->id,
+                'message' => $e->getMessage(),
+            ]);
+        }
+
+        $invoiceData = $this->makeInvoiceData($salesOrder, $quote, $template, $overrides);
+        if (is_array($reference)) {
+            $invoiceData = $this->applyReferenceInvoiceData($invoiceData, $reference);
+        }
+        $this->validateInvoiceData($invoiceData);
+
+        $previewResponse = $this->webappRequest($token)->post('/invoice/unpublishview', $invoiceData);
+        $previewBody = (string) $previewResponse->body();
+        $previewJson = null;
+        try {
+            $previewJson = $previewResponse->json();
+        } catch (\Throwable $e) {
+        }
+
+        $previewSuccess = (bool) Arr::get($previewJson ?? [], 'success', false);
+        $previewErrorCodeRaw = Arr::get($previewJson ?? [], 'errorCode', Arr::get($previewJson ?? [], 'ErrorCode', ''));
+        $previewErrorCode = is_array($previewErrorCodeRaw)
+            ? (json_encode($previewErrorCodeRaw, JSON_UNESCAPED_UNICODE) ?: '')
+            : (string) $previewErrorCodeRaw;
+
+        if (!$previewResponse->successful() || $previewSuccess !== true || $previewErrorCode !== '') {
+            logger()->error('MISA preview invoice error', [
+                'endpoint' => $this->baseUrl() . '/invoice/unpublishview',
+                'request' => $invoiceData,
+                'status' => $previewResponse->status(),
+                'response_body' => $previewBody,
+                'response_json' => is_array($previewJson) ? $previewJson : null,
+            ]);
+            $previewErrorMessage = (string) Arr::get($previewJson ?? [], 'descriptionErrorCode', Arr::get($previewJson ?? [], 'DescriptionErrorCode', ''));
+            throw new \RuntimeException('MISA trả về lỗi khi tạo bản xem trước: ' . ($previewErrorCode !== '' ? $previewErrorCode : 'UNKNOWN') . ($previewErrorMessage !== '' ? (' - ' . $previewErrorMessage) : ''));
+        }
+
+        $previewUrl = (string) Arr::get($previewJson ?? [], 'data', Arr::get($previewJson ?? [], 'Data', ''));
+
+        return [
+            'request' => $invoiceData,
+            'response' => is_array($previewJson) ? $previewJson : [],
+            'preview_url' => $previewUrl,
+            'template' => $template,
+        ];
+    }
+
     public function createDraftFromSalesOrder(SalesOrder $salesOrder, ?Quote $quote = null, array $overrides = []): array
     {
         $token = $this->getToken();
@@ -106,6 +196,9 @@ class MisaMeInvoiceService
         }
 
         $invoiceData = $this->makeInvoiceData($salesOrder, $quote, $template, $overrides);
+        if (is_array($reference)) {
+            $invoiceData = $this->applyReferenceInvoiceData($invoiceData, $reference);
+        }
         $this->validateInvoiceData($invoiceData);
 
         logger()->info('MISA create draft request', [
@@ -174,7 +267,7 @@ class MisaMeInvoiceService
         ];
     }
 
-    public function issueFromSalesOrder(SalesOrder $salesOrder, ?Quote $quote = null, array $overrides = [], bool $draftOnly = false): array
+    public function issueFromSalesOrder(SalesOrder $salesOrder, ?Quote $quote = null, array $overrides = [], bool $draftOnly = false, ?array $reference = null): array
     {
         $token = $this->getToken();
 
@@ -189,7 +282,25 @@ class MisaMeInvoiceService
         }
 
         $invoiceData = $this->makeInvoiceData($salesOrder, $quote, $template, $overrides);
+        if (is_array($reference)) {
+            $invoiceData = $this->applyReferenceInvoiceData($invoiceData, $reference);
+        }
         $this->validateInvoiceData($invoiceData);
+
+        logger()->info('MISA invoice payload reference debug', [
+            'reference_mode' => is_array($reference ?? null) ? ($reference['reference_mode'] ?? $reference['type'] ?? null) : null,
+            'reference_type' => Arr::get($invoiceData, 'ReferenceType'),
+            'org_invoice_type' => Arr::get($invoiceData, 'OrgInvoiceType'),
+            'org_inv_template_no' => Arr::get($invoiceData, 'OrgInvTemplateNo'),
+            'org_inv_series' => Arr::get($invoiceData, 'OrgInvSeries'),
+            'org_inv_no' => Arr::get($invoiceData, 'OrgInvNo'),
+            'org_inv_date' => Arr::get($invoiceData, 'OrgInvDate'),
+            'invoice_note' => Arr::get($invoiceData, 'InvoiceNote'),
+            'inv_series_new' => Arr::get($invoiceData, 'InvSeries'),
+            'inv_date_new' => Arr::get($invoiceData, 'InvDate'),
+            'sales_order_id' => $salesOrder->id,
+            'draft_only' => $draftOnly,
+        ]);
 
         $signType = $draftOnly ? 1 : (int) $this->settings('sign_type', 2);
         if (!$draftOnly && !in_array($signType, [2, 5], true)) {
@@ -632,9 +743,30 @@ class MisaMeInvoiceService
     protected function makeInvoiceData(SalesOrder $salesOrder, ?Quote $quote, ?array $template, array $overrides = []): array
     {
         $salesOrder->loadMissing(['items.product']);
-        $items = $salesOrder->items->values();
+        $overrideLines = collect($overrides['line_items'] ?? [])->filter(fn ($row) => is_array($row))->values();
+        if ($overrideLines->isNotEmpty()) {
+            $items = $overrideLines->map(function (array $row, int $index) {
+                return (object) [
+                    'quantity' => (float) ($row['quantity'] ?? 0),
+                    'unit_price' => (float) ($row['unit_price'] ?? 0),
+                    'unit' => (string) ($row['unit'] ?? 'Cái'),
+                    'vat_percent' => (float) ($row['vat_percent'] ?? 8),
+                    'product_id' => $row['product_id'] ?? null,
+                    'product' => (object) [
+                        'name' => (string) ($row['item_name'] ?? ('Dòng ' . ($index + 1))),
+                        'information' => (string) ($row['description'] ?? ($row['item_name'] ?? '')),
+                        'description' => (string) ($row['description'] ?? ($row['item_name'] ?? '')),
+                        'serial_number' => (string) ($row['item_code'] ?? ($row['product_id'] ?? '')),
+                    ],
+                ];
+            })->values();
+        } else {
+            $items = $salesOrder->items->values();
+        }
         $exchangeRate = 1;
-        $discountPercent = max(0, (float) ($salesOrder->discount_percent ?? ($quote->discount_percent ?? 0)));
+        $discountPercent = $overrideLines->isNotEmpty()
+            ? 0.0
+            : max(0, (float) ($salesOrder->discount_percent ?? ($quote->discount_percent ?? 0)));
 
         $roundMoney = static fn (float $value): float => (float) round($value, 0);
 
@@ -749,6 +881,21 @@ class MisaMeInvoiceService
         $overrideReceiverEmail = trim((string) ($overrides['receiver_email'] ?? ''));
         $receiverEmail = $overrideReceiverEmail !== '' ? $overrideReceiverEmail : $defaultReceiverEmail;
 
+        $buyerLegalName = trim((string) ($overrides['buyer_legal_name'] ?? ''));
+        if ($buyerLegalName === '') {
+            $buyerLegalName = (string) ($salesOrder->invoice_company_name ?: $salesOrder->receiver_name);
+        }
+
+        $buyerTaxCode = trim((string) ($overrides['buyer_tax_code'] ?? ''));
+        if ($buyerTaxCode === '') {
+            $buyerTaxCode = (string) ($salesOrder->customer_tax_code ?? '');
+        }
+
+        $buyerAddress = trim((string) ($overrides['buyer_address'] ?? ''));
+        if ($buyerAddress === '') {
+            $buyerAddress = (string) ($salesOrder->invoice_address ?: $salesOrder->receiver_address);
+        }
+
         $payload = [
             'RefID' => $refId,
             'InvoiceTemplateID' => $invoiceTemplateId,
@@ -774,9 +921,9 @@ class MisaMeInvoiceService
             'ModifiedBy' => (string) ($this->settings('username', 'ERP') ?: 'ERP'),
             'ContactName' => $receiverName,
             'ReceiverName' => $receiverName,
-            'BuyerLegalName' => (string) ($salesOrder->invoice_company_name ?: $salesOrder->receiver_name),
-            'BuyerTaxCode' => (string) ($salesOrder->customer_tax_code ?? ''),
-            'BuyerAddress' => (string) ($salesOrder->invoice_address ?: $salesOrder->receiver_address),
+            'BuyerLegalName' => $buyerLegalName,
+            'BuyerTaxCode' => $buyerTaxCode,
+            'BuyerAddress' => $buyerAddress,
             'BuyerFullName' => (string) ($salesOrder->receiver_name ?? ''),
             'BuyerEmail' => (string) ($salesOrder->customer_email ?? ''),
             'OriginalInvoiceDetail' => $lineItems,
@@ -829,6 +976,43 @@ class MisaMeInvoiceService
         return substr($series, 1, 1) === 'C';
     }
 
+    protected function applyReferenceInvoiceData(array $invoiceData, array $reference): array
+    {
+        $mode = (string) ($reference['reference_mode'] ?? $reference['type'] ?? '');
+        $type = $mode === 'adjustment' ? 'adjustment' : ($mode === 'replacement' ? 'replacement' : '');
+        $orgInvSeries = strtoupper(trim((string) ($reference['org_inv_series'] ?? '')));
+        $orgInvTemplateNo = trim((string) ($reference['org_inv_template_no'] ?? ''));
+        $orgInvNo = trim((string) ($reference['org_inv_no'] ?? ''));
+        $orgInvDate = trim((string) ($reference['org_inv_date'] ?? ''));
+        $invoiceNote = trim((string) ($reference['invoice_note'] ?? ''));
+
+        if (!in_array($type, ['replacement', 'adjustment'], true)) {
+            throw new \RuntimeException('Loại nghiệp vụ thay thế/điều chỉnh không hợp lệ.');
+        }
+        if ($orgInvSeries === '' || mb_strlen($orgInvSeries) < 7) {
+            throw new \RuntimeException('Thiếu hoặc sai ký hiệu hóa đơn gốc để phát hành thay thế/điều chỉnh.');
+        }
+        if ($orgInvNo === '') {
+            throw new \RuntimeException('Thiếu số hóa đơn gốc để phát hành thay thế/điều chỉnh.');
+        }
+        if ($orgInvDate === '') {
+            throw new \RuntimeException('Thiếu ngày hóa đơn gốc để phát hành thay thế/điều chỉnh.');
+        }
+
+        $invoiceData['ReferenceType'] = $type === 'replacement' ? 1 : 2;
+        $invoiceData['OrgInvoiceType'] = 1;
+        $invoiceData['OrgInvTemplateNo'] = mb_substr($orgInvSeries, 0, 1);
+        // Theo tài liệu MISA: OrgInvSeries là 6 ký tự cuối của ký hiệu hóa đơn gốc.
+        $invoiceData['OrgInvSeries'] = mb_substr($orgInvSeries, -6);
+        $invoiceData['OrgInvNo'] = $orgInvNo;
+        $invoiceData['OrgInvDate'] = $orgInvDate;
+        if ($invoiceNote !== '') {
+            $invoiceData['InvoiceNote'] = $invoiceNote;
+        }
+
+        return $invoiceData;
+    }
+
     protected function validateInvoiceData(array $invoiceData): void
     {
         if (trim((string) Arr::get($invoiceData, 'RefID', '')) === '') {
@@ -842,8 +1026,8 @@ class MisaMeInvoiceService
 
         foreach ($details as $idx => $detail) {
             $amount = (float) Arr::get((array) $detail, 'AmountOC', 0);
-            if ($amount <= 0) {
-                throw new \RuntimeException('Payload MISA không hợp lệ: OriginalInvoiceDetail[' . $idx . '].AmountOC phải > 0.');
+            if (abs($amount) < 0.0000001) {
+                throw new \RuntimeException('Payload MISA không hợp lệ: OriginalInvoiceDetail[' . $idx . '].AmountOC không được bằng 0.');
             }
 
             $vatRateName = (string) Arr::get((array) $detail, 'VATRateName', '');

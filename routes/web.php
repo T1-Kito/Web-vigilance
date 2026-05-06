@@ -813,7 +813,7 @@ Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::get('sales-orders/{salesOrder}/invoices/create', [\App\Http\Controllers\Admin\SalesOrderAdminController::class, 'createInvoice'])->name('sales-orders.invoices.create');
     Route::post('sales-orders/{salesOrder}/invoices', [\App\Http\Controllers\Admin\SalesOrderAdminController::class, 'storeInvoice'])->name('sales-orders.invoices.store');
     Route::post('sales-orders/{salesOrder}/invoices/misa/publish', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'publishMisaForSalesOrder'])->name('sales-orders.invoices.misa.publish');
-    Route::post('sales-orders/{salesOrder}/invoices/issue-misa', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'publishMisaForSalesOrder'])->name('sales-orders.invoices.issue-misa');
+    Route::post('sales-orders/{salesOrder}/invoices/issue-misa', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'issueMisaForSalesOrder'])->name('sales-orders.invoices.issue-misa');
     Route::patch('sales-orders/{salesOrder}/payment', [\App\Http\Controllers\Admin\SalesOrderAdminController::class, 'updatePayment'])->name('sales-orders.payment.update');
     Route::delete('sales-orders/{salesOrder}', [\App\Http\Controllers\Admin\SalesOrderAdminController::class, 'destroy'])->name('sales-orders.destroy');
 
@@ -869,6 +869,9 @@ Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::get('invoices/{invoice}', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'show'])->name('invoices.show')->middleware('permission:invoices.view');
     Route::get('invoices/{invoice}/open-misa', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'openMisa'])->name('invoices.open-misa')->middleware('permission:invoices.view');
     Route::post('invoices/{invoice}/verify-misa', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'verifyMisa'])->name('invoices.verify-misa')->middleware('permission:invoices.view');
+    Route::get('invoices/{invoice}/reference/{type}', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'createReference'])->name('invoices.reference.create')->middleware('permission:invoices.edit');
+    Route::post('invoices/{invoice}/reference/{type}', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'storeReference'])->name('invoices.reference.store')->middleware('permission:invoices.edit');
+    Route::post('invoices/{invoice}/reference/{type}/preview', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'previewReference'])->name('invoices.reference.preview')->middleware('permission:invoices.edit');
     Route::delete('invoices/{invoice}', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'destroy'])->name('invoices.destroy')->middleware('permission:invoices.delete');
 
     // Purchase management

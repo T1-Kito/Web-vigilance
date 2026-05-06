@@ -362,6 +362,9 @@
                 <div class="small fst-italic text-muted">Vui lòng kiểm tra thông tin trước khi phát hành.</div>
                 <div class="d-flex gap-2">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-outline-info" id="saveDraftFromDeliveryBtn">
+                        <i class="bi bi-file-earmark-text me-1"></i>Hóa đơn nháp
+                    </button>
                     <button type="button" class="btn btn-primary" id="confirmIssueFromDeliveryBtn">Xác nhận & Phát hành</button>
                 </div>
             </div>
@@ -372,15 +375,33 @@
 <script>
     (function () {
         const issueButton = document.getElementById('confirmIssueFromDeliveryBtn');
+        const draftButton = document.getElementById('saveDraftFromDeliveryBtn');
         const form = document.getElementById('issueMisaFromDeliveryForm');
 
         if (!issueButton || !form) return;
 
         issueButton.addEventListener('click', function () {
             issueButton.disabled = true;
+            if (draftButton) draftButton.disabled = true;
             form.action = '{{ route('admin.sales-orders.invoices.misa.publish', $salesOrder) }}';
+            form.removeAttribute('target');
             form.submit();
         });
+
+        if (draftButton) {
+            draftButton.addEventListener('click', function () {
+                draftButton.disabled = true;
+                issueButton.disabled = true;
+                form.action = '{{ route('admin.sales-orders.invoices.issue-misa', $salesOrder) }}';
+                form.setAttribute('target', '_blank');
+                form.submit();
+                setTimeout(function () {
+                    form.removeAttribute('target');
+                    draftButton.disabled = false;
+                    issueButton.disabled = false;
+                }, 1200);
+            });
+        }
     })();
 </script>
 @endif
