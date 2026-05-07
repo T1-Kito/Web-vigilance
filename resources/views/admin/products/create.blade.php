@@ -23,7 +23,6 @@
             padding: .2rem .55rem;
         }
         .product-form-misa .card {
-            border: 1px solid #e2e8f0 !important;
             border-radius: 12px;
             overflow: hidden;
         }

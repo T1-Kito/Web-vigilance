@@ -35,7 +35,9 @@ class Permission
     {
         $permissions = self::userPermissions($user);
 
-        return in_array('*', $permissions, true) || in_array($permission, $permissions, true);
+        return in_array('*', $permissions, true)
+            || in_array('super.admin', $permissions, true)
+            || in_array($permission, $permissions, true);
     }
 
     public static function groupsWithPermissions()

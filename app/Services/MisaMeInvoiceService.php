@@ -131,7 +131,7 @@ class MisaMeInvoiceService
 
         $template = null;
         try {
-            $template = $this->pickWebappTemplate($token);
+            $template = $this->getPreferredTemplate($token);
         } catch (\Throwable $e) {
             logger()->warning('MISA preview template fallback', [
                 'sales_order_id' => $salesOrder->id,
@@ -857,10 +857,10 @@ class MisaMeInvoiceService
         );
         $invoiceTemplateId = (string) (
             $this->settings('invoice_template_id', '')
-            ?: Arr::get($template, 'InvoiceTemplateID')
-            ?: Arr::get($template, 'invoiceTemplateID')
             ?: Arr::get($template, 'IPTemplateID')
             ?: Arr::get($template, 'ipTemplateID')
+            ?: Arr::get($template, 'InvoiceTemplateID')
+            ?: Arr::get($template, 'invoiceTemplateID')
         );
 
         if (trim($invSeries) === '') {

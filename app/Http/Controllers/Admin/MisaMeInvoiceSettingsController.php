@@ -201,114 +201,163 @@ class MisaMeInvoiceSettingsController extends Controller
         $settings = $this->readSettings();
 
         try {
-            $tokenResponse = Http::baseUrl(rtrim((string) $settings['base_url'], '/'))
-                ->acceptJson()
-                ->timeout((int) ($settings['timeout'] ?? 30))
-                ->post('/webapp/token', [
-                    'Appid' => $settings['app_id'] ?? '',
-                    'TaxCode' => $settings['tax_code'] ?? '',
-                    'Username' => $settings['username'] ?? '',
-                    'Password' => $settings['password'] ?? '',
-                ]);
-
-            $tokenBody = (string) $tokenResponse->body();
-            $tokenPayload = null;
-            try {
-                $tokenPayload = $tokenResponse->json();
-            } catch (\Throwable $e) {
-                $tokenPayload = null;
-            }
-
-            $token = (string) (
-                Arr::get($tokenPayload, 'data.access_token')
-                ?? Arr::get($tokenPayload, 'Data.access_token')
-                ?? Arr::get($tokenPayload, 'Data')
-                ?? Arr::get($tokenPayload, 'data')
-                ?? ''
-            );
-
-            if ($token === '') {
-                return back()->with('error', 'Không lấy được webapp token để tải danh sách mẫu hóa đơn. Body: ' . $tokenBody);
-            }
-
-            $makeTemplateCall = function (bool $invoiceWithCode) use ($settings, $token) {
-                $response = Http::baseUrl(rtrim((string) $settings['base_url'], '/'))
-                    ->acceptJson()
-                    ->withToken($token)
-                    ->withHeaders(['TaxCode' => (string) ($settings['tax_code'] ?? '')])
-                    ->timeout((int) ($settings['timeout'] ?? 30))
-                    ->post('/webapp/templates?invoiceWithCode=' . ($invoiceWithCode ? 'true' : 'false'), [
-                        'taxcode' => $settings['tax_code'] ?? '',
-                        'username' => $settings['username'] ?? '',
-                        'password' => $settings['password'] ?? '',
-                    ]);
-
-                $body = (string) $response->body();
-                $json = null;
-                try {
-                    $json = $response->json();
-                } catch (\Throwable $e) {
-                    $json = null;
-                }
-
-                $items = Arr::get($json, 'data', Arr::get($json, 'Data', []));
-                if (is_string($items)) {
-                    $decodedItems = json_decode($items, true);
-                    $items = is_array($decodedItems) ? $decodedItems : [];
-                }
-                if (!is_array($items)) {
-                    $items = [];
-                }
-
-                return [
-                    'invoice_with_code' => $invoiceWithCode,
-                    'status' => $response->status(),
-                    'successful' => $response->successful(),
-                    'body' => $body,
-                    'items' => $items,
-                ];
-            };
-
-            $withCode = $makeTemplateCall(true);
-            $withoutCode = $makeTemplateCall(false);
-
-            $merged = [];
-            foreach (array_merge($withCode['items'], $withoutCode['items']) as $item) {
-                if (!is_array($item)) {
-                    continue;
-                }
-
-                $key = (string) (
-                    data_get($item, 'InvoiceTemplateID')
-                    ?? data_get($item, 'invoiceTemplateID')
-                    ?? data_get($item, 'IPTemplateID')
-                    ?? data_get($item, 'ipTemplateID')
-                    ?? Str::uuid()->toString()
-                );
-                $merged[$key] = $item;
-            }
+            $templatesResult = $this->fetchInvoiceTemplatesFromApi($settings);
 
             return back()->with([
-                'success' => 'Đã gọi API webapp/templates từ MISA (invoiceWithCode=true/false).',
+                'success' => 'Đã gọi API /invoice/templates từ MISA (invoiceWithCode=true/false).',
                 'misa_webapp_templates' => [
-                    'token_status' => $tokenResponse->status(),
-                    'token_body' => $tokenBody,
-                    'with_code' => $withCode,
-                    'without_code' => $withoutCode,
-                    'status' => ($withCode['status'] === 200 || $withoutCode['status'] === 200) ? 200 : ($withCode['status'] ?: $withoutCode['status']),
-                    'successful' => !empty($withCode['successful']) || !empty($withoutCode['successful']),
-                    'body' => json_encode([
-                        'with_code' => $withCode['body'],
-                        'without_code' => $withoutCode['body'],
-                    ], JSON_UNESCAPED_UNICODE),
-                    'items' => array_values($merged),
+                    'status' => $templatesResult['status'],
+                    'successful' => $templatesResult['successful'],
+                    'body' => $templatesResult['body'],
+                    'items' => $templatesResult['items'],
                 ],
             ]);
         } catch (\Throwable $e) {
             report($e);
 
-            return back()->with('error', 'Lấy mẫu hóa đơn webapp thất bại: ' . $e->getMessage());
+            return back()->with('error', 'Lấy mẫu hóa đơn thất bại: ' . $e->getMessage());
         }
+    }
+
+    public function invoiceTemplates(Request $request)
+    {
+        $settings = $this->readSettings();
+
+        try {
+            $templatesResult = $this->fetchInvoiceTemplatesFromApi($settings);
+
+            return view('admin.misa_meinvoice.invoice-templates', [
+                'settings' => $settings,
+                'templates' => $templatesResult['items'],
+                'result' => $templatesResult,
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return view('admin.misa_meinvoice.invoice-templates', [
+                'settings' => $settings,
+                'templates' => [],
+                'result' => [
+                    'status' => null,
+                    'successful' => false,
+                    'body' => '',
+                    'error' => $e->getMessage(),
+                ],
+            ]);
+        }
+    }
+
+    public function saveDefaultInvoiceTemplate(Request $request)
+    {
+        $validated = $request->validate([
+            'invoice_template_id' => ['required', 'string', 'max:100'],
+            'inv_series' => ['required', 'string', 'max:50'],
+            'inv_template_no' => ['nullable', 'string', 'max:50'],
+            'template_name' => ['nullable', 'string', 'max:255'],
+            'is_used' => ['nullable', 'boolean'],
+        ]);
+
+        $settings = $this->readSettings();
+        $settings['invoice_template_id'] = trim((string) $validated['invoice_template_id']);
+        $settings['inv_series'] = trim((string) $validated['inv_series']);
+        $settings['default_invoice_template_name'] = trim((string) ($validated['template_name'] ?? ''));
+        $settings['default_invoice_template_no'] = trim((string) ($validated['inv_template_no'] ?? ''));
+        $settings['default_invoice_template_is_used'] = (bool) ($validated['is_used'] ?? false);
+
+        File::ensureDirectoryExists(dirname($this->settingsPath));
+        File::put($this->settingsPath, json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
+        return back()->with('success', 'Đã lưu mẫu hóa đơn mặc định để phát hành nhanh.');
+    }
+
+    private function fetchInvoiceTemplatesFromApi(array $settings): array
+    {
+        $tokenResponse = Http::baseUrl(rtrim((string) $settings['base_url'], '/'))
+            ->acceptJson()
+            ->timeout((int) ($settings['timeout'] ?? 30))
+            ->post('/auth/token', [
+                'appid' => $settings['app_id'] ?? '',
+                'taxcode' => $settings['tax_code'] ?? '',
+                'username' => $settings['username'] ?? '',
+                'password' => $settings['password'] ?? '',
+            ]);
+
+        $tokenBody = (string) $tokenResponse->body();
+        $tokenPayload = null;
+        try {
+            $tokenPayload = $tokenResponse->json();
+        } catch (\Throwable $e) {
+            $tokenPayload = null;
+        }
+
+        $token = (string) (Arr::get($tokenPayload, 'Data') ?? Arr::get($tokenPayload, 'data', ''));
+        if ($token === '') {
+            throw new \RuntimeException('Không lấy được token để gọi /invoice/templates. Body: ' . $tokenBody);
+        }
+
+        $callTemplates = function (bool $invoiceWithCode) use ($settings, $token): array {
+            $response = Http::baseUrl(rtrim((string) $settings['base_url'], '/'))
+                ->acceptJson()
+                ->withToken($token)
+                ->timeout((int) ($settings['timeout'] ?? 30))
+                ->get('/invoice/templates', [
+                    'invoiceWithCode' => $invoiceWithCode ? 'true' : 'false',
+                    'ticket' => 'false',
+                ]);
+
+            $body = (string) $response->body();
+            $json = null;
+            try {
+                $json = $response->json();
+            } catch (\Throwable $e) {
+                $json = null;
+            }
+
+            $items = Arr::get($json, 'Data', Arr::get($json, 'data', []));
+            if (is_string($items)) {
+                $decoded = json_decode($items, true);
+                $items = is_array($decoded) ? $decoded : [];
+            }
+            if (!is_array($items)) {
+                $items = [];
+            }
+
+            return [
+                'status' => $response->status(),
+                'successful' => $response->successful(),
+                'body' => $body,
+                'items' => $items,
+            ];
+        };
+
+        $withCode = $callTemplates(true);
+        $withoutCode = $callTemplates(false);
+
+        $merged = [];
+        foreach (array_merge($withCode['items'], $withoutCode['items']) as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $key = (string) (
+                data_get($item, 'InvoiceTemplateID')
+                ?? data_get($item, 'invoiceTemplateID')
+                ?? data_get($item, 'IPTemplateID')
+                ?? data_get($item, 'ipTemplateID')
+                ?? Str::uuid()->toString()
+            );
+            $merged[$key] = $item;
+        }
+
+        return [
+            'status' => ($withCode['status'] === 200 || $withoutCode['status'] === 200) ? 200 : ($withCode['status'] ?: $withoutCode['status']),
+            'successful' => !empty($withCode['successful']) || !empty($withoutCode['successful']),
+            'body' => json_encode([
+                'with_code' => $withCode['body'],
+                'without_code' => $withoutCode['body'],
+            ], JSON_UNESCAPED_UNICODE),
+            'items' => array_values($merged),
+        ];
     }
 
     private function readSettings(): array

@@ -105,10 +105,7 @@
                         @csrf
                         <button type="submit" class="btn btn-outline-primary">Lấy chứng thư số</button>
                     </form>
-                    <form method="POST" action="{{ route('admin.misa-meinvoice.settings.webapp-templates') }}">
-                        @csrf
-                        <button type="submit" class="btn btn-outline-warning">Lấy mẫu webapp</button>
-                    </form>
+                    <a href="{{ route('admin.misa-meinvoice.settings.invoice-templates') }}" class="btn btn-outline-warning">Danh sách mẫu hóa đơn</a>
                     <form method="POST" action="{{ route('admin.misa-meinvoice.settings.test') }}">
                         @csrf
                         <button type="submit" class="btn btn-success">Test kết nối</button>

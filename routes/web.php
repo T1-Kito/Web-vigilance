@@ -858,6 +858,8 @@ Route::prefix('cp-admin')->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::post('misa-meinvoice/test', [\App\Http\Controllers\Admin\MisaMeInvoiceSettingsController::class, 'testConnection'])->name('misa-meinvoice.settings.test');
     Route::post('misa-meinvoice/certificates', [\App\Http\Controllers\Admin\MisaMeInvoiceSettingsController::class, 'fetchCertificates'])->name('misa-meinvoice.settings.certificates');
     Route::post('misa-meinvoice/webapp-templates', [\App\Http\Controllers\Admin\MisaMeInvoiceSettingsController::class, 'fetchWebappTemplates'])->name('misa-meinvoice.settings.webapp-templates');
+    Route::get('misa-meinvoice/invoice-templates', [\App\Http\Controllers\Admin\MisaMeInvoiceSettingsController::class, 'invoiceTemplates'])->name('misa-meinvoice.settings.invoice-templates');
+    Route::post('misa-meinvoice/invoice-templates/default', [\App\Http\Controllers\Admin\MisaMeInvoiceSettingsController::class, 'saveDefaultInvoiceTemplate'])->name('misa-meinvoice.settings.invoice-templates.default');
 
     // Invoice management (hóa đơn)
     Route::get('invoices', [\App\Http\Controllers\Admin\InvoiceAdminController::class, 'index'])->name('invoices.index')->middleware('permission:invoices.view');

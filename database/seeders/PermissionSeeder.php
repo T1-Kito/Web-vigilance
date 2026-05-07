@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Permission;
 use App\Models\PermissionGroup;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class PermissionSeeder extends Seeder
@@ -88,6 +89,7 @@ class PermissionSeeder extends Seeder
                     ['slug' => 'invoices.create', 'name' => 'Tạo hóa đơn'],
                     ['slug' => 'invoices.edit', 'name' => 'Sửa hóa đơn'],
                     ['slug' => 'invoices.delete', 'name' => 'Xóa hóa đơn'],
+                    ['slug' => 'debts.view', 'name' => 'Xem công nợ'],
                     ['slug' => 'purchase-orders.view', 'name' => 'Xem phiếu mua hàng'],
                     ['slug' => 'purchase-orders.create', 'name' => 'Tạo phiếu mua hàng'],
                     ['slug' => 'purchase-orders.edit', 'name' => 'Sửa phiếu mua hàng'],
@@ -154,6 +156,25 @@ class PermissionSeeder extends Seeder
                     ]
                 );
             }
+        }
+
+        $debtViewPermission = Permission::query()->where('slug', 'debts.view')->first();
+        if ($debtViewPermission) {
+            User::query()
+                ->where('role', 'admin')
+                ->orderBy('id')
+                ->chunkById(200, function ($users) use ($debtViewPermission) {
+                    foreach ($users as $user) {
+                        $permissions = is_array($user->permissions) ? $user->permissions : [];
+                        if (in_array('super.admin', $permissions, true) || in_array('debts.view', $permissions, true)) {
+                            continue;
+                        }
+
+                        $permissions[] = 'debts.view';
+                        $user->permissions = array_values(array_unique($permissions));
+                        $user->save();
+                    }
+                });
         }
     }
 }

@@ -286,7 +286,6 @@
         .content-card {
             background: #ffffff;
             border-radius: 14px;
-            border: 1px solid #e2e8f0;
             box-shadow: none;
             overflow: hidden;
         }
@@ -395,7 +394,8 @@
             <div class="nav-item"><a href="{{ route('admin.deliveries.index') }}" class="nav-link {{ request()->routeIs('admin.deliveries.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-truck"></i></div>Phiếu xuất kho</a></div>
             @endif
             @if($can('invoices.view') || $can('invoices.create') || $can('invoices.delete'))
-            <div class="nav-item"><a href="{{ route('admin.invoices.index') }}" class="nav-link {{ request()->routeIs('admin.invoices.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-receipt-cutoff"></i></div>Hóa đơn phát hành</a></div>
+            <div class="nav-item"><a href="{{ route('admin.invoices.index') }}" class="nav-link {{ request()->routeIs('admin.invoices.*') && !request()->routeIs('admin.misa-meinvoice.settings.invoice-templates') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-receipt-cutoff"></i></div>Hóa đơn phát hành</a></div>
+            <div class="nav-item"><a href="{{ route('admin.misa-meinvoice.settings.invoice-templates') }}" class="nav-link {{ request()->routeIs('admin.misa-meinvoice.settings.invoice-templates') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-file-earmark-text"></i></div>Hóa đơn mẫu</a></div>
             @endif
             @if($can('debts.view'))
             <div class="nav-item"><a href="{{ route('admin.debts.index') }}" class="nav-link {{ request()->routeIs('admin.debts.*') ? 'active' : '' }}"><div class="nav-icon"><i class="bi bi-cash-coin"></i></div>Công nợ</a></div>

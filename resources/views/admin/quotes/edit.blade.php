@@ -1098,13 +1098,13 @@
     });
 
     window.addEventListener('scroll', function () {
-        if (suggestEl && suggestEl.style.display === 'block' && activeInput) {
-            positionSuggest(activeInput);
+        if (suggestEl && suggestEl.style.display === 'block') {
+            hideSuggest();
         }
     }, true);
     window.addEventListener('resize', function () {
-        if (suggestEl && suggestEl.style.display === 'block' && activeInput) {
-            positionSuggest(activeInput);
+        if (suggestEl && suggestEl.style.display === 'block') {
+            hideSuggest();
         }
     });
 
